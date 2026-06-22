@@ -14,6 +14,7 @@
 - 使用外部编辑器就地编辑镜像内的文件
 - 保存为 ISO 格式
 - 完整的国际化支持（gettext）
+- 现代化 GTK4 + Adwaita 用户界面
 
 ## 截图
 
@@ -25,37 +26,33 @@
 
 | 发行版 | 需要安装的包 |
 |--------|-------------|
-| Debian / Ubuntu | `build-essential libgtk2.0-dev pkg-config gettext` |
-| Fedora | `gcc make gtk2-devel pkgconfig gettext-devel` |
-| Arch | `base-devel gtk2 pkgconf gettext` |
+| Debian / Ubuntu | `build-essential valac libgtk-4-dev libadwaita-1-dev pkg-config gettext` |
+| Fedora | `gcc make vala gtk4-devel libadwaita-devel pkgconfig gettext-devel` |
+| Arch | `base-devel vala gtk4 libadwaita pkgconf gettext` |
 | Slackware | 无需额外安装 |
 
 ## 编译
 
 ```bash
-make
+make -f Makefile.vala
 ```
 
 ### 编译选项
 
 | 选项 | 说明 |
 |------|------|
-| `USE_SYSTEM_INIPARSER=1` | 使用系统 libiniparser 而非内置的 `iniparser-4.1/` |
-| `WITHOUT_NLS=1` | 禁用国际化 |
 | `PREFIX=/path` | 安装前缀（默认 `/usr/local`） |
-| `DEFAULT_EDITOR=prog` | 默认文件编辑器（默认 `leafpad`） |
-| `DEFAULT_VIEWER=prog` | 默认文件查看器（默认 `firefox`） |
 
 ## 安装
 
 ```bash
-sudo make install
+sudo make -f Makefile.vala install
 ```
 
 卸载：
 
 ```bash
-sudo make uninstall
+sudo make -f Makefile.vala uninstall
 ```
 
 也可以在编译目录直接运行 `./isomaster`（未安装时图标不可用）。
@@ -64,32 +61,39 @@ sudo make uninstall
 
 ```
 isomaster/
-├── isomaster.c        # 程序入口
-├── window.c           # 主窗口、菜单栏、工具栏
-├── browser.c          # 文件浏览器公共逻辑
-├── fsbrowser.c        # 本地文件系统浏览器（左侧面板）
-├── isobrowser.c       # ISO 镜像内容浏览器（右侧面板）
-├── settings.c         # 配置读写（基于 iniparser）
-├── boot.c             # 引导镜像设置对话框
-├── editfile.c         # 调用外部编辑器编辑镜像内文件
-├── about.c / error.c  # 关于对话框、错误码翻译
-├── bk/                # bkisofs 库（ISO 读写核心，纯 C）
-│   ├── bkRead.c       #   ISO 9660/Joliet 目录结构读取
-│   ├── bkWrite.c      #   ISO 镜像写入
-│   ├── bkAdd.c        #   文件/目录添加
-│   ├── bkDelete.c     #   文件/目录删除
-│   ├── bkExtract.c    #   文件提取到本地
-│   ├── bkPath.c       #   ISO 内部路径操作
-│   ├── bkMangle.c     #   ISO 9660 文件名规范转换
-│   ├── bkCache.c      #   块缓存
-│   ├── example.c      #   独立使用示例
+├── isomaster.vala      # 主应用程序（Vala/GTK4/Adwaita）
+├── isomaster.c         # Vala 生成的 C 代码
+├── bk.vapi             # bk 库的 Vala 绑定
+├── iniparser.vapi      # iniparser 库的 Vala 绑定
+├── Makefile.vala       # Vala 版本构建系统
+├── bk/                 # bkisofs 库（ISO 读写核心，纯 C）
+│   ├── bkRead.c        #   ISO 9660/Joliet 目录结构读取
+│   ├── bkWrite.c       #   ISO 镜像写入
+│   ├── bkAdd.c         #   文件/目录添加
+│   ├── bkDelete.c      #   文件/目录删除
+│   ├── bkExtract.c     #   文件提取到本地
+│   ├── bkPath.c        #   ISO 内部路径操作
+│   ├── bkMangle.c      #   ISO 9660 文件名规范转换
+│   ├── bkCache.c       #   块缓存
+│   ├── example.c       #   独立使用示例
 │   └── ...
-├── iniparser-4.1/     # 内置 INI 文件解析库
-├── po/                # gettext 翻译文件
-└── icons/             # 应用图标
+├── iniparser-4.1/      # 内置 INI 文件解析库
+├── po/                 # gettext 翻译文件（8 种语言）
+└── icons/              # 应用图标
 ```
 
 **架构说明：** `bk/` 目录下的库（`bk.a`）是一个独立的纯 C ISO 操作库，不依赖 GTK，可脱离 GUI 独立使用——详见 `bk/example.c`。
+
+## 支持的语言
+
+- 简体中文
+- 繁體中文
+- 日本語
+- 한국어
+- Français
+- Deutsch
+- Español
+- Русский
 
 ## 参与贡献
 

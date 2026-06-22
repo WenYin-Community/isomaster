@@ -6,8 +6,8 @@
 // Gettext support
 const string GETTEXT_PACKAGE = "isomaster";
 
-// Icon path from build system
-const string ICONPATH = "/usr/local/share/isomaster/icons";
+// Icon path - use local icons directory for development
+const string ICONPATH = "icons";
 
 // Translation helper (use _t to avoid conflict with gi18n-lib.h)
 public static string _t(string str) {
@@ -83,6 +83,7 @@ public class IsoMaster : Adw.Application {
         main_window.title = _t("ISO Master");
         main_window.default_width = settings.window_width;
         main_window.default_height = settings.window_height;
+        main_window.icon_name = "isomaster";
 
         // Build UI with Adwaita header bar
         var main_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
@@ -90,6 +91,18 @@ public class IsoMaster : Adw.Application {
         // Add header bar for title and window controls
         var header_bar = new Adw.HeaderBar();
         header_bar.title_widget = new Adw.WindowTitle(_t("ISO Master"), "");
+
+        // Menu bar
+        var menubar = build_menubar();
+        this.set_menubar(menubar);
+
+        // Add hamburger menu button to header bar
+        var menu_button = new Gtk.MenuButton();
+        menu_button.icon_name = "open-menu-symbolic";
+        menu_button.menu_model = menubar;
+        menu_button.tooltip_text = _t("Menu");
+        header_bar.pack_end(menu_button);
+
         main_box.append(header_bar);
 
         // Content area
@@ -97,10 +110,6 @@ public class IsoMaster : Adw.Application {
         main_box.append(content_box);
 
         main_window.set_content(main_box);
-
-        // Menu bar
-        var menubar = build_menubar();
-        this.set_menubar(menubar);
 
         // Toolbar
         var toolbar = build_toolbar();
@@ -141,19 +150,26 @@ public class IsoMaster : Adw.Application {
         file_menu.append(_t("_New"), "app.new");
         file_menu.append(_t("_Open"), "app.open");
         file_menu.append(_t("_Save"), "app.save");
+        file_menu.append(_t("Save _As"), "app.save-as");
         file_menu.append(_t("Create _Directory"), "app.create-dir");
         file_menu.append(_t("_Rename"), "app.rename");
+        file_menu.append(_t("_Properties"), "app.properties");
         file_menu.append(_t("_Quit"), "app.quit");
         menubar.append_submenu(_t("_File"), file_menu);
 
         // Edit menu
         var edit_menu = new GLib.Menu();
-        edit_menu.append(_t("Volume _Properties"), "app.volume-properties");
+        edit_menu.append(_t("_Edit File"), "app.edit-file");
+        edit_menu.append(_t("_View File"), "app.view-file");
+        edit_menu.append(_t("Change _Permissions"), "app.change-permissions");
+        edit_menu.append(_t("_Preferences"), "app.preferences");
         menubar.append_submenu(_t("_Edit"), edit_menu);
 
         // Tools menu
         var tools_menu = new GLib.Menu();
+        tools_menu.append(_t("Boot _Info"), "app.boot-info");
         tools_menu.append(_t("Set _Boot File"), "app.set-boot-file");
+        tools_menu.append(_t("Add Boot Record from _File"), "app.add-boot-from-file");
         tools_menu.append(_t("_Extract Boot Record"), "app.extract-boot");
         tools_menu.append(_t("_Delete Boot Record"), "app.delete-boot");
         menubar.append_submenu(_t("_Tools"), tools_menu);
@@ -161,10 +177,14 @@ public class IsoMaster : Adw.Application {
         // View menu
         var view_menu = new GLib.Menu();
         view_menu.append(_t("_Refresh"), "app.refresh");
+        view_menu.append(_t("Show _Hidden Files"), "app.show-hidden");
+        view_menu.append(_t("Sort _Directories First"), "app.sort-dirs-first");
+        view_menu.append(_t("_Case Sensitive Sort"), "app.case-sensitive");
         menubar.append_submenu(_t("_View"), view_menu);
 
         // Help menu
         var help_menu = new GLib.Menu();
+        help_menu.append(_t("_Contents"), "app.help");
         help_menu.append(_t("_About"), "app.about");
         menubar.append_submenu(_t("_Help"), help_menu);
 
@@ -187,6 +207,10 @@ public class IsoMaster : Adw.Application {
         save_action.activate.connect(() => save_iso());
         this.add_action(save_action);
 
+        var save_as_action = new GLib.SimpleAction("save-as", null);
+        save_as_action.activate.connect(() => save_iso_as());
+        this.add_action(save_as_action);
+
         var quit_action = new GLib.SimpleAction("quit", null);
         quit_action.activate.connect(() => {
             save_settings();
@@ -201,6 +225,29 @@ public class IsoMaster : Adw.Application {
         });
         this.add_action(refresh_action);
 
+        var show_hidden_action = new GLib.SimpleAction("show-hidden", null);
+        show_hidden_action.activate.connect(() => {
+            settings.show_hidden_files = !settings.show_hidden_files;
+            refresh_fs_view();
+        });
+        this.add_action(show_hidden_action);
+
+        var sort_dirs_action = new GLib.SimpleAction("sort-dirs-first", null);
+        sort_dirs_action.activate.connect(() => {
+            settings.sort_dirs_first = !settings.sort_dirs_first;
+            refresh_fs_view();
+            if (iso_loaded) refresh_iso_view();
+        });
+        this.add_action(sort_dirs_action);
+
+        var case_sensitive_action = new GLib.SimpleAction("case-sensitive", null);
+        case_sensitive_action.activate.connect(() => {
+            settings.case_sensitive_sort = !settings.case_sensitive_sort;
+            refresh_fs_view();
+            if (iso_loaded) refresh_iso_view();
+        });
+        this.add_action(case_sensitive_action);
+
         var create_dir_action = new GLib.SimpleAction("create-dir", null);
         create_dir_action.activate.connect(() => create_iso_dir());
         this.add_action(create_dir_action);
@@ -209,13 +256,37 @@ public class IsoMaster : Adw.Application {
         rename_action.activate.connect(() => rename_iso_item());
         this.add_action(rename_action);
 
-        var volume_props_action = new GLib.SimpleAction("volume-properties", null);
-        volume_props_action.activate.connect(() => show_volume_properties());
-        this.add_action(volume_props_action);
+        var properties_action = new GLib.SimpleAction("properties", null);
+        properties_action.activate.connect(() => show_volume_properties());
+        this.add_action(properties_action);
+
+        var edit_file_action = new GLib.SimpleAction("edit-file", null);
+        edit_file_action.activate.connect(() => edit_selected_file());
+        this.add_action(edit_file_action);
+
+        var view_file_action = new GLib.SimpleAction("view-file", null);
+        view_file_action.activate.connect(() => view_selected_file());
+        this.add_action(view_file_action);
+
+        var change_perms_action = new GLib.SimpleAction("change-permissions", null);
+        change_perms_action.activate.connect(() => change_permissions());
+        this.add_action(change_perms_action);
+
+        var preferences_action = new GLib.SimpleAction("preferences", null);
+        preferences_action.activate.connect(() => show_preferences());
+        this.add_action(preferences_action);
+
+        var boot_info_action = new GLib.SimpleAction("boot-info", null);
+        boot_info_action.activate.connect(() => show_boot_info());
+        this.add_action(boot_info_action);
 
         var set_boot_action = new GLib.SimpleAction("set-boot-file", null);
         set_boot_action.activate.connect(() => set_boot_file());
         this.add_action(set_boot_action);
+
+        var add_boot_action = new GLib.SimpleAction("add-boot-from-file", null);
+        add_boot_action.activate.connect(() => add_boot_record_from_file());
+        this.add_action(add_boot_action);
 
         var extract_boot_action = new GLib.SimpleAction("extract-boot", null);
         extract_boot_action.activate.connect(() => extract_boot_record());
@@ -224,6 +295,10 @@ public class IsoMaster : Adw.Application {
         var delete_boot_action = new GLib.SimpleAction("delete-boot", null);
         delete_boot_action.activate.connect(() => delete_boot_record());
         this.add_action(delete_boot_action);
+
+        var help_action = new GLib.SimpleAction("help", null);
+        help_action.activate.connect(() => show_help());
+        this.add_action(help_action);
 
         var about_action = new GLib.SimpleAction("about", null);
         about_action.activate.connect(() => show_about());
@@ -236,6 +311,9 @@ public class IsoMaster : Adw.Application {
         this.set_accels_for_action("app.quit", {"<Control>Q"});
         this.set_accels_for_action("app.rename", {"F2"});
         this.set_accels_for_action("app.refresh", {"F5"});
+        this.set_accels_for_action("app.edit-file", {"F4"});
+        this.set_accels_for_action("app.view-file", {"F3"});
+        this.set_accels_for_action("app.help", {"F1"});
     }
 
     private Gtk.Box build_toolbar() {
@@ -981,6 +1059,323 @@ public class IsoMaster : Adw.Application {
         dialog.present(main_window);
     }
 
+    // Save As functionality
+    private void save_iso_as() {
+        if (!iso_loaded) {
+            show_error(_t("No ISO image loaded"));
+            return;
+        }
+
+        var dialog = new Gtk.FileDialog();
+        dialog.title = _t("Save ISO Image");
+        var filter = new Gtk.FileFilter();
+        filter.add_pattern("*.iso");
+        filter.name = _t("ISO Images");
+        var filters = new GLib.ListStore(typeof(Gtk.FileFilter));
+        filters.append(filter);
+        dialog.filters = filters;
+
+        dialog.save.begin(main_window, null, (obj, res) => {
+            try {
+                var file = dialog.save.end(res);
+                if (file != null) {
+                    int result = Bk.write_image(file.get_path(), vol_info, 0, Bk.FNTYPE_JOLIET, null);
+                    if (result < 0) {
+                        show_error(_t("Failed to save ISO: %s"), Bk.get_error_string(result));
+                    }
+                }
+            } catch (Error e) {
+                // User cancelled
+            }
+        });
+    }
+
+    // Edit selected file (extract, open in editor, re-add)
+    private void edit_selected_file() {
+        if (!iso_loaded) {
+            show_error(_t("No ISO image loaded"));
+            return;
+        }
+
+        var selection = iso_list_view.model as Gtk.SingleSelection;
+        if (selection == null || selection.selected_item == null) {
+            show_error(_t("No file selected"));
+            return;
+        }
+
+        var item = selection.selected_item as FileItem;
+        if (item == null || item.is_dir) {
+            show_error(_t("Please select a file"));
+            return;
+        }
+
+        // Extract to temp file
+        string temp_path = Path.build_filename(Environment.get_tmp_dir(), item.name);
+        int result = Bk.extract(vol_info, item.path, temp_path, false, null);
+        if (result < 0) {
+            show_error(_t("Failed to extract: %s"), Bk.get_error_string(result));
+            return;
+        }
+
+        // Open in external editor
+        string editor = settings.editor ?? "xdg-open";
+        try {
+            Process.spawn_command_line_async("%s %s".printf(editor, temp_path));
+        } catch (Error e) {
+            show_error(_t("Failed to open editor: %s"), e.message);
+        }
+    }
+
+    // View selected file (extract, open in viewer)
+    private void view_selected_file() {
+        if (!iso_loaded) {
+            show_error(_t("No ISO image loaded"));
+            return;
+        }
+
+        var selection = iso_list_view.model as Gtk.SingleSelection;
+        if (selection == null || selection.selected_item == null) {
+            show_error(_t("No file selected"));
+            return;
+        }
+
+        var item = selection.selected_item as FileItem;
+        if (item == null || item.is_dir) {
+            show_error(_t("Please select a file"));
+            return;
+        }
+
+        // Extract to temp file
+        string temp_path = Path.build_filename(Environment.get_tmp_dir(), item.name);
+        int result = Bk.extract(vol_info, item.path, temp_path, false, null);
+        if (result < 0) {
+            show_error(_t("Failed to extract: %s"), Bk.get_error_string(result));
+            return;
+        }
+
+        // Open in external viewer
+        string viewer = settings.viewer ?? "xdg-open";
+        try {
+            Process.spawn_command_line_async("%s %s".printf(viewer, temp_path));
+        } catch (Error e) {
+            show_error(_t("Failed to open viewer: %s"), e.message);
+        }
+    }
+
+    // Change permissions of selected ISO item
+    private void change_permissions() {
+        if (!iso_loaded) {
+            show_error(_t("No ISO image loaded"));
+            return;
+        }
+
+        var selection = iso_list_view.model as Gtk.SingleSelection;
+        if (selection == null || selection.selected_item == null) {
+            show_error(_t("No file selected"));
+            return;
+        }
+
+        var item = selection.selected_item as FileItem;
+        if (item == null) {
+            show_error(_t("No file selected"));
+            return;
+        }
+
+        // Show permissions dialog
+        var dialog = new Adw.AlertDialog(_t("Change Permissions"), item.name);
+        dialog.add_response("cancel", _t("_Cancel"));
+        dialog.add_response("apply", _t("_Apply"));
+
+        var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 8);
+        box.margin_start = 12;
+        box.margin_end = 12;
+        box.margin_top = 12;
+        box.margin_bottom = 12;
+
+        // Owner permissions
+        var owner_label = new Gtk.Label(_t("Owner:"));
+        owner_label.xalign = 0;
+        box.append(owner_label);
+
+        var owner_read = new Gtk.CheckButton.with_label(_t("Read"));
+        owner_read.active = true;
+        box.append(owner_read);
+
+        var owner_write = new Gtk.CheckButton.with_label(_t("Write"));
+        owner_write.active = true;
+        box.append(owner_write);
+
+        var owner_exec = new Gtk.CheckButton.with_label(_t("Execute"));
+        owner_exec.active = false;
+        box.append(owner_exec);
+
+        // Group permissions
+        var group_label = new Gtk.Label(_t("Group:"));
+        group_label.xalign = 0;
+        box.append(group_label);
+
+        var group_read = new Gtk.CheckButton.with_label(_t("Read"));
+        group_read.active = true;
+        box.append(group_read);
+
+        var group_write = new Gtk.CheckButton.with_label(_t("Write"));
+        group_write.active = false;
+        box.append(group_write);
+
+        var group_exec = new Gtk.CheckButton.with_label(_t("Execute"));
+        group_exec.active = false;
+        box.append(group_exec);
+
+        // Other permissions
+        var other_label = new Gtk.Label(_t("Other:"));
+        other_label.xalign = 0;
+        box.append(other_label);
+
+        var other_read = new Gtk.CheckButton.with_label(_t("Read"));
+        other_read.active = true;
+        box.append(other_read);
+
+        var other_write = new Gtk.CheckButton.with_label(_t("Write"));
+        other_write.active = false;
+        box.append(other_write);
+
+        var other_exec = new Gtk.CheckButton.with_label(_t("Execute"));
+        other_exec.active = false;
+        box.append(other_exec);
+
+        dialog.extra_child = box;
+
+        dialog.response.connect((response) => {
+            if (response == "apply") {
+                // Calculate permissions
+                uint perms = 0;
+                if (owner_read.active) perms |= 0400;
+                if (owner_write.active) perms |= 0200;
+                if (owner_exec.active) perms |= 0100;
+                if (group_read.active) perms |= 0040;
+                if (group_write.active) perms |= 0020;
+                if (group_exec.active) perms |= 0010;
+                if (other_read.active) perms |= 0004;
+                if (other_write.active) perms |= 0002;
+                if (other_exec.active) perms |= 0001;
+
+                // TODO: Call bk_set_permissions when available
+                show_error(_t("Permissions set to %o"), perms);
+            }
+        });
+        dialog.present(main_window);
+    }
+
+    // Show preferences window
+    private void show_preferences() {
+        var dialog = new Adw.AlertDialog(_t("Preferences"), null);
+        dialog.add_response("ok", _t("_OK"));
+
+        var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 8);
+        box.margin_start = 12;
+        box.margin_end = 12;
+        box.margin_top = 12;
+        box.margin_bottom = 12;
+
+        // Temp directory
+        var temp_label = new Gtk.Label(_t("Temporary directory:"));
+        temp_label.xalign = 0;
+        box.append(temp_label);
+
+        var temp_entry = new Gtk.Entry();
+        temp_entry.text = settings.temp_dir ?? "/tmp";
+        box.append(temp_entry);
+
+        // Editor
+        var editor_label = new Gtk.Label(_t("Editor:"));
+        editor_label.xalign = 0;
+        box.append(editor_label);
+
+        var editor_entry = new Gtk.Entry();
+        editor_entry.text = settings.editor ?? "leafpad";
+        box.append(editor_entry);
+
+        // Viewer
+        var viewer_label = new Gtk.Label(_t("Viewer:"));
+        viewer_label.xalign = 0;
+        box.append(viewer_label);
+
+        var viewer_entry = new Gtk.Entry();
+        viewer_entry.text = settings.viewer ?? "firefox";
+        box.append(viewer_entry);
+
+        dialog.extra_child = box;
+
+        dialog.response.connect((response) => {
+            if (response == "ok") {
+                settings.temp_dir = temp_entry.text;
+                settings.editor = editor_entry.text;
+                settings.viewer = viewer_entry.text;
+            }
+        });
+        dialog.present(main_window);
+    }
+
+    // Show boot info
+    private void show_boot_info() {
+        if (!iso_loaded) {
+            show_error(_t("No ISO image loaded"));
+            return;
+        }
+
+        // TODO: Get actual boot info from bk library
+        var dialog = new Adw.AlertDialog(_t("Boot Information"), null);
+        dialog.body = _t("Boot record information will be displayed here.");
+        dialog.add_response("ok", _t("_OK"));
+        dialog.present(main_window);
+    }
+
+    // Add boot record from file
+    private void add_boot_record_from_file() {
+        if (!iso_loaded) {
+            show_error(_t("No ISO image loaded"));
+            return;
+        }
+
+        var dialog = new Gtk.FileDialog();
+        dialog.title = _t("Select Boot Record File");
+
+        dialog.open.begin(main_window, null, (obj, res) => {
+            try {
+                var file = dialog.open.end(res);
+                if (file != null) {
+                    int result = Bk.add_boot_record(vol_info, file.get_path(), Bk.BOOT_MEDIA_NO_EMULATION);
+                    if (result < 0) {
+                        show_error(_t("Failed to add boot record: %s"), Bk.get_error_string(result));
+                    } else {
+                        show_error(_t("Boot record added successfully"));
+                    }
+                }
+            } catch (Error e) {
+                // User cancelled
+            }
+        });
+    }
+
+    // Show help window
+    private void show_help() {
+        var dialog = new Adw.AlertDialog(_t("ISO Master Help"), null);
+        dialog.body = _t("ISO Master is a graphical CD image editor.") + "\n\n" +
+            _t("Keyboard shortcuts:") + "\n" +
+            "  Ctrl+N: " + _t("New ISO") + "\n" +
+            "  Ctrl+O: " + _t("Open ISO") + "\n" +
+            "  Ctrl+S: " + _t("Save ISO") + "\n" +
+            "  Ctrl+Q: " + _t("Quit") + "\n" +
+            "  F1: " + _t("Help") + "\n" +
+            "  F2: " + _t("Rename") + "\n" +
+            "  F3: " + _t("View file") + "\n" +
+            "  F4: " + _t("Edit file") + "\n" +
+            "  F5: " + _t("Refresh") + "\n" +
+            "  Delete: " + _t("Delete selected");
+        dialog.add_response("ok", _t("_OK"));
+        dialog.present(main_window);
+    }
+
     private void show_about() {
         var about = new Adw.AboutDialog();
         about.application_name = _t("ISO Master");
@@ -989,6 +1384,16 @@ public class IsoMaster : Adw.Application {
         about.developer_name = "Andrew Smith";
         about.website = "http://littlesvr.ca/isomaster/";
         about.license_type = Gtk.License.GPL_2_0;
+
+        // Set custom icon for about dialog
+        string icon_path = ICONPATH ?? "/usr/local/share/isomaster/icons";
+        try {
+            var icon_pixbuf = new Gdk.Pixbuf.from_file(icon_path + "/isomaster.png");
+            about.application_icon = "isomaster";
+        } catch (Error e) {
+            // Fallback: use default icon
+        }
+
         about.present(main_window);
     }
 
@@ -1047,7 +1452,8 @@ public class IsoMaster : Adw.Application {
 public static int main(string[] args) {
     // Initialize gettext
     GLib.Intl.setlocale(GLib.LocaleCategory.ALL, "");
-    GLib.Intl.bindtextdomain(GETTEXT_PACKAGE, null);
+    GLib.Intl.bindtextdomain(GETTEXT_PACKAGE, GLib.Environment.get_user_data_dir() + "/locale");
+    GLib.Intl.bindtextdomain(GETTEXT_PACKAGE, "/usr/share/locale");
     GLib.Intl.bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
     GLib.Intl.textdomain(GETTEXT_PACKAGE);
 

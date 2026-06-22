@@ -12,7 +12,7 @@ VALA_PKGS = --pkg gtk4 --pkg libadwaita-1 --pkg gio-2.0 --pkg glib-2.0
 
 CC = gcc
 GTK_CFLAGS = $(shell pkg-config --cflags gtk4 libadwaita-1)
-CFLAGS = -std=gnu99 -Wall -D_FILE_OFFSET_BITS=64 \
+CFLAGS = -std=gnu99 -Wall -Wno-unused-variable -D_FILE_OFFSET_BITS=64 \
 	-DICONPATH=\"$(ICONPATH)\" \
 	-DLOCALEDIR=\"$(LOCALEDIR)\" \
 	-DVERSION=\"$(VERSION)\" \

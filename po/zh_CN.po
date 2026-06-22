@@ -217,3 +217,97 @@ msgstr "设置发行者失败：%s"
 
 msgid "Error"
 msgstr "错误"
+
+# Help text
+msgid "ISO Master Help"
+msgstr "ISO Master 帮助"
+
+msgid "ISO Master is a graphical CD image editor."
+msgstr "ISO Master 是一个图形化的 CD 镜像编辑器。"
+
+msgid "Keyboard shortcuts:"
+msgstr "快捷键："
+
+msgid "Help"
+msgstr "帮助"
+
+msgid "Quit"
+msgstr "退出"
+
+msgid "View file"
+msgstr "查看文件"
+
+msgid "Edit file"
+msgstr "编辑文件"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "Delete selected"
+msgstr "删除选中"
+
+msgid "Menu"
+msgstr "菜单"
+
+msgid "Go up"
+msgstr "返回上级"
+
+msgid "Please select a file"
+msgstr "请选择一个文件"
+
+msgid "Failed to open editor: %s"
+msgstr "打开编辑器失败：%s"
+
+msgid "Failed to open viewer: %s"
+msgstr "打开查看器失败：%s"
+
+msgid "Owner:"
+msgstr "所有者："
+
+msgid "Group:"
+msgstr "组："
+
+msgid "Other:"
+msgstr "其他："
+
+msgid "Read"
+msgstr "读取"
+
+msgid "Write"
+msgstr "写入"
+
+msgid "Execute"
+msgstr "执行"
+
+msgid "_Apply"
+msgstr "应用(_A)"
+
+msgid "Permissions set to %o"
+msgstr "权限已设置为 %o"
+
+msgid "Temporary directory:"
+msgstr "临时目录："
+
+msgid "Editor:"
+msgstr "编辑器："
+
+msgid "Viewer:"
+msgstr "查看器："
+
+msgid "Boot Information"
+msgstr "引导信息"
+
+msgid "Boot record information will be displayed here."
+msgstr "引导记录信息将在此处显示。"
+
+msgid "Select Boot Record File"
+msgstr "选择引导记录文件"
+
+msgid "Failed to add boot record: %s"
+msgstr "添加引导记录失败：%s"
+
+msgid "Boot record added successfully"
+msgstr "引导记录添加成功"
+
+msgid "ISO Images"
+msgstr "ISO 镜像"

@@ -217,3 +217,97 @@ msgstr "Error al establecer el editor: %s"
 
 msgid "Error"
 msgstr "Error"
+
+# Help text
+msgid "ISO Master Help"
+msgstr "Ayuda de ISO Master"
+
+msgid "ISO Master is a graphical CD image editor."
+msgstr "ISO Master es un editor gráfico de imágenes CD."
+
+msgid "Keyboard shortcuts:"
+msgstr "Atajos de teclado："
+
+msgid "Help"
+msgstr "Ayuda"
+
+msgid "Quit"
+msgstr "Salir"
+
+msgid "View file"
+msgstr "Ver archivo"
+
+msgid "Edit file"
+msgstr "Editar archivo"
+
+msgid "Refresh"
+msgstr "Actualizar"
+
+msgid "Delete selected"
+msgstr "Eliminar selección"
+
+msgid "Menu"
+msgstr "Menú"
+
+msgid "Go up"
+msgstr "Subir"
+
+msgid "Please select a file"
+msgstr "Por favor seleccione un archivo"
+
+msgid "Failed to open editor: %s"
+msgstr "Error al abrir el editor: %s"
+
+msgid "Failed to open viewer: %s"
+msgstr "Error al abrir el visor: %s"
+
+msgid "Owner:"
+msgstr "Propietario："
+
+msgid "Group:"
+msgstr "Grupo："
+
+msgid "Other:"
+msgstr "Otros："
+
+msgid "Read"
+msgstr "Lectura"
+
+msgid "Write"
+msgstr "Escritura"
+
+msgid "Execute"
+msgstr "Ejecución"
+
+msgid "_Apply"
+msgstr "_Aplicar"
+
+msgid "Permissions set to %o"
+msgstr "Permisos establecidos a %o"
+
+msgid "Temporary directory:"
+msgstr "Directorio temporal："
+
+msgid "Editor:"
+msgstr "Editor："
+
+msgid "Viewer:"
+msgstr "Visor："
+
+msgid "Boot Information"
+msgstr "Información de arranque"
+
+msgid "Boot record information will be displayed here."
+msgstr "La información del registro de arranque se mostrará aquí."
+
+msgid "Select Boot Record File"
+msgstr "Seleccionar archivo de registro de arranque"
+
+msgid "Failed to add boot record: %s"
+msgstr "Error al agregar el registro de arranque: %s"
+
+msgid "Boot record added successfully"
+msgstr "Registro de arranque agregado exitosamente"
+
+msgid "ISO Images"
+msgstr "Imágenes ISO"

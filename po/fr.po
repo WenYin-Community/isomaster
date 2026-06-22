@@ -217,3 +217,97 @@ msgstr "Échec de la définition de l'éditeur : %s"
 
 msgid "Error"
 msgstr "Erreur"
+
+# Help text
+msgid "ISO Master Help"
+msgstr "Aide d'ISO Master"
+
+msgid "ISO Master is a graphical CD image editor."
+msgstr "ISO Master est un éditeur d'images CD graphique."
+
+msgid "Keyboard shortcuts:"
+msgstr "Raccourcis clavier :"
+
+msgid "Help"
+msgstr "Aide"
+
+msgid "Quit"
+msgstr "Quitter"
+
+msgid "View file"
+msgstr "Voir le fichier"
+
+msgid "Edit file"
+msgstr "Éditer le fichier"
+
+msgid "Refresh"
+msgstr "Actualiser"
+
+msgid "Delete selected"
+msgstr "Supprimer la sélection"
+
+msgid "Menu"
+msgstr "Menu"
+
+msgid "Go up"
+msgstr "Remonter"
+
+msgid "Please select a file"
+msgstr "Veuillez sélectionner un fichier"
+
+msgid "Failed to open editor: %s"
+msgstr "Échec de l'ouverture de l'éditeur : %s"
+
+msgid "Failed to open viewer: %s"
+msgstr "Échec de l'ouverture de la visionneuse : %s"
+
+msgid "Owner:"
+msgstr "Propriétaire :"
+
+msgid "Group:"
+msgstr "Groupe :"
+
+msgid "Other:"
+msgstr "Autre :"
+
+msgid "Read"
+msgstr "Lecture"
+
+msgid "Write"
+msgstr "Écriture"
+
+msgid "Execute"
+msgstr "Exécution"
+
+msgid "_Apply"
+msgstr "_Appliquer"
+
+msgid "Permissions set to %o"
+msgstr "Permissions définies sur %o"
+
+msgid "Temporary directory:"
+msgstr "Répertoire temporaire :"
+
+msgid "Editor:"
+msgstr "Éditeur :"
+
+msgid "Viewer:"
+msgstr "Visionneuse :"
+
+msgid "Boot Information"
+msgstr "Informations de démarrage"
+
+msgid "Boot record information will be displayed here."
+msgstr "Les informations d'enregistrement de démarrage seront affichées ici."
+
+msgid "Select Boot Record File"
+msgstr "Sélectionner le fichier d'enregistrement de démarrage"
+
+msgid "Failed to add boot record: %s"
+msgstr "Échec de l'ajout de l'enregistrement de démarrage : %s"
+
+msgid "Boot record added successfully"
+msgstr "Enregistrement de démarrage ajouté avec succès"
+
+msgid "ISO Images"
+msgstr "Images ISO"

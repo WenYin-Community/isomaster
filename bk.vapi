@@ -83,6 +83,12 @@ namespace Bk {
     [CCode (cname = "bk_set_publisher")]
     public static int set_publisher(VolInfo* vol_info, string publisher);
 
+    [CCode (cname = "bk_set_permissions")]
+    public static int set_permissions(VolInfo* vol_info, string path_and_name, uint permissions);
+
+    [CCode (cname = "bk_get_permissions")]
+    public static int get_permissions(VolInfo* vol_info, string path_and_name, out uint permissions);
+
     [CCode (cname = "bk_add_boot_record")]
     public static int add_boot_record(VolInfo* vol_info, string src_path, int boot_media_type);
 

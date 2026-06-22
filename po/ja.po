@@ -217,3 +217,97 @@ msgstr "発行者の設定に失敗：%s"
 
 msgid "Error"
 msgstr "エラー"
+
+# Help text
+msgid "ISO Master Help"
+msgstr "ISO Master ヘルプ"
+
+msgid "ISO Master is a graphical CD image editor."
+msgstr "ISO Master はグラフィカルな CD イメージエディタです。"
+
+msgid "Keyboard shortcuts:"
+msgstr "キーボードショートカット："
+
+msgid "Help"
+msgstr "ヘルプ"
+
+msgid "Quit"
+msgstr "終了"
+
+msgid "View file"
+msgstr "ファイルを表示"
+
+msgid "Edit file"
+msgstr "ファイルを編集"
+
+msgid "Refresh"
+msgstr "更新"
+
+msgid "Delete selected"
+msgstr "選択項目を削除"
+
+msgid "Menu"
+msgstr "メニュー"
+
+msgid "Go up"
+msgstr "上へ"
+
+msgid "Please select a file"
+msgstr "ファイルを選択してください"
+
+msgid "Failed to open editor: %s"
+msgstr "エディタを開けませんでした: %s"
+
+msgid "Failed to open viewer: %s"
+msgstr "ビューアを開けませんでした: %s"
+
+msgid "Owner:"
+msgstr "所有者："
+
+msgid "Group:"
+msgstr "グループ："
+
+msgid "Other:"
+msgstr "その他："
+
+msgid "Read"
+msgstr "読み取り"
+
+msgid "Write"
+msgstr "書き込み"
+
+msgid "Execute"
+msgstr "実行"
+
+msgid "_Apply"
+msgstr "適用(_A)"
+
+msgid "Permissions set to %o"
+msgstr "権限を %o に設定しました"
+
+msgid "Temporary directory:"
+msgstr "一時ディレクトリ："
+
+msgid "Editor:"
+msgstr "エディタ："
+
+msgid "Viewer:"
+msgstr "ビューア："
+
+msgid "Boot Information"
+msgstr "ブート情報"
+
+msgid "Boot record information will be displayed here."
+msgstr "ブートレコード情報がここに表示されます。"
+
+msgid "Select Boot Record File"
+msgstr "ブートレコードファイルを選択"
+
+msgid "Failed to add boot record: %s"
+msgstr "ブートレコードの追加に失敗しました: %s"
+
+msgid "Boot record added successfully"
+msgstr "ブートレコードが正常に追加されました"
+
+msgid "ISO Images"
+msgstr "ISO イメージ"

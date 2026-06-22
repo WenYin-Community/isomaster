@@ -217,3 +217,97 @@ msgstr "Не удалось установить издателя: %s"
 
 msgid "Error"
 msgstr "Ошибка"
+
+# Help text
+msgid "ISO Master Help"
+msgstr "Справка ISO Master"
+
+msgid "ISO Master is a graphical CD image editor."
+msgstr "ISO Master — графический редактор образов CD."
+
+msgid "Keyboard shortcuts:"
+msgstr "Горячие клавиши："
+
+msgid "Help"
+msgstr "Справка"
+
+msgid "Quit"
+msgstr "Выход"
+
+msgid "View file"
+msgstr "Просмотреть файл"
+
+msgid "Edit file"
+msgstr "Редактировать файл"
+
+msgid "Refresh"
+msgstr "Обновить"
+
+msgid "Delete selected"
+msgstr "Удалить выбранное"
+
+msgid "Menu"
+msgstr "Меню"
+
+msgid "Go up"
+msgstr "Вверх"
+
+msgid "Please select a file"
+msgstr "Пожалуйста, выберите файл"
+
+msgid "Failed to open editor: %s"
+msgstr "Не удалось открыть редактор: %s"
+
+msgid "Failed to open viewer: %s"
+msgstr "Не удалось открыть средство просмотра: %s"
+
+msgid "Owner:"
+msgstr "Владелец："
+
+msgid "Group:"
+msgstr "Группа："
+
+msgid "Other:"
+msgstr "Остальные："
+
+msgid "Read"
+msgstr "Чтение"
+
+msgid "Write"
+msgstr "Запись"
+
+msgid "Execute"
+msgstr "Выполнение"
+
+msgid "_Apply"
+msgstr "_Применить"
+
+msgid "Permissions set to %o"
+msgstr "Права установлены на %o"
+
+msgid "Temporary directory:"
+msgstr "Временный каталог："
+
+msgid "Editor:"
+msgstr "Редактор："
+
+msgid "Viewer:"
+msgstr "Средство просмотра："
+
+msgid "Boot Information"
+msgstr "Информация о загрузке"
+
+msgid "Boot record information will be displayed here."
+msgstr "Информация о загрузочной записи будет отображена здесь."
+
+msgid "Select Boot Record File"
+msgstr "Выберите файл загрузочной записи"
+
+msgid "Failed to add boot record: %s"
+msgstr "Не удалось добавить загрузочную запись: %s"
+
+msgid "Boot record added successfully"
+msgstr "Загрузочная запись успешно добавлена"
+
+msgid "ISO Images"
+msgstr "Образы ISO"

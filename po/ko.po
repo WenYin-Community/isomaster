@@ -217,3 +217,97 @@ msgstr "발행자 설정 실패: %s"
 
 msgid "Error"
 msgstr "오류"
+
+# Help text
+msgid "ISO Master Help"
+msgstr "ISO Master 도움말"
+
+msgid "ISO Master is a graphical CD image editor."
+msgstr "ISO Master는 그래픽 CD 이미지 편집기입니다."
+
+msgid "Keyboard shortcuts:"
+msgstr "키보드 단축키："
+
+msgid "Help"
+msgstr "도움말"
+
+msgid "Quit"
+msgstr "종료"
+
+msgid "View file"
+msgstr "파일 보기"
+
+msgid "Edit file"
+msgstr "파일 편집"
+
+msgid "Refresh"
+msgstr "새로고침"
+
+msgid "Delete selected"
+msgstr "선택 삭제"
+
+msgid "Menu"
+msgstr "메뉴"
+
+msgid "Go up"
+msgstr "위로"
+
+msgid "Please select a file"
+msgstr "파일을 선택하세요"
+
+msgid "Failed to open editor: %s"
+msgstr "편집기 열기 실패: %s"
+
+msgid "Failed to open viewer: %s"
+msgstr "뷰어 열기 실패: %s"
+
+msgid "Owner:"
+msgstr "소유자："
+
+msgid "Group:"
+msgstr "그룹："
+
+msgid "Other:"
+msgstr "기타："
+
+msgid "Read"
+msgstr "읽기"
+
+msgid "Write"
+msgstr "쓰기"
+
+msgid "Execute"
+msgstr "실행"
+
+msgid "_Apply"
+msgstr "적용(_A)"
+
+msgid "Permissions set to %o"
+msgstr "권한이 %o(으)로 설정되었습니다"
+
+msgid "Temporary directory:"
+msgstr "임시 디렉토리："
+
+msgid "Editor:"
+msgstr "편집기："
+
+msgid "Viewer:"
+msgstr "뷰어："
+
+msgid "Boot Information"
+msgstr "부트 정보"
+
+msgid "Boot record information will be displayed here."
+msgstr "부트 레코드 정보가 여기에 표시됩니다."
+
+msgid "Select Boot Record File"
+msgstr "부트 레코드 파일 선택"
+
+msgid "Failed to add boot record: %s"
+msgstr "부트 레코드 추가 실패: %s"
+
+msgid "Boot record added successfully"
+msgstr "부트 레코드가 성공적으로 추가되었습니다"
+
+msgid "ISO Images"
+msgstr "ISO 이미지"
