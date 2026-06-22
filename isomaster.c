@@ -107,6 +107,10 @@ static GParamSpec* iso_master_properties[ISO_MASTER_NUM_PROPERTIES];
 #define _g_object_unref0(var) ((var == NULL) ? NULL : (var = (g_object_unref (var), NULL)))
 typedef struct _Block1Data Block1Data;
 typedef struct _Block2Data Block2Data;
+typedef struct _Block3Data Block3Data;
+typedef struct _Block4Data Block4Data;
+typedef struct _Block5Data Block5Data;
+typedef struct _Block6Data Block6Data;
 #define _g_dir_close0(var) ((var == NULL) ? NULL : (var = (g_dir_close (var), NULL)))
 #define _dictionary_del0(var) ((var == NULL) ? NULL : (var = (dictionary_del (var), NULL)))
 #define _fclose0(var) ((var == NULL) ? NULL : (var = (fclose (var), NULL)))
@@ -167,6 +171,7 @@ struct _IsoMasterPrivate {
 	AppSettings* settings;
 	VolInfo* vol_info;
 	gboolean iso_loaded;
+	gchar* current_iso_path;
 	GtkListView* fs_list_view;
 	GListStore* fs_store;
 	GtkEntry* fs_path_entry;
@@ -186,6 +191,31 @@ struct _Block2Data {
 	int _ref_count_;
 	IsoMaster* self;
 	GtkFileDialog* dialog;
+};
+
+struct _Block3Data {
+	int _ref_count_;
+	IsoMaster* self;
+	GtkFileDialog* dialog;
+};
+
+struct _Block4Data {
+	int _ref_count_;
+	IsoMaster* self;
+	FileItem* item;
+	GtkFileDialog* dialog;
+};
+
+struct _Block5Data {
+	int _ref_count_;
+	IsoMaster* self;
+	FileItem* item;
+};
+
+struct _Block6Data {
+	int _ref_count_;
+	IsoMaster* self;
+	GtkEntry* entry;
 };
 
 static gint AppSettings_private_offset;
@@ -285,9 +315,9 @@ static GMenu* iso_master_build_menubar (IsoMaster* self);
 static GtkBox* iso_master_build_toolbar (IsoMaster* self);
 static GtkBox* iso_master_build_fs_browser (IsoMaster* self);
 static GtkBox* iso_master_build_iso_browser (IsoMaster* self);
-static gboolean __lambda26_ (IsoMaster* self);
+static gboolean __lambda33_ (IsoMaster* self);
 static void iso_master_save_settings (IsoMaster* self);
-static gboolean ___lambda26__gtk_window_close_request (GtkWindow* _sender,
+static gboolean ___lambda33__gtk_window_close_request (GtkWindow* _sender,
                                                 gpointer self);
 static void iso_master_setup_actions (IsoMaster* self);
 static void __lambda4_ (IsoMaster* self);
@@ -316,67 +346,84 @@ static void ___lambda10__g_simple_action_activate (GSimpleAction* _sender,
                                             GVariant* parameter,
                                             gpointer self);
 static void __lambda11_ (IsoMaster* self);
-static void iso_master_show_about (IsoMaster* self);
+static void iso_master_create_iso_dir (IsoMaster* self);
 static void ___lambda11__g_simple_action_activate (GSimpleAction* _sender,
                                             GVariant* parameter,
                                             gpointer self);
-static void __lambda12_ (IsoMaster* self);
-static void ___lambda12__gtk_button_clicked (GtkButton* _sender,
-                                      gpointer self);
 static void __lambda13_ (IsoMaster* self);
-static void ___lambda13__gtk_button_clicked (GtkButton* _sender,
-                                      gpointer self);
+static void iso_master_show_about (IsoMaster* self);
+static void ___lambda13__g_simple_action_activate (GSimpleAction* _sender,
+                                            GVariant* parameter,
+                                            gpointer self);
 static void __lambda14_ (IsoMaster* self);
 static void ___lambda14__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
 static void __lambda15_ (IsoMaster* self);
-static void iso_master_add_to_iso (IsoMaster* self);
 static void ___lambda15__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
 static void __lambda16_ (IsoMaster* self);
-static void iso_master_extract_from_iso (IsoMaster* self);
 static void ___lambda16__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
 static void __lambda17_ (IsoMaster* self);
-static void iso_master_delete_from_iso (IsoMaster* self);
+static void iso_master_add_to_iso (IsoMaster* self);
 static void ___lambda17__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
-static void __lambda18_ (IsoMaster* self);
-static void iso_master_fs_go_up (IsoMaster* self);
-static void ___lambda18__gtk_button_clicked (GtkButton* _sender,
-                                      gpointer self);
 static void __lambda19_ (IsoMaster* self);
-static void iso_master_fs_navigate_to (IsoMaster* self,
-                                const gchar* path);
-static void ___lambda19__gtk_entry_activate (GtkEntry* _sender,
+static void iso_master_extract_from_iso (IsoMaster* self);
+static void ___lambda19__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
-static void __lambda20_ (IsoMaster* self);
-static void ___lambda20__gtk_button_clicked (GtkButton* _sender,
+static void __lambda21_ (IsoMaster* self);
+static void iso_master_delete_from_iso (IsoMaster* self);
+static void ___lambda21__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
-static void __lambda21_ (IsoMaster* self,
-                  GObject* item);
-static void ___lambda21__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
-                                                      GObject* object,
-                                                      gpointer self);
-static void __lambda22_ (IsoMaster* self,
-                  GObject* item);
-static void ___lambda22__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
-                                                     GObject* object,
-                                                     gpointer self);
 static void __lambda23_ (IsoMaster* self);
-static void iso_master_iso_go_up (IsoMaster* self);
+static void iso_master_fs_go_up (IsoMaster* self);
 static void ___lambda23__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
-static void __lambda24_ (IsoMaster* self,
+static void __lambda24_ (IsoMaster* self);
+static void iso_master_fs_navigate_to (IsoMaster* self,
+                                const gchar* path);
+static void ___lambda24__gtk_entry_activate (GtkEntry* _sender,
+                                      gpointer self);
+static void __lambda25_ (IsoMaster* self);
+static void ___lambda25__gtk_button_clicked (GtkButton* _sender,
+                                      gpointer self);
+static void __lambda26_ (IsoMaster* self,
                   GObject* item);
-static void ___lambda24__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
+static void ___lambda26__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
                                                       GObject* object,
                                                       gpointer self);
-static void __lambda25_ (IsoMaster* self,
+static void __lambda27_ (IsoMaster* self,
                   GObject* item);
-static void ___lambda25__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
+static void ___lambda27__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
                                                      GObject* object,
                                                      gpointer self);
+static void __lambda28_ (IsoMaster* self,
+                  guint pos);
+static void ___lambda28__gtk_list_view_activate (GtkListView* _sender,
+                                          guint position,
+                                          gpointer self);
+static void __lambda29_ (IsoMaster* self);
+static void iso_master_iso_go_up (IsoMaster* self);
+static void ___lambda29__gtk_button_clicked (GtkButton* _sender,
+                                      gpointer self);
+static void __lambda30_ (IsoMaster* self,
+                  GObject* item);
+static void ___lambda30__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
+                                                      GObject* object,
+                                                      gpointer self);
+static void __lambda31_ (IsoMaster* self,
+                  GObject* item);
+static void ___lambda31__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
+                                                     GObject* object,
+                                                     gpointer self);
+static void __lambda32_ (IsoMaster* self,
+                  guint pos);
+static void iso_master_iso_navigate_to (IsoMaster* self,
+                                 const gchar* path);
+static void ___lambda32__gtk_list_view_activate (GtkListView* _sender,
+                                          guint position,
+                                          gpointer self);
 static Block1Data* block1_data_ref (Block1Data* _data1_);
 static void block1_data_unref (void * _userdata_);
 static void __lambda6_ (Block1Data* _data1_,
@@ -390,6 +437,8 @@ static void ___lambda6__gasync_ready_callback (GObject* source_object,
 static void iso_master_show_error (IsoMaster* self,
                             const gchar* format,
                             ...);
+static gchar* iso_master_format_size (IsoMaster* self,
+                               gint64 size);
 static Block2Data* block2_data_ref (Block2Data* _data2_);
 static void block2_data_unref (void * _userdata_);
 static void __lambda8_ (Block2Data* _data2_,
@@ -398,6 +447,36 @@ static void __lambda8_ (Block2Data* _data2_,
 static void ___lambda8__gasync_ready_callback (GObject* source_object,
                                         GAsyncResult* res,
                                         gpointer self);
+static Block3Data* block3_data_ref (Block3Data* _data3_);
+static void block3_data_unref (void * _userdata_);
+static void __lambda18_ (Block3Data* _data3_,
+                  GObject* obj,
+                  GAsyncResult* res);
+static void ___lambda18__gasync_ready_callback (GObject* source_object,
+                                         GAsyncResult* res,
+                                         gpointer self);
+static Block4Data* block4_data_ref (Block4Data* _data4_);
+static void block4_data_unref (void * _userdata_);
+static void __lambda20_ (Block4Data* _data4_,
+                  GObject* obj,
+                  GAsyncResult* res);
+static void ___lambda20__gasync_ready_callback (GObject* source_object,
+                                         GAsyncResult* res,
+                                         gpointer self);
+static Block5Data* block5_data_ref (Block5Data* _data5_);
+static void block5_data_unref (void * _userdata_);
+static void __lambda22_ (Block5Data* _data5_,
+                  const gchar* response);
+static void ___lambda22__adw_alert_dialog_response (AdwAlertDialog* _sender,
+                                             const gchar* response,
+                                             gpointer self);
+static Block6Data* block6_data_ref (Block6Data* _data6_);
+static void block6_data_unref (void * _userdata_);
+static void __lambda12_ (Block6Data* _data6_,
+                  const gchar* response);
+static void ___lambda12__adw_alert_dialog_response (AdwAlertDialog* _sender,
+                                             const gchar* response,
+                                             gpointer self);
 static gchar* iso_master_get_settings_path (IsoMaster* self);
 static void iso_master_finalize (GObject * obj);
 static GType iso_master_get_type_once (void);
@@ -1204,7 +1283,7 @@ iso_master_new (void)
 }
 
 static gboolean
-__lambda26_ (IsoMaster* self)
+__lambda33_ (IsoMaster* self)
 {
 	gboolean result;
 	iso_master_save_settings (self);
@@ -1213,11 +1292,11 @@ __lambda26_ (IsoMaster* self)
 }
 
 static gboolean
-___lambda26__gtk_window_close_request (GtkWindow* _sender,
+___lambda33__gtk_window_close_request (GtkWindow* _sender,
                                        gpointer self)
 {
 	gboolean result;
-	result = __lambda26_ ((IsoMaster*) self);
+	result = __lambda33_ ((IsoMaster*) self);
 	return result;
 }
 
@@ -1301,7 +1380,7 @@ iso_master_real_activate (GApplication* base)
 	gtk_paned_set_shrink_end_child (paned, FALSE);
 	gtk_box_append (main_box, (GtkWidget*) paned);
 	_tmp19_ = self->priv->main_window;
-	g_signal_connect_object (_tmp19_, "close-request", (GCallback) ___lambda26__gtk_window_close_request, self, 0);
+	g_signal_connect_object (_tmp19_, "close-request", (GCallback) ___lambda33__gtk_window_close_request, self, 0);
 	_tmp20_ = self->priv->main_window;
 	gtk_window_present (_tmp20_);
 	_g_object_unref0 (iso_box);
@@ -1332,6 +1411,7 @@ iso_master_build_menubar (IsoMaster* self)
 	g_menu_append (file_menu, "_New", "app.new");
 	g_menu_append (file_menu, "_Open", "app.open");
 	g_menu_append (file_menu, "_Save", "app.save");
+	g_menu_append (file_menu, "Create _Directory", "app.create-dir");
 	g_menu_append (file_menu, "_Quit", "app.quit");
 	g_menu_append_submenu (menubar, "_File", (GMenuModel*) file_menu);
 	_tmp2_ = g_menu_new ();
@@ -1427,7 +1507,7 @@ ___lambda10__g_simple_action_activate (GSimpleAction* _sender,
 static void
 __lambda11_ (IsoMaster* self)
 {
-	iso_master_show_about (self);
+	iso_master_create_iso_dir (self);
 }
 
 static void
@@ -1436,6 +1516,20 @@ ___lambda11__g_simple_action_activate (GSimpleAction* _sender,
                                        gpointer self)
 {
 	__lambda11_ ((IsoMaster*) self);
+}
+
+static void
+__lambda13_ (IsoMaster* self)
+{
+	iso_master_show_about (self);
+}
+
+static void
+___lambda13__g_simple_action_activate (GSimpleAction* _sender,
+                                       GVariant* parameter,
+                                       gpointer self)
+{
+	__lambda13_ ((IsoMaster*) self);
 }
 
 static void
@@ -1451,24 +1545,26 @@ iso_master_setup_actions (IsoMaster* self)
 	GSimpleAction* _tmp3_;
 	GSimpleAction* refresh_action = NULL;
 	GSimpleAction* _tmp4_;
-	GSimpleAction* about_action = NULL;
+	GSimpleAction* create_dir_action = NULL;
 	GSimpleAction* _tmp5_;
-	gchar* _tmp6_;
-	gchar** _tmp7_;
+	GSimpleAction* about_action = NULL;
+	GSimpleAction* _tmp6_;
+	gchar* _tmp7_;
 	gchar** _tmp8_;
-	gint _tmp8__length1;
-	gchar* _tmp9_;
-	gchar** _tmp10_;
+	gchar** _tmp9_;
+	gint _tmp9__length1;
+	gchar* _tmp10_;
 	gchar** _tmp11_;
-	gint _tmp11__length1;
-	gchar* _tmp12_;
-	gchar** _tmp13_;
+	gchar** _tmp12_;
+	gint _tmp12__length1;
+	gchar* _tmp13_;
 	gchar** _tmp14_;
-	gint _tmp14__length1;
-	gchar* _tmp15_;
-	gchar** _tmp16_;
+	gchar** _tmp15_;
+	gint _tmp15__length1;
+	gchar* _tmp16_;
 	gchar** _tmp17_;
-	gint _tmp17__length1;
+	gchar** _tmp18_;
+	gint _tmp18__length1;
 	g_return_if_fail (self != NULL);
 	_tmp0_ = g_simple_action_new ("new", NULL);
 	new_action = _tmp0_;
@@ -1490,39 +1586,44 @@ iso_master_setup_actions (IsoMaster* self)
 	refresh_action = _tmp4_;
 	g_signal_connect_object (refresh_action, "activate", (GCallback) ___lambda10__g_simple_action_activate, self, 0);
 	g_action_map_add_action ((GActionMap*) self, (GAction*) refresh_action);
-	_tmp5_ = g_simple_action_new ("about", NULL);
-	about_action = _tmp5_;
-	g_signal_connect_object (about_action, "activate", (GCallback) ___lambda11__g_simple_action_activate, self, 0);
+	_tmp5_ = g_simple_action_new ("create-dir", NULL);
+	create_dir_action = _tmp5_;
+	g_signal_connect_object (create_dir_action, "activate", (GCallback) ___lambda11__g_simple_action_activate, self, 0);
+	g_action_map_add_action ((GActionMap*) self, (GAction*) create_dir_action);
+	_tmp6_ = g_simple_action_new ("about", NULL);
+	about_action = _tmp6_;
+	g_signal_connect_object (about_action, "activate", (GCallback) ___lambda13__g_simple_action_activate, self, 0);
 	g_action_map_add_action ((GActionMap*) self, (GAction*) about_action);
-	_tmp6_ = g_strdup ("<Control>N");
-	_tmp7_ = g_new0 (gchar*, 1 + 1);
-	_tmp7_[0] = _tmp6_;
-	_tmp8_ = _tmp7_;
-	_tmp8__length1 = 1;
-	gtk_application_set_accels_for_action ((GtkApplication*) self, "app.new", _tmp8_);
-	_tmp8_ = (_vala_array_free (_tmp8_, _tmp8__length1, (GDestroyNotify) g_free), NULL);
-	_tmp9_ = g_strdup ("<Control>O");
-	_tmp10_ = g_new0 (gchar*, 1 + 1);
-	_tmp10_[0] = _tmp9_;
-	_tmp11_ = _tmp10_;
-	_tmp11__length1 = 1;
-	gtk_application_set_accels_for_action ((GtkApplication*) self, "app.open", _tmp11_);
-	_tmp11_ = (_vala_array_free (_tmp11_, _tmp11__length1, (GDestroyNotify) g_free), NULL);
-	_tmp12_ = g_strdup ("<Control>S");
-	_tmp13_ = g_new0 (gchar*, 1 + 1);
-	_tmp13_[0] = _tmp12_;
-	_tmp14_ = _tmp13_;
-	_tmp14__length1 = 1;
-	gtk_application_set_accels_for_action ((GtkApplication*) self, "app.save", _tmp14_);
-	_tmp14_ = (_vala_array_free (_tmp14_, _tmp14__length1, (GDestroyNotify) g_free), NULL);
-	_tmp15_ = g_strdup ("<Control>Q");
-	_tmp16_ = g_new0 (gchar*, 1 + 1);
-	_tmp16_[0] = _tmp15_;
-	_tmp17_ = _tmp16_;
-	_tmp17__length1 = 1;
-	gtk_application_set_accels_for_action ((GtkApplication*) self, "app.quit", _tmp17_);
-	_tmp17_ = (_vala_array_free (_tmp17_, _tmp17__length1, (GDestroyNotify) g_free), NULL);
+	_tmp7_ = g_strdup ("<Control>N");
+	_tmp8_ = g_new0 (gchar*, 1 + 1);
+	_tmp8_[0] = _tmp7_;
+	_tmp9_ = _tmp8_;
+	_tmp9__length1 = 1;
+	gtk_application_set_accels_for_action ((GtkApplication*) self, "app.new", _tmp9_);
+	_tmp9_ = (_vala_array_free (_tmp9_, _tmp9__length1, (GDestroyNotify) g_free), NULL);
+	_tmp10_ = g_strdup ("<Control>O");
+	_tmp11_ = g_new0 (gchar*, 1 + 1);
+	_tmp11_[0] = _tmp10_;
+	_tmp12_ = _tmp11_;
+	_tmp12__length1 = 1;
+	gtk_application_set_accels_for_action ((GtkApplication*) self, "app.open", _tmp12_);
+	_tmp12_ = (_vala_array_free (_tmp12_, _tmp12__length1, (GDestroyNotify) g_free), NULL);
+	_tmp13_ = g_strdup ("<Control>S");
+	_tmp14_ = g_new0 (gchar*, 1 + 1);
+	_tmp14_[0] = _tmp13_;
+	_tmp15_ = _tmp14_;
+	_tmp15__length1 = 1;
+	gtk_application_set_accels_for_action ((GtkApplication*) self, "app.save", _tmp15_);
+	_tmp15_ = (_vala_array_free (_tmp15_, _tmp15__length1, (GDestroyNotify) g_free), NULL);
+	_tmp16_ = g_strdup ("<Control>Q");
+	_tmp17_ = g_new0 (gchar*, 1 + 1);
+	_tmp17_[0] = _tmp16_;
+	_tmp18_ = _tmp17_;
+	_tmp18__length1 = 1;
+	gtk_application_set_accels_for_action ((GtkApplication*) self, "app.quit", _tmp18_);
+	_tmp18_ = (_vala_array_free (_tmp18_, _tmp18__length1, (GDestroyNotify) g_free), NULL);
 	_g_object_unref0 (about_action);
+	_g_object_unref0 (create_dir_action);
 	_g_object_unref0 (refresh_action);
 	_g_object_unref0 (quit_action);
 	_g_object_unref0 (save_action);
@@ -1531,35 +1632,9 @@ iso_master_setup_actions (IsoMaster* self)
 }
 
 static void
-__lambda12_ (IsoMaster* self)
-{
-	iso_master_new_iso (self);
-}
-
-static void
-___lambda12__gtk_button_clicked (GtkButton* _sender,
-                                 gpointer self)
-{
-	__lambda12_ ((IsoMaster*) self);
-}
-
-static void
-__lambda13_ (IsoMaster* self)
-{
-	iso_master_open_iso (self);
-}
-
-static void
-___lambda13__gtk_button_clicked (GtkButton* _sender,
-                                 gpointer self)
-{
-	__lambda13_ ((IsoMaster*) self);
-}
-
-static void
 __lambda14_ (IsoMaster* self)
 {
-	iso_master_save_iso (self);
+	iso_master_new_iso (self);
 }
 
 static void
@@ -1572,7 +1647,7 @@ ___lambda14__gtk_button_clicked (GtkButton* _sender,
 static void
 __lambda15_ (IsoMaster* self)
 {
-	iso_master_add_to_iso (self);
+	iso_master_open_iso (self);
 }
 
 static void
@@ -1585,7 +1660,7 @@ ___lambda15__gtk_button_clicked (GtkButton* _sender,
 static void
 __lambda16_ (IsoMaster* self)
 {
-	iso_master_extract_from_iso (self);
+	iso_master_save_iso (self);
 }
 
 static void
@@ -1598,7 +1673,7 @@ ___lambda16__gtk_button_clicked (GtkButton* _sender,
 static void
 __lambda17_ (IsoMaster* self)
 {
-	iso_master_delete_from_iso (self);
+	iso_master_add_to_iso (self);
 }
 
 static void
@@ -1606,6 +1681,32 @@ ___lambda17__gtk_button_clicked (GtkButton* _sender,
                                  gpointer self)
 {
 	__lambda17_ ((IsoMaster*) self);
+}
+
+static void
+__lambda19_ (IsoMaster* self)
+{
+	iso_master_extract_from_iso (self);
+}
+
+static void
+___lambda19__gtk_button_clicked (GtkButton* _sender,
+                                 gpointer self)
+{
+	__lambda19_ ((IsoMaster*) self);
+}
+
+static void
+__lambda21_ (IsoMaster* self)
+{
+	iso_master_delete_from_iso (self);
+}
+
+static void
+___lambda21__gtk_button_clicked (GtkButton* _sender,
+                                 gpointer self)
+{
+	__lambda21_ ((IsoMaster*) self);
 }
 
 static GtkBox*
@@ -1640,19 +1741,19 @@ iso_master_build_toolbar (IsoMaster* self)
 	g_object_ref_sink (_tmp1_);
 	new_btn = _tmp1_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) new_btn, "New ISO");
-	g_signal_connect_object (new_btn, "clicked", (GCallback) ___lambda12__gtk_button_clicked, self, 0);
+	g_signal_connect_object (new_btn, "clicked", (GCallback) ___lambda14__gtk_button_clicked, self, 0);
 	gtk_box_append (toolbar, (GtkWidget*) new_btn);
 	_tmp2_ = (GtkButton*) gtk_button_new_from_icon_name ("document-open");
 	g_object_ref_sink (_tmp2_);
 	open_btn = _tmp2_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) open_btn, "Open ISO");
-	g_signal_connect_object (open_btn, "clicked", (GCallback) ___lambda13__gtk_button_clicked, self, 0);
+	g_signal_connect_object (open_btn, "clicked", (GCallback) ___lambda15__gtk_button_clicked, self, 0);
 	gtk_box_append (toolbar, (GtkWidget*) open_btn);
 	_tmp3_ = (GtkButton*) gtk_button_new_from_icon_name ("document-save");
 	g_object_ref_sink (_tmp3_);
 	save_btn = _tmp3_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) save_btn, "Save ISO");
-	g_signal_connect_object (save_btn, "clicked", (GCallback) ___lambda14__gtk_button_clicked, self, 0);
+	g_signal_connect_object (save_btn, "clicked", (GCallback) ___lambda16__gtk_button_clicked, self, 0);
 	gtk_box_append (toolbar, (GtkWidget*) save_btn);
 	_tmp4_ = (GtkSeparator*) gtk_separator_new (GTK_ORIENTATION_VERTICAL);
 	g_object_ref_sink (_tmp4_);
@@ -1663,19 +1764,19 @@ iso_master_build_toolbar (IsoMaster* self)
 	g_object_ref_sink (_tmp6_);
 	add_btn = _tmp6_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) add_btn, "Add to ISO");
-	g_signal_connect_object (add_btn, "clicked", (GCallback) ___lambda15__gtk_button_clicked, self, 0);
+	g_signal_connect_object (add_btn, "clicked", (GCallback) ___lambda17__gtk_button_clicked, self, 0);
 	gtk_box_append (toolbar, (GtkWidget*) add_btn);
 	_tmp7_ = (GtkButton*) gtk_button_new_from_icon_name ("extract");
 	g_object_ref_sink (_tmp7_);
 	extract_btn = _tmp7_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) extract_btn, "Extract from ISO");
-	g_signal_connect_object (extract_btn, "clicked", (GCallback) ___lambda16__gtk_button_clicked, self, 0);
+	g_signal_connect_object (extract_btn, "clicked", (GCallback) ___lambda19__gtk_button_clicked, self, 0);
 	gtk_box_append (toolbar, (GtkWidget*) extract_btn);
 	_tmp8_ = (GtkButton*) gtk_button_new_from_icon_name ("edit-delete");
 	g_object_ref_sink (_tmp8_);
 	delete_btn = _tmp8_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) delete_btn, "Delete from ISO");
-	g_signal_connect_object (delete_btn, "clicked", (GCallback) ___lambda17__gtk_button_clicked, self, 0);
+	g_signal_connect_object (delete_btn, "clicked", (GCallback) ___lambda21__gtk_button_clicked, self, 0);
 	gtk_box_append (toolbar, (GtkWidget*) delete_btn);
 	result = toolbar;
 	_g_object_unref0 (delete_btn);
@@ -1688,20 +1789,20 @@ iso_master_build_toolbar (IsoMaster* self)
 }
 
 static void
-__lambda18_ (IsoMaster* self)
+__lambda23_ (IsoMaster* self)
 {
 	iso_master_fs_go_up (self);
 }
 
 static void
-___lambda18__gtk_button_clicked (GtkButton* _sender,
+___lambda23__gtk_button_clicked (GtkButton* _sender,
                                  gpointer self)
 {
-	__lambda18_ ((IsoMaster*) self);
+	__lambda23_ ((IsoMaster*) self);
 }
 
 static void
-__lambda19_ (IsoMaster* self)
+__lambda24_ (IsoMaster* self)
 {
 	GtkEntry* _tmp0_;
 	const gchar* _tmp1_;
@@ -1713,23 +1814,23 @@ __lambda19_ (IsoMaster* self)
 }
 
 static void
-___lambda19__gtk_entry_activate (GtkEntry* _sender,
+___lambda24__gtk_entry_activate (GtkEntry* _sender,
                                  gpointer self)
 {
-	__lambda19_ ((IsoMaster*) self);
+	__lambda24_ ((IsoMaster*) self);
 }
 
 static void
-__lambda20_ (IsoMaster* self)
+__lambda25_ (IsoMaster* self)
 {
 	iso_master_refresh_fs_view (self);
 }
 
 static void
-___lambda20__gtk_button_clicked (GtkButton* _sender,
+___lambda25__gtk_button_clicked (GtkButton* _sender,
                                  gpointer self)
 {
-	__lambda20_ ((IsoMaster*) self);
+	__lambda25_ ((IsoMaster*) self);
 }
 
 static gpointer
@@ -1739,7 +1840,7 @@ _g_object_ref0 (gpointer self)
 }
 
 static void
-__lambda21_ (IsoMaster* self,
+__lambda26_ (IsoMaster* self,
              GObject* item)
 {
 	GtkListItem* list_item = NULL;
@@ -1773,15 +1874,15 @@ __lambda21_ (IsoMaster* self,
 }
 
 static void
-___lambda21__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
+___lambda26__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
                                                  GObject* object,
                                                  gpointer self)
 {
-	__lambda21_ ((IsoMaster*) self, object);
+	__lambda26_ ((IsoMaster*) self, object);
 }
 
 static void
-__lambda22_ (IsoMaster* self,
+__lambda27_ (IsoMaster* self,
              GObject* item)
 {
 	GtkListItem* list_item = NULL;
@@ -1835,11 +1936,60 @@ __lambda22_ (IsoMaster* self,
 }
 
 static void
-___lambda22__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
+___lambda27__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
                                                 GObject* object,
                                                 gpointer self)
 {
-	__lambda22_ ((IsoMaster*) self, object);
+	__lambda27_ ((IsoMaster*) self, object);
+}
+
+static void
+__lambda28_ (IsoMaster* self,
+             guint pos)
+{
+	FileItem* item = NULL;
+	GListStore* _tmp0_;
+	GObject* _tmp1_;
+	FileItem* _tmp2_;
+	gboolean _tmp3_ = FALSE;
+	FileItem* _tmp4_;
+	_tmp0_ = self->priv->fs_store;
+	_tmp1_ = g_list_model_get_item ((GListModel*) _tmp0_, pos);
+	_tmp2_ = IS_FILE_ITEM (_tmp1_) ? ((FileItem*) _tmp1_) : NULL;
+	if (_tmp2_ == NULL) {
+		_g_object_unref0 (_tmp1_);
+	}
+	item = _tmp2_;
+	_tmp4_ = item;
+	if (_tmp4_ != NULL) {
+		FileItem* _tmp5_;
+		gboolean _tmp6_;
+		gboolean _tmp7_;
+		_tmp5_ = item;
+		_tmp6_ = file_item_get_is_dir (_tmp5_);
+		_tmp7_ = _tmp6_;
+		_tmp3_ = _tmp7_;
+	} else {
+		_tmp3_ = FALSE;
+	}
+	if (_tmp3_) {
+		FileItem* _tmp8_;
+		const gchar* _tmp9_;
+		const gchar* _tmp10_;
+		_tmp8_ = item;
+		_tmp9_ = file_item_get_path (_tmp8_);
+		_tmp10_ = _tmp9_;
+		iso_master_fs_navigate_to (self, _tmp10_);
+	}
+	_g_object_unref0 (item);
+}
+
+static void
+___lambda28__gtk_list_view_activate (GtkListView* _sender,
+                                     guint position,
+                                     gpointer self)
+{
+	__lambda28_ ((IsoMaster*) self, position);
 }
 
 static GtkBox*
@@ -1868,11 +2018,12 @@ iso_master_build_fs_browser (IsoMaster* self)
 	GtkListItemFactory* _tmp14_;
 	GtkListView* _tmp15_;
 	GtkListView* _tmp16_;
+	GtkListView* _tmp17_;
 	GtkScrolledWindow* scrolled = NULL;
-	GtkScrolledWindow* _tmp17_;
-	GtkListView* _tmp18_;
-	GtkEntry* _tmp19_;
-	const gchar* _tmp20_;
+	GtkScrolledWindow* _tmp18_;
+	GtkListView* _tmp19_;
+	GtkEntry* _tmp20_;
+	const gchar* _tmp21_;
 	GtkBox* result;
 	g_return_val_if_fail (self != NULL, NULL);
 	_tmp0_ = (GtkBox*) gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
@@ -1884,7 +2035,7 @@ iso_master_build_fs_browser (IsoMaster* self)
 	_tmp2_ = (GtkButton*) gtk_button_new_from_icon_name ("go-up");
 	g_object_ref_sink (_tmp2_);
 	up_btn = _tmp2_;
-	g_signal_connect_object (up_btn, "clicked", (GCallback) ___lambda18__gtk_button_clicked, self, 0);
+	g_signal_connect_object (up_btn, "clicked", (GCallback) ___lambda23__gtk_button_clicked, self, 0);
 	gtk_box_append (nav_box, (GtkWidget*) up_btn);
 	_tmp3_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp3_);
@@ -1893,13 +2044,13 @@ iso_master_build_fs_browser (IsoMaster* self)
 	_tmp4_ = self->priv->fs_path_entry;
 	gtk_widget_set_hexpand ((GtkWidget*) _tmp4_, TRUE);
 	_tmp5_ = self->priv->fs_path_entry;
-	g_signal_connect_object (_tmp5_, "activate", (GCallback) ___lambda19__gtk_entry_activate, self, 0);
+	g_signal_connect_object (_tmp5_, "activate", (GCallback) ___lambda24__gtk_entry_activate, self, 0);
 	_tmp6_ = self->priv->fs_path_entry;
 	gtk_box_append (nav_box, (GtkWidget*) _tmp6_);
 	_tmp7_ = (GtkButton*) gtk_button_new_from_icon_name ("view-refresh");
 	g_object_ref_sink (_tmp7_);
 	refresh_btn = _tmp7_;
-	g_signal_connect_object (refresh_btn, "clicked", (GCallback) ___lambda20__gtk_button_clicked, self, 0);
+	g_signal_connect_object (refresh_btn, "clicked", (GCallback) ___lambda25__gtk_button_clicked, self, 0);
 	gtk_box_append (nav_box, (GtkWidget*) refresh_btn);
 	gtk_box_append (box, (GtkWidget*) nav_box);
 	_tmp8_ = g_list_store_new (TYPE_FILE_ITEM);
@@ -1907,8 +2058,8 @@ iso_master_build_fs_browser (IsoMaster* self)
 	self->priv->fs_store = _tmp8_;
 	_tmp9_ = (GtkSignalListItemFactory*) gtk_signal_list_item_factory_new ();
 	factory = _tmp9_;
-	g_signal_connect_object (factory, "setup", (GCallback) ___lambda21__gtk_signal_list_item_factory_setup, self, 0);
-	g_signal_connect_object (factory, "bind", (GCallback) ___lambda22__gtk_signal_list_item_factory_bind, self, 0);
+	g_signal_connect_object (factory, "setup", (GCallback) ___lambda26__gtk_signal_list_item_factory_setup, self, 0);
+	g_signal_connect_object (factory, "bind", (GCallback) ___lambda27__gtk_signal_list_item_factory_bind, self, 0);
 	_tmp10_ = self->priv->fs_store;
 	_tmp11_ = _g_object_ref0 ((GListModel*) _tmp10_);
 	_tmp12_ = gtk_single_selection_new (_tmp11_);
@@ -1921,15 +2072,17 @@ iso_master_build_fs_browser (IsoMaster* self)
 	self->priv->fs_list_view = _tmp15_;
 	_tmp16_ = self->priv->fs_list_view;
 	gtk_widget_set_vexpand ((GtkWidget*) _tmp16_, TRUE);
-	_tmp17_ = (GtkScrolledWindow*) gtk_scrolled_window_new ();
-	g_object_ref_sink (_tmp17_);
-	scrolled = _tmp17_;
-	_tmp18_ = self->priv->fs_list_view;
-	gtk_scrolled_window_set_child (scrolled, (GtkWidget*) _tmp18_);
+	_tmp17_ = self->priv->fs_list_view;
+	g_signal_connect_object (_tmp17_, "activate", (GCallback) ___lambda28__gtk_list_view_activate, self, 0);
+	_tmp18_ = (GtkScrolledWindow*) gtk_scrolled_window_new ();
+	g_object_ref_sink (_tmp18_);
+	scrolled = _tmp18_;
+	_tmp19_ = self->priv->fs_list_view;
+	gtk_scrolled_window_set_child (scrolled, (GtkWidget*) _tmp19_);
 	gtk_box_append (box, (GtkWidget*) scrolled);
-	_tmp19_ = self->priv->fs_path_entry;
-	_tmp20_ = g_get_home_dir ();
-	gtk_editable_set_text ((GtkEditable*) _tmp19_, _tmp20_);
+	_tmp20_ = self->priv->fs_path_entry;
+	_tmp21_ = g_get_home_dir ();
+	gtk_editable_set_text ((GtkEditable*) _tmp20_, _tmp21_);
 	iso_master_refresh_fs_view (self);
 	result = box;
 	_g_object_unref0 (scrolled);
@@ -1942,20 +2095,20 @@ iso_master_build_fs_browser (IsoMaster* self)
 }
 
 static void
-__lambda23_ (IsoMaster* self)
+__lambda29_ (IsoMaster* self)
 {
 	iso_master_iso_go_up (self);
 }
 
 static void
-___lambda23__gtk_button_clicked (GtkButton* _sender,
+___lambda29__gtk_button_clicked (GtkButton* _sender,
                                  gpointer self)
 {
-	__lambda23_ ((IsoMaster*) self);
+	__lambda29_ ((IsoMaster*) self);
 }
 
 static void
-__lambda24_ (IsoMaster* self,
+__lambda30_ (IsoMaster* self,
              GObject* item)
 {
 	GtkListItem* list_item = NULL;
@@ -1989,15 +2142,15 @@ __lambda24_ (IsoMaster* self,
 }
 
 static void
-___lambda24__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
+___lambda30__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
                                                  GObject* object,
                                                  gpointer self)
 {
-	__lambda24_ ((IsoMaster*) self, object);
+	__lambda30_ ((IsoMaster*) self, object);
 }
 
 static void
-__lambda25_ (IsoMaster* self,
+__lambda31_ (IsoMaster* self,
              GObject* item)
 {
 	GtkListItem* list_item = NULL;
@@ -2051,11 +2204,60 @@ __lambda25_ (IsoMaster* self,
 }
 
 static void
-___lambda25__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
+___lambda31__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
                                                 GObject* object,
                                                 gpointer self)
 {
-	__lambda25_ ((IsoMaster*) self, object);
+	__lambda31_ ((IsoMaster*) self, object);
+}
+
+static void
+__lambda32_ (IsoMaster* self,
+             guint pos)
+{
+	FileItem* item = NULL;
+	GListStore* _tmp0_;
+	GObject* _tmp1_;
+	FileItem* _tmp2_;
+	gboolean _tmp3_ = FALSE;
+	FileItem* _tmp4_;
+	_tmp0_ = self->priv->iso_store;
+	_tmp1_ = g_list_model_get_item ((GListModel*) _tmp0_, pos);
+	_tmp2_ = IS_FILE_ITEM (_tmp1_) ? ((FileItem*) _tmp1_) : NULL;
+	if (_tmp2_ == NULL) {
+		_g_object_unref0 (_tmp1_);
+	}
+	item = _tmp2_;
+	_tmp4_ = item;
+	if (_tmp4_ != NULL) {
+		FileItem* _tmp5_;
+		gboolean _tmp6_;
+		gboolean _tmp7_;
+		_tmp5_ = item;
+		_tmp6_ = file_item_get_is_dir (_tmp5_);
+		_tmp7_ = _tmp6_;
+		_tmp3_ = _tmp7_;
+	} else {
+		_tmp3_ = FALSE;
+	}
+	if (_tmp3_) {
+		FileItem* _tmp8_;
+		const gchar* _tmp9_;
+		const gchar* _tmp10_;
+		_tmp8_ = item;
+		_tmp9_ = file_item_get_path (_tmp8_);
+		_tmp10_ = _tmp9_;
+		iso_master_iso_navigate_to (self, _tmp10_);
+	}
+	_g_object_unref0 (item);
+}
+
+static void
+___lambda32__gtk_list_view_activate (GtkListView* _sender,
+                                     guint position,
+                                     gpointer self)
+{
+	__lambda32_ ((IsoMaster*) self, position);
 }
 
 static GtkBox*
@@ -2084,9 +2286,10 @@ iso_master_build_iso_browser (IsoMaster* self)
 	GtkListItemFactory* _tmp15_;
 	GtkListView* _tmp16_;
 	GtkListView* _tmp17_;
+	GtkListView* _tmp18_;
 	GtkScrolledWindow* scrolled = NULL;
-	GtkScrolledWindow* _tmp18_;
-	GtkListView* _tmp19_;
+	GtkScrolledWindow* _tmp19_;
+	GtkListView* _tmp20_;
 	GtkBox* result;
 	g_return_val_if_fail (self != NULL, NULL);
 	_tmp0_ = (GtkBox*) gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
@@ -2098,7 +2301,7 @@ iso_master_build_iso_browser (IsoMaster* self)
 	_tmp2_ = (GtkButton*) gtk_button_new_from_icon_name ("go-up");
 	g_object_ref_sink (_tmp2_);
 	up_btn = _tmp2_;
-	g_signal_connect_object (up_btn, "clicked", (GCallback) ___lambda23__gtk_button_clicked, self, 0);
+	g_signal_connect_object (up_btn, "clicked", (GCallback) ___lambda29__gtk_button_clicked, self, 0);
 	gtk_box_append (nav_box, (GtkWidget*) up_btn);
 	_tmp3_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp3_);
@@ -2122,8 +2325,8 @@ iso_master_build_iso_browser (IsoMaster* self)
 	self->priv->iso_store = _tmp9_;
 	_tmp10_ = (GtkSignalListItemFactory*) gtk_signal_list_item_factory_new ();
 	factory = _tmp10_;
-	g_signal_connect_object (factory, "setup", (GCallback) ___lambda24__gtk_signal_list_item_factory_setup, self, 0);
-	g_signal_connect_object (factory, "bind", (GCallback) ___lambda25__gtk_signal_list_item_factory_bind, self, 0);
+	g_signal_connect_object (factory, "setup", (GCallback) ___lambda30__gtk_signal_list_item_factory_setup, self, 0);
+	g_signal_connect_object (factory, "bind", (GCallback) ___lambda31__gtk_signal_list_item_factory_bind, self, 0);
 	_tmp11_ = self->priv->iso_store;
 	_tmp12_ = _g_object_ref0 ((GListModel*) _tmp11_);
 	_tmp13_ = gtk_single_selection_new (_tmp12_);
@@ -2136,11 +2339,13 @@ iso_master_build_iso_browser (IsoMaster* self)
 	self->priv->iso_list_view = _tmp16_;
 	_tmp17_ = self->priv->iso_list_view;
 	gtk_widget_set_vexpand ((GtkWidget*) _tmp17_, TRUE);
-	_tmp18_ = (GtkScrolledWindow*) gtk_scrolled_window_new ();
-	g_object_ref_sink (_tmp18_);
-	scrolled = _tmp18_;
-	_tmp19_ = self->priv->iso_list_view;
-	gtk_scrolled_window_set_child (scrolled, (GtkWidget*) _tmp19_);
+	_tmp18_ = self->priv->iso_list_view;
+	g_signal_connect_object (_tmp18_, "activate", (GCallback) ___lambda32__gtk_list_view_activate, self, 0);
+	_tmp19_ = (GtkScrolledWindow*) gtk_scrolled_window_new ();
+	g_object_ref_sink (_tmp19_);
+	scrolled = _tmp19_;
+	_tmp20_ = self->priv->iso_list_view;
+	gtk_scrolled_window_set_child (scrolled, (GtkWidget*) _tmp20_);
 	gtk_box_append (box, (GtkWidget*) scrolled);
 	result = box;
 	_g_object_unref0 (scrolled);
@@ -2269,13 +2474,20 @@ iso_master_open_iso_file (IsoMaster* self,
 	gint _result_ = 0;
 	VolInfo* _tmp0_;
 	VolInfo* _tmp2_;
-	GtkEntry* _tmp4_;
+	VolInfo* _tmp4_;
+	gchar* _tmp6_;
+	GtkEntry* _tmp7_;
 	gchar* vol_name = NULL;
-	VolInfo* _tmp5_;
-	const gchar* _tmp6_;
-	gchar* _tmp7_;
-	gboolean _tmp8_ = FALSE;
+	VolInfo* _tmp8_;
 	const gchar* _tmp9_;
+	gchar* _tmp10_;
+	gboolean _tmp11_ = FALSE;
+	const gchar* _tmp12_;
+	gint64 iso_size = 0LL;
+	VolInfo* _tmp25_;
+	GtkLabel* _tmp26_;
+	gchar* _tmp27_;
+	gchar* _tmp28_;
 	g_return_if_fail (self != NULL);
 	g_return_if_fail (path != NULL);
 	_tmp0_ = self->priv->vol_info;
@@ -2294,52 +2506,70 @@ iso_master_open_iso_file (IsoMaster* self,
 		iso_master_show_error (self, "Failed to read volume info: %s", _tmp3_, NULL);
 		return;
 	}
-	self->priv->iso_loaded = TRUE;
-	_tmp4_ = self->priv->iso_path_entry;
-	gtk_editable_set_text ((GtkEditable*) _tmp4_, "/");
-	iso_master_refresh_iso_view (self);
-	_tmp5_ = self->priv->vol_info;
-	_tmp6_ = bk_get_volume_name (_tmp5_);
-	_tmp7_ = g_strdup (_tmp6_);
-	vol_name = _tmp7_;
-	_tmp9_ = vol_name;
-	if (_tmp9_ != NULL) {
-		const gchar* _tmp10_;
-		gint _tmp11_;
-		gint _tmp12_;
-		_tmp10_ = vol_name;
-		_tmp11_ = strlen (_tmp10_);
-		_tmp12_ = _tmp11_;
-		_tmp8_ = _tmp12_ > 0;
-	} else {
-		_tmp8_ = FALSE;
+	_tmp4_ = self->priv->vol_info;
+	_result_ = bk_read_dir_tree (_tmp4_, FNTYPE_JOLIET, FALSE, NULL);
+	if (_result_ < 0) {
+		const gchar* _tmp5_;
+		_tmp5_ = bk_get_error_string (_result_);
+		iso_master_show_error (self, "Failed to read directory tree: %s", _tmp5_, NULL);
+		return;
 	}
-	if (_tmp8_) {
-		GtkWindow* _tmp13_;
-		const gchar* _tmp14_;
-		gchar* _tmp15_;
-		gchar* _tmp16_;
-		_tmp13_ = self->priv->main_window;
-		_tmp14_ = vol_name;
-		_tmp15_ = g_strdup_printf ("ISO Master - %s", _tmp14_);
-		_tmp16_ = _tmp15_;
-		gtk_window_set_title (_tmp13_, _tmp16_);
-		_g_free0 (_tmp16_);
+	self->priv->iso_loaded = TRUE;
+	_tmp6_ = g_strdup ("/");
+	_g_free0 (self->priv->current_iso_path);
+	self->priv->current_iso_path = _tmp6_;
+	_tmp7_ = self->priv->iso_path_entry;
+	gtk_editable_set_text ((GtkEditable*) _tmp7_, "/");
+	iso_master_refresh_iso_view (self);
+	_tmp8_ = self->priv->vol_info;
+	_tmp9_ = bk_get_volume_name (_tmp8_);
+	_tmp10_ = g_strdup (_tmp9_);
+	vol_name = _tmp10_;
+	_tmp12_ = vol_name;
+	if (_tmp12_ != NULL) {
+		const gchar* _tmp13_;
+		gint _tmp14_;
+		gint _tmp15_;
+		_tmp13_ = vol_name;
+		_tmp14_ = strlen (_tmp13_);
+		_tmp15_ = _tmp14_;
+		_tmp11_ = _tmp15_ > 0;
 	} else {
-		GtkWindow* _tmp17_;
+		_tmp11_ = FALSE;
+	}
+	if (_tmp11_) {
+		GtkWindow* _tmp16_;
+		const gchar* _tmp17_;
 		gchar* _tmp18_;
 		gchar* _tmp19_;
-		gchar* _tmp20_;
-		gchar* _tmp21_;
-		_tmp17_ = self->priv->main_window;
-		_tmp18_ = g_path_get_basename (path);
+		_tmp16_ = self->priv->main_window;
+		_tmp17_ = vol_name;
+		_tmp18_ = g_strdup_printf ("ISO Master - %s", _tmp17_);
 		_tmp19_ = _tmp18_;
-		_tmp20_ = g_strdup_printf ("ISO Master - %s", _tmp19_);
-		_tmp21_ = _tmp20_;
-		gtk_window_set_title (_tmp17_, _tmp21_);
-		_g_free0 (_tmp21_);
+		gtk_window_set_title (_tmp16_, _tmp19_);
 		_g_free0 (_tmp19_);
+	} else {
+		GtkWindow* _tmp20_;
+		gchar* _tmp21_;
+		gchar* _tmp22_;
+		gchar* _tmp23_;
+		gchar* _tmp24_;
+		_tmp20_ = self->priv->main_window;
+		_tmp21_ = g_path_get_basename (path);
+		_tmp22_ = _tmp21_;
+		_tmp23_ = g_strdup_printf ("ISO Master - %s", _tmp22_);
+		_tmp24_ = _tmp23_;
+		gtk_window_set_title (_tmp20_, _tmp24_);
+		_g_free0 (_tmp24_);
+		_g_free0 (_tmp22_);
 	}
+	_tmp25_ = self->priv->vol_info;
+	iso_size = bk_estimate_iso_size (_tmp25_, FNTYPE_JOLIET);
+	_tmp26_ = self->priv->iso_size_label;
+	_tmp27_ = iso_master_format_size (self, iso_size);
+	_tmp28_ = _tmp27_;
+	gtk_label_set_label (_tmp26_, _tmp28_);
+	_g_free0 (_tmp28_);
 	_g_free0 (vol_name);
 }
 
@@ -2479,22 +2709,584 @@ iso_master_save_iso (IsoMaster* self)
 	_data2_ = NULL;
 }
 
+static Block3Data*
+block3_data_ref (Block3Data* _data3_)
+{
+	g_atomic_int_inc (&_data3_->_ref_count_);
+	return _data3_;
+}
+
+static void
+block3_data_unref (void * _userdata_)
+{
+	Block3Data* _data3_;
+	_data3_ = (Block3Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data3_->_ref_count_)) {
+		IsoMaster* self;
+		self = _data3_->self;
+		_g_object_unref0 (_data3_->dialog);
+		_g_object_unref0 (self);
+		g_slice_free (Block3Data, _data3_);
+	}
+}
+
+static void
+__lambda18_ (Block3Data* _data3_,
+             GObject* obj,
+             GAsyncResult* res)
+{
+	IsoMaster* self;
+	GError* _inner_error0_ = NULL;
+	self = _data3_->self;
+	g_return_if_fail (res != NULL);
+	{
+		GFile* file = NULL;
+		GtkFileDialog* _tmp0_;
+		GFile* _tmp1_;
+		_tmp0_ = _data3_->dialog;
+		_tmp1_ = gtk_file_dialog_open_finish (_tmp0_, res, &_inner_error0_);
+		file = _tmp1_;
+		if (G_UNLIKELY (_inner_error0_ != NULL)) {
+			goto __catch0_g_error;
+		}
+		if (file != NULL) {
+			gint _result_ = 0;
+			VolInfo* _tmp2_;
+			gchar* _tmp3_;
+			gchar* _tmp4_;
+			const gchar* _tmp5_;
+			gint _tmp6_;
+			_tmp2_ = self->priv->vol_info;
+			_tmp3_ = g_file_get_path (file);
+			_tmp4_ = _tmp3_;
+			_tmp5_ = self->priv->current_iso_path;
+			_tmp6_ = bk_add (_tmp2_, _tmp4_, _tmp5_, NULL);
+			_g_free0 (_tmp4_);
+			_result_ = _tmp6_;
+			if (_result_ < 0) {
+				const gchar* _tmp7_;
+				_tmp7_ = bk_get_error_string (_result_);
+				iso_master_show_error (self, "Failed to add file: %s", _tmp7_, NULL);
+			} else {
+				iso_master_refresh_iso_view (self);
+			}
+		}
+		_g_object_unref0 (file);
+	}
+	goto __finally0;
+	__catch0_g_error:
+	{
+		g_clear_error (&_inner_error0_);
+	}
+	__finally0:
+	if (G_UNLIKELY (_inner_error0_ != NULL)) {
+		g_critical ("file %s: line %d: uncaught error: %s (%s, %d)", __FILE__, __LINE__, _inner_error0_->message, g_quark_to_string (_inner_error0_->domain), _inner_error0_->code);
+		g_clear_error (&_inner_error0_);
+		return;
+	}
+}
+
+static void
+___lambda18__gasync_ready_callback (GObject* source_object,
+                                    GAsyncResult* res,
+                                    gpointer self)
+{
+	__lambda18_ (self, source_object, res);
+	block3_data_unref (self);
+}
+
 static void
 iso_master_add_to_iso (IsoMaster* self)
 {
+	Block3Data* _data3_;
+	GtkFileDialog* _tmp0_;
+	GtkFileDialog* _tmp1_;
+	GtkFileDialog* _tmp2_;
+	GtkWindow* _tmp3_;
 	g_return_if_fail (self != NULL);
+	_data3_ = g_slice_new0 (Block3Data);
+	_data3_->_ref_count_ = 1;
+	_data3_->self = g_object_ref (self);
+	if (!self->priv->iso_loaded) {
+		iso_master_show_error (self, "No ISO image loaded", NULL);
+		block3_data_unref (_data3_);
+		_data3_ = NULL;
+		return;
+	}
+	_tmp0_ = gtk_file_dialog_new ();
+	_data3_->dialog = _tmp0_;
+	_tmp1_ = _data3_->dialog;
+	gtk_file_dialog_set_title (_tmp1_, "Add files to ISO");
+	_tmp2_ = _data3_->dialog;
+	_tmp3_ = self->priv->main_window;
+	gtk_file_dialog_open (_tmp2_, _tmp3_, NULL, ___lambda18__gasync_ready_callback, block3_data_ref (_data3_));
+	block3_data_unref (_data3_);
+	_data3_ = NULL;
+}
+
+static Block4Data*
+block4_data_ref (Block4Data* _data4_)
+{
+	g_atomic_int_inc (&_data4_->_ref_count_);
+	return _data4_;
+}
+
+static void
+block4_data_unref (void * _userdata_)
+{
+	Block4Data* _data4_;
+	_data4_ = (Block4Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data4_->_ref_count_)) {
+		IsoMaster* self;
+		self = _data4_->self;
+		_g_object_unref0 (_data4_->dialog);
+		_g_object_unref0 (_data4_->item);
+		_g_object_unref0 (self);
+		g_slice_free (Block4Data, _data4_);
+	}
+}
+
+static void
+__lambda20_ (Block4Data* _data4_,
+             GObject* obj,
+             GAsyncResult* res)
+{
+	IsoMaster* self;
+	GError* _inner_error0_ = NULL;
+	self = _data4_->self;
+	g_return_if_fail (res != NULL);
+	{
+		GFile* file = NULL;
+		GtkFileDialog* _tmp0_;
+		GFile* _tmp1_;
+		_tmp0_ = _data4_->dialog;
+		_tmp1_ = gtk_file_dialog_save_finish (_tmp0_, res, &_inner_error0_);
+		file = _tmp1_;
+		if (G_UNLIKELY (_inner_error0_ != NULL)) {
+			goto __catch0_g_error;
+		}
+		if (file != NULL) {
+			gint _result_ = 0;
+			VolInfo* _tmp2_;
+			FileItem* _tmp3_;
+			const gchar* _tmp4_;
+			const gchar* _tmp5_;
+			gchar* _tmp6_;
+			gchar* _tmp7_;
+			gint _tmp8_;
+			_tmp2_ = self->priv->vol_info;
+			_tmp3_ = _data4_->item;
+			_tmp4_ = file_item_get_path (_tmp3_);
+			_tmp5_ = _tmp4_;
+			_tmp6_ = g_file_get_path (file);
+			_tmp7_ = _tmp6_;
+			_tmp8_ = bk_extract (_tmp2_, _tmp5_, _tmp7_, FALSE, NULL);
+			_g_free0 (_tmp7_);
+			_result_ = _tmp8_;
+			if (_result_ < 0) {
+				const gchar* _tmp9_;
+				_tmp9_ = bk_get_error_string (_result_);
+				iso_master_show_error (self, "Failed to extract: %s", _tmp9_, NULL);
+			}
+		}
+		_g_object_unref0 (file);
+	}
+	goto __finally0;
+	__catch0_g_error:
+	{
+		g_clear_error (&_inner_error0_);
+	}
+	__finally0:
+	if (G_UNLIKELY (_inner_error0_ != NULL)) {
+		g_critical ("file %s: line %d: uncaught error: %s (%s, %d)", __FILE__, __LINE__, _inner_error0_->message, g_quark_to_string (_inner_error0_->domain), _inner_error0_->code);
+		g_clear_error (&_inner_error0_);
+		return;
+	}
+}
+
+static void
+___lambda20__gasync_ready_callback (GObject* source_object,
+                                    GAsyncResult* res,
+                                    gpointer self)
+{
+	__lambda20_ (self, source_object, res);
+	block4_data_unref (self);
 }
 
 static void
 iso_master_extract_from_iso (IsoMaster* self)
 {
+	Block4Data* _data4_;
+	GtkSingleSelection* selection = NULL;
+	GtkListView* _tmp0_;
+	GtkSelectionModel* _tmp1_;
+	GtkSelectionModel* _tmp2_;
+	GtkSingleSelection* _tmp3_;
+	gboolean _tmp4_ = FALSE;
+	GtkSingleSelection* _tmp5_;
+	GtkSingleSelection* _tmp9_;
+	GObject* _tmp10_;
+	GObject* _tmp11_;
+	FileItem* _tmp12_;
+	FileItem* _tmp13_;
+	GtkFileDialog* _tmp14_;
+	GtkFileDialog* _tmp15_;
+	GtkFileDialog* _tmp16_;
+	FileItem* _tmp17_;
+	const gchar* _tmp18_;
+	const gchar* _tmp19_;
+	GFile* _tmp20_;
+	GFile* _tmp21_;
+	GtkFileDialog* _tmp22_;
+	GtkWindow* _tmp23_;
 	g_return_if_fail (self != NULL);
+	_data4_ = g_slice_new0 (Block4Data);
+	_data4_->_ref_count_ = 1;
+	_data4_->self = g_object_ref (self);
+	if (!self->priv->iso_loaded) {
+		iso_master_show_error (self, "No ISO image loaded", NULL);
+		block4_data_unref (_data4_);
+		_data4_ = NULL;
+		return;
+	}
+	_tmp0_ = self->priv->iso_list_view;
+	_tmp1_ = gtk_list_view_get_model (_tmp0_);
+	_tmp2_ = _tmp1_;
+	_tmp3_ = _g_object_ref0 (G_TYPE_CHECK_INSTANCE_TYPE (_tmp2_, gtk_single_selection_get_type ()) ? ((GtkSingleSelection*) _tmp2_) : NULL);
+	selection = _tmp3_;
+	_tmp5_ = selection;
+	if (_tmp5_ == NULL) {
+		_tmp4_ = TRUE;
+	} else {
+		GtkSingleSelection* _tmp6_;
+		GObject* _tmp7_;
+		GObject* _tmp8_;
+		_tmp6_ = selection;
+		_tmp7_ = gtk_single_selection_get_selected_item (_tmp6_);
+		_tmp8_ = _tmp7_;
+		_tmp4_ = _tmp8_ == NULL;
+	}
+	if (_tmp4_) {
+		iso_master_show_error (self, "No file selected", NULL);
+		_g_object_unref0 (selection);
+		block4_data_unref (_data4_);
+		_data4_ = NULL;
+		return;
+	}
+	_tmp9_ = selection;
+	_tmp10_ = gtk_single_selection_get_selected_item (_tmp9_);
+	_tmp11_ = _tmp10_;
+	_tmp12_ = _g_object_ref0 (IS_FILE_ITEM (_tmp11_) ? ((FileItem*) _tmp11_) : NULL);
+	_data4_->item = _tmp12_;
+	_tmp13_ = _data4_->item;
+	if (_tmp13_ == NULL) {
+		iso_master_show_error (self, "No file selected", NULL);
+		_g_object_unref0 (selection);
+		block4_data_unref (_data4_);
+		_data4_ = NULL;
+		return;
+	}
+	_tmp14_ = gtk_file_dialog_new ();
+	_data4_->dialog = _tmp14_;
+	_tmp15_ = _data4_->dialog;
+	gtk_file_dialog_set_title (_tmp15_, "Extract to...");
+	_tmp16_ = _data4_->dialog;
+	_tmp17_ = _data4_->item;
+	_tmp18_ = file_item_get_name (_tmp17_);
+	_tmp19_ = _tmp18_;
+	_tmp20_ = g_file_new_for_path (_tmp19_);
+	_tmp21_ = _tmp20_;
+	gtk_file_dialog_set_initial_file (_tmp16_, _tmp21_);
+	_g_object_unref0 (_tmp21_);
+	_tmp22_ = _data4_->dialog;
+	_tmp23_ = self->priv->main_window;
+	gtk_file_dialog_save (_tmp22_, _tmp23_, NULL, ___lambda20__gasync_ready_callback, block4_data_ref (_data4_));
+	_g_object_unref0 (selection);
+	block4_data_unref (_data4_);
+	_data4_ = NULL;
+}
+
+static Block5Data*
+block5_data_ref (Block5Data* _data5_)
+{
+	g_atomic_int_inc (&_data5_->_ref_count_);
+	return _data5_;
+}
+
+static void
+block5_data_unref (void * _userdata_)
+{
+	Block5Data* _data5_;
+	_data5_ = (Block5Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data5_->_ref_count_)) {
+		IsoMaster* self;
+		self = _data5_->self;
+		_g_object_unref0 (_data5_->item);
+		_g_object_unref0 (self);
+		g_slice_free (Block5Data, _data5_);
+	}
+}
+
+static void
+__lambda22_ (Block5Data* _data5_,
+             const gchar* response)
+{
+	IsoMaster* self;
+	self = _data5_->self;
+	g_return_if_fail (response != NULL);
+	if (g_strcmp0 (response, "delete") == 0) {
+		gint _result_ = 0;
+		VolInfo* _tmp0_;
+		FileItem* _tmp1_;
+		const gchar* _tmp2_;
+		const gchar* _tmp3_;
+		_tmp0_ = self->priv->vol_info;
+		_tmp1_ = _data5_->item;
+		_tmp2_ = file_item_get_path (_tmp1_);
+		_tmp3_ = _tmp2_;
+		_result_ = bk_delete (_tmp0_, _tmp3_);
+		if (_result_ < 0) {
+			const gchar* _tmp4_;
+			_tmp4_ = bk_get_error_string (_result_);
+			iso_master_show_error (self, "Failed to delete: %s", _tmp4_, NULL);
+		} else {
+			iso_master_refresh_iso_view (self);
+		}
+	}
+}
+
+static void
+___lambda22__adw_alert_dialog_response (AdwAlertDialog* _sender,
+                                        const gchar* response,
+                                        gpointer self)
+{
+	__lambda22_ (self, response);
 }
 
 static void
 iso_master_delete_from_iso (IsoMaster* self)
 {
+	Block5Data* _data5_;
+	GtkSingleSelection* selection = NULL;
+	GtkListView* _tmp0_;
+	GtkSelectionModel* _tmp1_;
+	GtkSelectionModel* _tmp2_;
+	GtkSingleSelection* _tmp3_;
+	gboolean _tmp4_ = FALSE;
+	GtkSingleSelection* _tmp5_;
+	GtkSingleSelection* _tmp9_;
+	GObject* _tmp10_;
+	GObject* _tmp11_;
+	FileItem* _tmp12_;
+	FileItem* _tmp13_;
+	AdwAlertDialog* dialog = NULL;
+	FileItem* _tmp14_;
+	const gchar* _tmp15_;
+	const gchar* _tmp16_;
+	gchar* _tmp17_;
+	gchar* _tmp18_;
+	AdwAlertDialog* _tmp19_;
+	AdwAlertDialog* _tmp20_;
+	AdwAlertDialog* _tmp21_;
+	AdwAlertDialog* _tmp22_;
+	AdwAlertDialog* _tmp23_;
+	AdwAlertDialog* _tmp24_;
+	GtkWindow* _tmp25_;
 	g_return_if_fail (self != NULL);
+	_data5_ = g_slice_new0 (Block5Data);
+	_data5_->_ref_count_ = 1;
+	_data5_->self = g_object_ref (self);
+	if (!self->priv->iso_loaded) {
+		iso_master_show_error (self, "No ISO image loaded", NULL);
+		block5_data_unref (_data5_);
+		_data5_ = NULL;
+		return;
+	}
+	_tmp0_ = self->priv->iso_list_view;
+	_tmp1_ = gtk_list_view_get_model (_tmp0_);
+	_tmp2_ = _tmp1_;
+	_tmp3_ = _g_object_ref0 (G_TYPE_CHECK_INSTANCE_TYPE (_tmp2_, gtk_single_selection_get_type ()) ? ((GtkSingleSelection*) _tmp2_) : NULL);
+	selection = _tmp3_;
+	_tmp5_ = selection;
+	if (_tmp5_ == NULL) {
+		_tmp4_ = TRUE;
+	} else {
+		GtkSingleSelection* _tmp6_;
+		GObject* _tmp7_;
+		GObject* _tmp8_;
+		_tmp6_ = selection;
+		_tmp7_ = gtk_single_selection_get_selected_item (_tmp6_);
+		_tmp8_ = _tmp7_;
+		_tmp4_ = _tmp8_ == NULL;
+	}
+	if (_tmp4_) {
+		iso_master_show_error (self, "No file selected", NULL);
+		_g_object_unref0 (selection);
+		block5_data_unref (_data5_);
+		_data5_ = NULL;
+		return;
+	}
+	_tmp9_ = selection;
+	_tmp10_ = gtk_single_selection_get_selected_item (_tmp9_);
+	_tmp11_ = _tmp10_;
+	_tmp12_ = _g_object_ref0 (IS_FILE_ITEM (_tmp11_) ? ((FileItem*) _tmp11_) : NULL);
+	_data5_->item = _tmp12_;
+	_tmp13_ = _data5_->item;
+	if (_tmp13_ == NULL) {
+		iso_master_show_error (self, "No file selected", NULL);
+		_g_object_unref0 (selection);
+		block5_data_unref (_data5_);
+		_data5_ = NULL;
+		return;
+	}
+	_tmp14_ = _data5_->item;
+	_tmp15_ = file_item_get_name (_tmp14_);
+	_tmp16_ = _tmp15_;
+	_tmp17_ = g_strdup_printf ("Are you sure you want to delete '%s' from the ISO?", _tmp16_);
+	_tmp18_ = _tmp17_;
+	_tmp19_ = (AdwAlertDialog*) adw_alert_dialog_new ("Confirm Delete", _tmp18_);
+	g_object_ref_sink (_tmp19_);
+	_tmp20_ = _tmp19_;
+	_g_free0 (_tmp18_);
+	dialog = _tmp20_;
+	_tmp21_ = dialog;
+	adw_alert_dialog_add_response (_tmp21_, "cancel", "_Cancel");
+	_tmp22_ = dialog;
+	adw_alert_dialog_add_response (_tmp22_, "delete", "_Delete");
+	_tmp23_ = dialog;
+	g_signal_connect_data (_tmp23_, "response", (GCallback) ___lambda22__adw_alert_dialog_response, block5_data_ref (_data5_), (GClosureNotify) block5_data_unref, 0);
+	_tmp24_ = dialog;
+	_tmp25_ = self->priv->main_window;
+	adw_dialog_present ((AdwDialog*) _tmp24_, (GtkWidget*) _tmp25_);
+	_g_object_unref0 (dialog);
+	_g_object_unref0 (selection);
+	block5_data_unref (_data5_);
+	_data5_ = NULL;
+}
+
+static Block6Data*
+block6_data_ref (Block6Data* _data6_)
+{
+	g_atomic_int_inc (&_data6_->_ref_count_);
+	return _data6_;
+}
+
+static void
+block6_data_unref (void * _userdata_)
+{
+	Block6Data* _data6_;
+	_data6_ = (Block6Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data6_->_ref_count_)) {
+		IsoMaster* self;
+		self = _data6_->self;
+		_g_object_unref0 (_data6_->entry);
+		_g_object_unref0 (self);
+		g_slice_free (Block6Data, _data6_);
+	}
+}
+
+static void
+__lambda12_ (Block6Data* _data6_,
+             const gchar* response)
+{
+	IsoMaster* self;
+	gboolean _tmp0_ = FALSE;
+	self = _data6_->self;
+	g_return_if_fail (response != NULL);
+	if (g_strcmp0 (response, "create") == 0) {
+		GtkEntry* _tmp1_;
+		const gchar* _tmp2_;
+		const gchar* _tmp3_;
+		gint _tmp4_;
+		gint _tmp5_;
+		_tmp1_ = _data6_->entry;
+		_tmp2_ = gtk_editable_get_text ((GtkEditable*) _tmp1_);
+		_tmp3_ = _tmp2_;
+		_tmp4_ = strlen (_tmp3_);
+		_tmp5_ = _tmp4_;
+		_tmp0_ = _tmp5_ > 0;
+	} else {
+		_tmp0_ = FALSE;
+	}
+	if (_tmp0_) {
+		gint _result_ = 0;
+		VolInfo* _tmp6_;
+		const gchar* _tmp7_;
+		GtkEntry* _tmp8_;
+		const gchar* _tmp9_;
+		const gchar* _tmp10_;
+		_tmp6_ = self->priv->vol_info;
+		_tmp7_ = self->priv->current_iso_path;
+		_tmp8_ = _data6_->entry;
+		_tmp9_ = gtk_editable_get_text ((GtkEditable*) _tmp8_);
+		_tmp10_ = _tmp9_;
+		_result_ = bk_create_dir (_tmp6_, _tmp7_, _tmp10_);
+		if (_result_ < 0) {
+			const gchar* _tmp11_;
+			_tmp11_ = bk_get_error_string (_result_);
+			iso_master_show_error (self, "Failed to create directory: %s", _tmp11_, NULL);
+		} else {
+			iso_master_refresh_iso_view (self);
+		}
+	}
+}
+
+static void
+___lambda12__adw_alert_dialog_response (AdwAlertDialog* _sender,
+                                        const gchar* response,
+                                        gpointer self)
+{
+	__lambda12_ (self, response);
+}
+
+static void
+iso_master_create_iso_dir (IsoMaster* self)
+{
+	Block6Data* _data6_;
+	AdwAlertDialog* dialog = NULL;
+	AdwAlertDialog* _tmp0_;
+	AdwAlertDialog* _tmp1_;
+	AdwAlertDialog* _tmp2_;
+	GtkEntry* _tmp3_;
+	GtkEntry* _tmp4_;
+	AdwAlertDialog* _tmp5_;
+	GtkEntry* _tmp6_;
+	AdwAlertDialog* _tmp7_;
+	AdwAlertDialog* _tmp8_;
+	GtkWindow* _tmp9_;
+	g_return_if_fail (self != NULL);
+	_data6_ = g_slice_new0 (Block6Data);
+	_data6_->_ref_count_ = 1;
+	_data6_->self = g_object_ref (self);
+	if (!self->priv->iso_loaded) {
+		iso_master_show_error (self, "No ISO image loaded", NULL);
+		block6_data_unref (_data6_);
+		_data6_ = NULL;
+		return;
+	}
+	_tmp0_ = (AdwAlertDialog*) adw_alert_dialog_new ("Create Directory", "Enter directory name:");
+	g_object_ref_sink (_tmp0_);
+	dialog = _tmp0_;
+	_tmp1_ = dialog;
+	adw_alert_dialog_add_response (_tmp1_, "cancel", "_Cancel");
+	_tmp2_ = dialog;
+	adw_alert_dialog_add_response (_tmp2_, "create", "_Create");
+	_tmp3_ = (GtkEntry*) gtk_entry_new ();
+	g_object_ref_sink (_tmp3_);
+	_data6_->entry = _tmp3_;
+	_tmp4_ = _data6_->entry;
+	gtk_entry_set_placeholder_text (_tmp4_, "New directory");
+	_tmp5_ = dialog;
+	_tmp6_ = _data6_->entry;
+	adw_alert_dialog_set_extra_child (_tmp5_, (GtkWidget*) _tmp6_);
+	_tmp7_ = dialog;
+	g_signal_connect_data (_tmp7_, "response", (GCallback) ___lambda12__adw_alert_dialog_response, block6_data_ref (_data6_), (GClosureNotify) block6_data_unref, 0);
+	_tmp8_ = dialog;
+	_tmp9_ = self->priv->main_window;
+	adw_dialog_present ((AdwDialog*) _tmp8_, (GtkWidget*) _tmp9_);
+	_g_object_unref0 (dialog);
+	block6_data_unref (_data6_);
+	_data6_ = NULL;
 }
 
 static void
@@ -2666,11 +3458,134 @@ static void
 iso_master_refresh_iso_view (IsoMaster* self)
 {
 	GListStore* _tmp0_;
+	BkDir* dir = NULL;
+	gint _result_ = 0;
+	VolInfo* _tmp1_;
+	const gchar* _tmp2_;
+	BkDir* _tmp3_ = NULL;
+	gint _tmp4_;
+	gboolean _tmp5_ = FALSE;
+	BkFileBase* child = NULL;
+	BkDir* _tmp7_;
+	BkFileBase* _tmp8_;
 	g_return_if_fail (self != NULL);
 	_tmp0_ = self->priv->iso_store;
 	g_list_store_remove_all (_tmp0_);
 	if (!self->priv->iso_loaded) {
 		return;
+	}
+	dir = NULL;
+	_tmp1_ = self->priv->vol_info;
+	_tmp2_ = self->priv->current_iso_path;
+	_tmp4_ = bk_get_dir_from_string (_tmp1_, _tmp2_, &_tmp3_);
+	dir = _tmp3_;
+	_result_ = _tmp4_;
+	if (_result_ < 0) {
+		_tmp5_ = TRUE;
+	} else {
+		BkDir* _tmp6_;
+		_tmp6_ = dir;
+		_tmp5_ = _tmp6_ == NULL;
+	}
+	if (_tmp5_) {
+		return;
+	}
+	_tmp7_ = dir;
+	_tmp8_ = (*_tmp7_).children;
+	child = _tmp8_;
+	while (TRUE) {
+		BkFileBase* _tmp9_;
+		gchar* name = NULL;
+		BkFileBase* _tmp10_;
+		gchar* _tmp11_;
+		gboolean is_dir = FALSE;
+		BkFileBase* _tmp12_;
+		gboolean is_file = FALSE;
+		BkFileBase* _tmp13_;
+		FileItem* item = NULL;
+		FileItem* _tmp14_;
+		FileItem* _tmp15_;
+		const gchar* _tmp16_;
+		const gchar* _tmp17_ = NULL;
+		const gchar* _tmp18_;
+		FileItem* _tmp19_;
+		const gchar* _tmp20_;
+		gchar* _tmp21_;
+		gchar* _tmp22_;
+		const gchar* _tmp23_;
+		gchar* _tmp24_;
+		gchar* _tmp25_;
+		FileItem* _tmp26_;
+		const gchar* _tmp27_ = NULL;
+		FileItem* _tmp28_;
+		GListStore* _tmp33_;
+		FileItem* _tmp34_;
+		BkFileBase* _tmp35_;
+		BkFileBase* _tmp36_;
+		_tmp9_ = child;
+		if (!(_tmp9_ != NULL)) {
+			break;
+		}
+		_tmp10_ = child;
+		_tmp11_ = g_strdup ((const gchar*) (*_tmp10_).name);
+		name = _tmp11_;
+		_tmp12_ = child;
+		is_dir = S_ISDIR ((*_tmp12_).posixFileMode);
+		_tmp13_ = child;
+		is_file = S_ISREG ((*_tmp13_).posixFileMode);
+		_tmp14_ = file_item_new ();
+		item = _tmp14_;
+		_tmp15_ = item;
+		_tmp16_ = name;
+		file_item_set_name (_tmp15_, _tmp16_);
+		_tmp18_ = self->priv->current_iso_path;
+		if (g_str_has_suffix (_tmp18_, "/")) {
+			_tmp17_ = "";
+		} else {
+			_tmp17_ = "/";
+		}
+		_tmp19_ = item;
+		_tmp20_ = self->priv->current_iso_path;
+		_tmp21_ = g_strconcat (_tmp20_, _tmp17_, NULL);
+		_tmp22_ = _tmp21_;
+		_tmp23_ = name;
+		_tmp24_ = g_strconcat (_tmp22_, _tmp23_, NULL);
+		_tmp25_ = _tmp24_;
+		file_item_set_path (_tmp19_, _tmp25_);
+		_g_free0 (_tmp25_);
+		_g_free0 (_tmp22_);
+		_tmp26_ = item;
+		file_item_set_is_dir (_tmp26_, is_dir);
+		if (is_dir) {
+			_tmp27_ = "folder";
+		} else {
+			_tmp27_ = "text-x-generic";
+		}
+		_tmp28_ = item;
+		file_item_set_icon_name (_tmp28_, _tmp27_);
+		if (is_file) {
+			BkFile* file = NULL;
+			BkFileBase* _tmp29_;
+			FileItem* _tmp30_;
+			BkFile* _tmp31_;
+			_tmp29_ = child;
+			file = (BkFile*) _tmp29_;
+			_tmp30_ = item;
+			_tmp31_ = file;
+			file_item_set_size (_tmp30_, (gint64) (*_tmp31_).size);
+		} else {
+			FileItem* _tmp32_;
+			_tmp32_ = item;
+			file_item_set_size (_tmp32_, (gint64) 0);
+		}
+		_tmp33_ = self->priv->iso_store;
+		_tmp34_ = item;
+		g_list_store_append (_tmp33_, (GObject*) _tmp34_);
+		_tmp35_ = child;
+		_tmp36_ = (*_tmp35_).next;
+		child = _tmp36_;
+		_g_object_unref0 (item);
+		_g_free0 (name);
 	}
 }
 
@@ -2713,37 +3628,76 @@ iso_master_fs_go_up (IsoMaster* self)
 static void
 iso_master_iso_go_up (IsoMaster* self)
 {
-	gchar* path = NULL;
-	GtkEntry* _tmp0_;
-	const gchar* _tmp1_;
-	const gchar* _tmp2_;
-	gchar* _tmp3_;
-	const gchar* _tmp4_;
-	gint _tmp5_;
-	gint _tmp6_;
+	const gchar* _tmp0_;
+	gint _tmp1_;
+	gint _tmp2_;
 	g_return_if_fail (self != NULL);
-	_tmp0_ = self->priv->iso_path_entry;
-	_tmp1_ = gtk_editable_get_text ((GtkEditable*) _tmp0_);
+	_tmp0_ = self->priv->current_iso_path;
+	_tmp1_ = strlen (_tmp0_);
 	_tmp2_ = _tmp1_;
-	_tmp3_ = g_strdup (_tmp2_);
-	path = _tmp3_;
-	_tmp4_ = path;
-	_tmp5_ = strlen (_tmp4_);
-	_tmp6_ = _tmp5_;
-	if (_tmp6_ > 1) {
-		GtkEntry* _tmp7_;
-		const gchar* _tmp8_;
-		gchar* _tmp9_;
-		gchar* _tmp10_;
-		_tmp7_ = self->priv->iso_path_entry;
-		_tmp8_ = path;
-		_tmp9_ = g_path_get_dirname (_tmp8_);
-		_tmp10_ = _tmp9_;
-		gtk_editable_set_text ((GtkEditable*) _tmp7_, _tmp10_);
-		_g_free0 (_tmp10_);
+	if (_tmp2_ > 1) {
+		const gchar* _tmp3_;
+		gchar* _tmp4_;
+		GtkEntry* _tmp5_;
+		const gchar* _tmp6_;
+		_tmp3_ = self->priv->current_iso_path;
+		_tmp4_ = g_path_get_dirname (_tmp3_);
+		_g_free0 (self->priv->current_iso_path);
+		self->priv->current_iso_path = _tmp4_;
+		_tmp5_ = self->priv->iso_path_entry;
+		_tmp6_ = self->priv->current_iso_path;
+		gtk_editable_set_text ((GtkEditable*) _tmp5_, _tmp6_);
 		iso_master_refresh_iso_view (self);
 	}
-	_g_free0 (path);
+}
+
+static void
+iso_master_iso_navigate_to (IsoMaster* self,
+                            const gchar* path)
+{
+	gchar* _tmp0_;
+	GtkEntry* _tmp1_;
+	g_return_if_fail (self != NULL);
+	g_return_if_fail (path != NULL);
+	_tmp0_ = g_strdup (path);
+	_g_free0 (self->priv->current_iso_path);
+	self->priv->current_iso_path = _tmp0_;
+	_tmp1_ = self->priv->iso_path_entry;
+	gtk_editable_set_text ((GtkEditable*) _tmp1_, path);
+	iso_master_refresh_iso_view (self);
+}
+
+static gchar*
+iso_master_format_size (IsoMaster* self,
+                        gint64 size)
+{
+	gchar* result;
+	g_return_val_if_fail (self != NULL, NULL);
+	if (size > ((gint64) 1073741824)) {
+		gchar* _tmp0_;
+		_tmp0_ = g_strdup_printf ("%.1f GB", ((gdouble) size) / 1073741824);
+		result = _tmp0_;
+		return result;
+	} else {
+		if (size > ((gint64) 1048576)) {
+			gchar* _tmp1_;
+			_tmp1_ = g_strdup_printf ("%.1f MB", ((gdouble) size) / 1048576);
+			result = _tmp1_;
+			return result;
+		} else {
+			if (size > ((gint64) 1024)) {
+				gchar* _tmp2_;
+				_tmp2_ = g_strdup_printf ("%.1f KB", ((gdouble) size) / 1024);
+				result = _tmp2_;
+				return result;
+			} else {
+				gchar* _tmp3_;
+				_tmp3_ = g_strdup_printf ("%lld B", size);
+				result = _tmp3_;
+				return result;
+			}
+		}
+	}
 }
 
 static void
@@ -3032,10 +3986,13 @@ static void
 iso_master_instance_init (IsoMaster * self,
                           gpointer klass)
 {
+	gchar* _tmp0_;
 	self->priv = iso_master_get_instance_private (self);
 	self->priv->main_window = NULL;
 	self->priv->vol_info = NULL;
 	self->priv->iso_loaded = FALSE;
+	_tmp0_ = g_strdup ("/");
+	self->priv->current_iso_path = _tmp0_;
 }
 
 static void
@@ -3045,6 +4002,7 @@ iso_master_finalize (GObject * obj)
 	self = G_TYPE_CHECK_INSTANCE_CAST (obj, TYPE_ISO_MASTER, IsoMaster);
 	_g_object_unref0 (self->priv->main_window);
 	_g_object_unref0 (self->priv->settings);
+	_g_free0 (self->priv->current_iso_path);
 	_g_object_unref0 (self->priv->fs_list_view);
 	_g_object_unref0 (self->priv->fs_store);
 	_g_object_unref0 (self->priv->fs_path_entry);

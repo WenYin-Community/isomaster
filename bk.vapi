@@ -1,10 +1,5 @@
 [CCode (cheader_filename = "bk.h")]
 namespace Bk {
-    [CCode (cname = "bk_off_t", has_type_id = false)]
-    public struct OffT {
-        public int64 value;
-    }
-
     // Use pointers for large opaque C structs
     [CCode (cname = "VolInfo", has_type_id = false)]
     [SimpleType]
@@ -13,10 +8,28 @@ namespace Bk {
         public uint8 _data[206080];
     }
 
+    [CCode (cname = "BkFileBase", has_type_id = false)]
+    [SimpleType]
+    public struct BkFileBase {
+        public char original9660name[15];
+        public char name[256];
+        public uint posixFileMode;
+        public BkFileBase* next;
+    }
+
     [CCode (cname = "BkDir", has_type_id = false)]
     [SimpleType]
     public struct BkDir {
-        public void* _data;
+        public BkFileBase base;
+        public BkFileBase* children;
+    }
+
+    [CCode (cname = "BkFile", has_type_id = false)]
+    [SimpleType]
+    public struct BkFile {
+        public BkFileBase base;
+        public uint size;
+        // Other fields omitted for simplicity
     }
 
     [CCode (cname = "bk_init_vol_info")]
@@ -27,6 +40,12 @@ namespace Bk {
 
     [CCode (cname = "bk_read_vol_info")]
     public static int read_vol_info(VolInfo* vol_info);
+
+    [CCode (cname = "bk_read_dir_tree")]
+    public static int read_dir_tree(VolInfo* vol_info, int filename_type, bool keep_posix_permissions, void* progress_function);
+
+    [CCode (cname = "bk_get_dir_from_string")]
+    public static int get_dir_from_string(VolInfo* vol_info, string path_str, out BkDir* dir_found);
 
     [CCode (cname = "bk_get_error_string")]
     public static unowned string get_error_string(int error_id);
@@ -56,7 +75,7 @@ namespace Bk {
     public static int rename(VolInfo* vol_info, string src, string dest);
 
     [CCode (cname = "bk_estimate_iso_size")]
-    public static OffT estimate_iso_size(VolInfo* vol_info, int filename_types);
+    public static int64 estimate_iso_size(VolInfo* vol_info, int filename_types);
 
     [CCode (cname = "bk_set_vol_name")]
     public static int set_vol_name(VolInfo* vol_info, string vol_name);
@@ -70,4 +89,14 @@ namespace Bk {
     public const int FNTYPE_ROCKRIDGE;
     [CCode (cname = "FNTYPE_JOLIET")]
     public const int FNTYPE_JOLIET;
+
+    // POSIX file mode helpers
+    [CCode (cname = "S_ISDIR")]
+    public static bool S_ISDIR(uint mode);
+
+    [CCode (cname = "S_ISREG")]
+    public static bool S_ISREG(uint mode);
+
+    [CCode (cname = "S_ISLNK")]
+    public static bool S_ISLNK(uint mode);
 }

@@ -33,6 +33,7 @@ public class IsoMaster : Adw.Application {
     private AppSettings settings;
     private Bk.VolInfo* vol_info = null;
     private bool iso_loaded = false;
+    private string current_iso_path = "/";
 
     // File system browser widgets
     private Gtk.ListView fs_list_view;
@@ -114,6 +115,7 @@ public class IsoMaster : Adw.Application {
         file_menu.append("_New", "app.new");
         file_menu.append("_Open", "app.open");
         file_menu.append("_Save", "app.save");
+        file_menu.append("Create _Directory", "app.create-dir");
         file_menu.append("_Quit", "app.quit");
         menubar.append_submenu("_File", file_menu);
 
@@ -159,6 +161,10 @@ public class IsoMaster : Adw.Application {
             if (iso_loaded) refresh_iso_view();
         });
         this.add_action(refresh_action);
+
+        var create_dir_action = new GLib.SimpleAction("create-dir", null);
+        create_dir_action.activate.connect(() => create_iso_dir());
+        this.add_action(create_dir_action);
 
         var about_action = new GLib.SimpleAction("about", null);
         about_action.activate.connect(() => show_about());
@@ -266,6 +272,14 @@ public class IsoMaster : Adw.Application {
         fs_list_view = new Gtk.ListView(selection, factory);
         fs_list_view.vexpand = true;
 
+        // Handle double-click to navigate into directories
+        fs_list_view.activate.connect((pos) => {
+            var item = fs_store.get_item(pos) as FileItem;
+            if (item != null && item.is_dir) {
+                fs_navigate_to(item.path);
+            }
+        });
+
         var scrolled = new Gtk.ScrolledWindow();
         scrolled.child = fs_list_view;
         box.append(scrolled);
@@ -323,6 +337,14 @@ public class IsoMaster : Adw.Application {
         iso_list_view = new Gtk.ListView(selection, factory);
         iso_list_view.vexpand = true;
 
+        // Handle double-click to navigate into directories
+        iso_list_view.activate.connect((pos) => {
+            var item = iso_store.get_item(pos) as FileItem;
+            if (item != null && item.is_dir) {
+                iso_navigate_to(item.path);
+            }
+        });
+
         var scrolled = new Gtk.ScrolledWindow();
         scrolled.child = iso_list_view;
         box.append(scrolled);
@@ -372,7 +394,15 @@ public class IsoMaster : Adw.Application {
             return;
         }
 
+        // Read directory tree
+        result = Bk.read_dir_tree(vol_info, Bk.FNTYPE_JOLIET, false, null);
+        if (result < 0) {
+            show_error("Failed to read directory tree: %s", Bk.get_error_string(result));
+            return;
+        }
+
         iso_loaded = true;
+        current_iso_path = "/";
         iso_path_entry.text = "/";
         refresh_iso_view();
 
@@ -383,6 +413,10 @@ public class IsoMaster : Adw.Application {
         } else {
             main_window.title = "ISO Master - %s".printf(Path.get_basename(path));
         }
+
+        // Update ISO size
+        int64 iso_size = Bk.estimate_iso_size(vol_info, Bk.FNTYPE_JOLIET);
+        iso_size_label.label = format_size(iso_size);
     }
 
     private void save_iso() {
@@ -415,15 +449,134 @@ public class IsoMaster : Adw.Application {
     }
 
     private void add_to_iso() {
-        // TODO: Add files to ISO
+        if (!iso_loaded) {
+            show_error("No ISO image loaded");
+            return;
+        }
+
+        var dialog = new Gtk.FileDialog();
+        dialog.title = "Add files to ISO";
+
+        dialog.open.begin(main_window, null, (obj, res) => {
+            try {
+                var file = dialog.open.end(res);
+                if (file != null) {
+                    int result = Bk.add(vol_info, file.get_path(), current_iso_path, null);
+                    if (result < 0) {
+                        show_error("Failed to add file: %s", Bk.get_error_string(result));
+                    } else {
+                        refresh_iso_view();
+                    }
+                }
+            } catch (Error e) {
+                // User cancelled
+            }
+        });
     }
 
     private void extract_from_iso() {
-        // TODO: Extract files from ISO
+        if (!iso_loaded) {
+            show_error("No ISO image loaded");
+            return;
+        }
+
+        // Get selected item
+        var selection = iso_list_view.model as Gtk.SingleSelection;
+        if (selection == null || selection.selected_item == null) {
+            show_error("No file selected");
+            return;
+        }
+
+        var item = selection.selected_item as FileItem;
+        if (item == null) {
+            show_error("No file selected");
+            return;
+        }
+
+        var dialog = new Gtk.FileDialog();
+        dialog.title = "Extract to...";
+        dialog.initial_file = GLib.File.new_for_path(item.name);
+
+        dialog.save.begin(main_window, null, (obj, res) => {
+            try {
+                var file = dialog.save.end(res);
+                if (file != null) {
+                    int result = Bk.extract(vol_info, item.path, file.get_path(), false, null);
+                    if (result < 0) {
+                        show_error("Failed to extract: %s", Bk.get_error_string(result));
+                    }
+                }
+            } catch (Error e) {
+                // User cancelled
+            }
+        });
     }
 
     private void delete_from_iso() {
-        // TODO: Delete files from ISO
+        if (!iso_loaded) {
+            show_error("No ISO image loaded");
+            return;
+        }
+
+        // Get selected item
+        var selection = iso_list_view.model as Gtk.SingleSelection;
+        if (selection == null || selection.selected_item == null) {
+            show_error("No file selected");
+            return;
+        }
+
+        var item = selection.selected_item as FileItem;
+        if (item == null) {
+            show_error("No file selected");
+            return;
+        }
+
+        // Confirm deletion
+        var dialog = new Adw.AlertDialog(
+            "Confirm Delete",
+            "Are you sure you want to delete '%s' from the ISO?".printf(item.name)
+        );
+        dialog.add_response("cancel", "_Cancel");
+        dialog.add_response("delete", "_Delete");
+        dialog.response.connect((response) => {
+            if (response == "delete") {
+                int result = Bk.delete(vol_info, item.path);
+                if (result < 0) {
+                    show_error("Failed to delete: %s", Bk.get_error_string(result));
+                } else {
+                    refresh_iso_view();
+                }
+            }
+        });
+        dialog.present(main_window);
+    }
+
+    private void create_iso_dir() {
+        if (!iso_loaded) {
+            show_error("No ISO image loaded");
+            return;
+        }
+
+        // Show input dialog for directory name
+        var dialog = new Adw.AlertDialog("Create Directory", "Enter directory name:");
+        dialog.add_response("cancel", "_Cancel");
+        dialog.add_response("create", "_Create");
+
+        var entry = new Gtk.Entry();
+        entry.placeholder_text = "New directory";
+        dialog.extra_child = entry;
+
+        dialog.response.connect((response) => {
+            if (response == "create" && entry.text.length > 0) {
+                int result = Bk.create_dir(vol_info, current_iso_path, entry.text);
+                if (result < 0) {
+                    show_error("Failed to create directory: %s", Bk.get_error_string(result));
+                } else {
+                    refresh_iso_view();
+                }
+            }
+        });
+        dialog.present(main_window);
     }
 
     private void refresh_fs_view() {
@@ -461,7 +614,37 @@ public class IsoMaster : Adw.Application {
             return;
         }
 
-        // TODO: Read ISO directory contents
+        // Get current directory from ISO
+        Bk.BkDir* dir = null;
+        int result = Bk.get_dir_from_string(vol_info, current_iso_path, out dir);
+        if (result < 0 || dir == null) {
+            return;
+        }
+
+        // Iterate through children
+        Bk.BkFileBase* child = dir->children;
+        while (child != null) {
+            string name = (string) child->name;
+            bool is_dir = Bk.S_ISDIR(child->posixFileMode);
+            bool is_file = Bk.S_ISREG(child->posixFileMode);
+
+            var item = new FileItem();
+            item.name = name;
+            item.path = current_iso_path + (current_iso_path.has_suffix("/") ? "" : "/") + name;
+            item.is_dir = is_dir;
+            item.icon_name = is_dir ? "folder" : "text-x-generic";
+
+            if (is_file) {
+                // Get file size from BkFile
+                Bk.BkFile* file = (Bk.BkFile*) child;
+                item.size = file->size;
+            } else {
+                item.size = 0;
+            }
+
+            iso_store.append(item);
+            child = child->next;
+        }
     }
 
     private void fs_go_up() {
@@ -473,10 +656,28 @@ public class IsoMaster : Adw.Application {
     }
 
     private void iso_go_up() {
-        var path = iso_path_entry.text;
-        if (path.length > 1) {
-            iso_path_entry.text = Path.get_dirname(path);
+        if (current_iso_path.length > 1) {
+            current_iso_path = Path.get_dirname(current_iso_path);
+            iso_path_entry.text = current_iso_path;
             refresh_iso_view();
+        }
+    }
+
+    private void iso_navigate_to(string path) {
+        current_iso_path = path;
+        iso_path_entry.text = path;
+        refresh_iso_view();
+    }
+
+    private string format_size(int64 size) {
+        if (size > 1073741824) {
+            return "%.1f GB".printf((double)size / 1073741824);
+        } else if (size > 1048576) {
+            return "%.1f MB".printf((double)size / 1048576);
+        } else if (size > 1024) {
+            return "%.1f KB".printf((double)size / 1024);
+        } else {
+            return "%lld B".printf(size);
         }
     }
 
