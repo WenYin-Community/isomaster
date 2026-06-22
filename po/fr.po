@@ -311,3 +311,10 @@ msgstr "Enregistrement de démarrage ajouté avec succès"
 
 msgid "ISO Images"
 msgstr "Images ISO"
+
+# Theme switching
+msgid "Switch to Light Mode"
+msgstr ""
+
+msgid "Switch to Dark Mode"
+msgstr ""

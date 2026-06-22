@@ -311,3 +311,10 @@ msgstr "Boot-Record erfolgreich hinzugefügt"
 
 msgid "ISO Images"
 msgstr "ISO-Images"
+
+# Theme switching
+msgid "Switch to Light Mode"
+msgstr ""
+
+msgid "Switch to Dark Mode"
+msgstr ""

@@ -16,7 +16,7 @@
 #include <bk.h>
 #include <gtk/gtk.h>
 #include <gio/gio.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <gdk/gdk.h>
 #include <float.h>
 #include <math.h>
 #include <stdarg.h>
@@ -63,6 +63,7 @@ enum  {
 	APP_SETTINGS_SHOW_HIDDEN_FILES_PROPERTY,
 	APP_SETTINGS_SORT_DIRS_FIRST_PROPERTY,
 	APP_SETTINGS_CASE_SENSITIVE_SORT_PROPERTY,
+	APP_SETTINGS_DARK_MODE_PROPERTY,
 	APP_SETTINGS_TEMP_DIR_PROPERTY,
 	APP_SETTINGS_EDITOR_PROPERTY,
 	APP_SETTINGS_VIEWER_PROPERTY,
@@ -120,12 +121,13 @@ typedef struct _Block7Data Block7Data;
 typedef struct _Block8Data Block8Data;
 typedef struct _Block9Data Block9Data;
 typedef struct _Block10Data Block10Data;
-#define _g_dir_close0(var) ((var == NULL) ? NULL : (var = (g_dir_close (var), NULL)))
 typedef struct _Block11Data Block11Data;
-#define _g_error_free0(var) ((var == NULL) ? NULL : (var = (g_error_free (var), NULL)))
+#define _g_dir_close0(var) ((var == NULL) ? NULL : (var = (g_dir_close (var), NULL)))
 typedef struct _Block12Data Block12Data;
+#define _g_error_free0(var) ((var == NULL) ? NULL : (var = (g_error_free (var), NULL)))
 typedef struct _Block13Data Block13Data;
 typedef struct _Block14Data Block14Data;
+typedef struct _Block15Data Block15Data;
 #define _dictionary_del0(var) ((var == NULL) ? NULL : (var = (dictionary_del (var), NULL)))
 #define _fclose0(var) ((var == NULL) ? NULL : (var = (fclose (var), NULL)))
 
@@ -145,6 +147,7 @@ struct _AppSettingsPrivate {
 	gboolean _show_hidden_files;
 	gboolean _sort_dirs_first;
 	gboolean _case_sensitive_sort;
+	gboolean _dark_mode;
 	gchar* _temp_dir;
 	gchar* _editor;
 	gchar* _viewer;
@@ -186,6 +189,7 @@ struct _IsoMasterPrivate {
 	VolInfo* vol_info;
 	gboolean iso_loaded;
 	gchar* current_iso_path;
+	AdwStyleManager* style_manager;
 	GtkListView* fs_list_view;
 	GListStore* fs_store;
 	GtkEntry* fs_path_entry;
@@ -198,7 +202,7 @@ struct _IsoMasterPrivate {
 struct _Block1Data {
 	int _ref_count_;
 	IsoMaster* self;
-	GtkFileDialog* dialog;
+	GtkButton* theme_button;
 };
 
 struct _Block2Data {
@@ -216,7 +220,6 @@ struct _Block3Data {
 struct _Block4Data {
 	int _ref_count_;
 	IsoMaster* self;
-	FileItem* item;
 	GtkFileDialog* dialog;
 };
 
@@ -224,38 +227,39 @@ struct _Block5Data {
 	int _ref_count_;
 	IsoMaster* self;
 	FileItem* item;
+	GtkFileDialog* dialog;
 };
 
 struct _Block6Data {
 	int _ref_count_;
 	IsoMaster* self;
-	GtkEntry* entry;
+	FileItem* item;
 };
 
 struct _Block7Data {
 	int _ref_count_;
 	IsoMaster* self;
-	FileItem* item;
 	GtkEntry* entry;
 };
 
 struct _Block8Data {
 	int _ref_count_;
 	IsoMaster* self;
-	GtkEntry* name_entry;
-	GtkEntry* pub_entry;
+	FileItem* item;
+	GtkEntry* entry;
 };
 
 struct _Block9Data {
 	int _ref_count_;
 	IsoMaster* self;
-	FileItem* item;
+	GtkEntry* name_entry;
+	GtkEntry* pub_entry;
 };
 
 struct _Block10Data {
 	int _ref_count_;
 	IsoMaster* self;
-	GtkFileDialog* dialog;
+	FileItem* item;
 };
 
 struct _Block11Data {
@@ -265,6 +269,12 @@ struct _Block11Data {
 };
 
 struct _Block12Data {
+	int _ref_count_;
+	IsoMaster* self;
+	GtkFileDialog* dialog;
+};
+
+struct _Block13Data {
 	int _ref_count_;
 	IsoMaster* self;
 	GtkCheckButton* owner_read;
@@ -278,7 +288,7 @@ struct _Block12Data {
 	GtkCheckButton* other_exec;
 };
 
-struct _Block13Data {
+struct _Block14Data {
 	int _ref_count_;
 	IsoMaster* self;
 	GtkEntry* temp_entry;
@@ -286,7 +296,7 @@ struct _Block13Data {
 	GtkEntry* viewer_entry;
 };
 
-struct _Block14Data {
+struct _Block15Data {
 	int _ref_count_;
 	IsoMaster* self;
 	GtkFileDialog* dialog;
@@ -322,6 +332,9 @@ VALA_EXTERN void app_settings_set_sort_dirs_first (AppSettings* self,
 VALA_EXTERN gboolean app_settings_get_case_sensitive_sort (AppSettings* self);
 VALA_EXTERN void app_settings_set_case_sensitive_sort (AppSettings* self,
                                            gboolean value);
+VALA_EXTERN gboolean app_settings_get_dark_mode (AppSettings* self);
+VALA_EXTERN void app_settings_set_dark_mode (AppSettings* self,
+                                 gboolean value);
 VALA_EXTERN const gchar* app_settings_get_temp_dir (AppSettings* self);
 VALA_EXTERN void app_settings_set_temp_dir (AppSettings* self,
                                 const gchar* value);
@@ -385,14 +398,19 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (IsoMaster, g_object_unref)
 VALA_EXTERN IsoMaster* iso_master_new (void);
 VALA_EXTERN IsoMaster* iso_master_construct (GType object_type);
 static void iso_master_real_activate (GApplication* base);
+static Block1Data* block1_data_ref (Block1Data* _data1_);
+static void block1_data_unref (void * _userdata_);
 static void iso_master_load_settings (IsoMaster* self);
 static GMenu* iso_master_build_menubar (IsoMaster* self);
+static void __lambda39_ (Block1Data* _data1_);
+static void ___lambda39__gtk_button_clicked (GtkButton* _sender,
+                                      gpointer self);
 static GtkBox* iso_master_build_toolbar (IsoMaster* self);
 static GtkBox* iso_master_build_fs_browser (IsoMaster* self);
 static GtkBox* iso_master_build_iso_browser (IsoMaster* self);
-static gboolean __lambda58_ (IsoMaster* self);
+static gboolean __lambda59_ (IsoMaster* self);
 static void iso_master_save_settings (IsoMaster* self);
-static gboolean ___lambda58__gtk_window_close_request (GtkWindow* _sender,
+static gboolean ___lambda59__gtk_window_close_request (GtkWindow* _sender,
                                                 gpointer self);
 static void iso_master_setup_actions (IsoMaster* self);
 static void __lambda4_ (IsoMaster* self);
@@ -510,9 +528,6 @@ static void ___lambda38__g_simple_action_activate (GSimpleAction* _sender,
 static GtkImage* iso_master_load_icon (IsoMaster* self,
                                 const gchar* path,
                                 gint size);
-static void __lambda39_ (IsoMaster* self);
-static void ___lambda39__gtk_button_clicked (GtkButton* _sender,
-                                      gpointer self);
 static void __lambda40_ (IsoMaster* self);
 static void ___lambda40__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
@@ -520,68 +535,71 @@ static void __lambda41_ (IsoMaster* self);
 static void ___lambda41__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
 static void __lambda42_ (IsoMaster* self);
-static void iso_master_add_to_iso (IsoMaster* self);
 static void ___lambda42__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
-static void __lambda44_ (IsoMaster* self);
+static void __lambda43_ (IsoMaster* self);
+static void iso_master_add_to_iso (IsoMaster* self);
+static void ___lambda43__gtk_button_clicked (GtkButton* _sender,
+                                      gpointer self);
+static void __lambda45_ (IsoMaster* self);
 static void iso_master_extract_from_iso (IsoMaster* self);
-static void ___lambda44__gtk_button_clicked (GtkButton* _sender,
+static void ___lambda45__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
-static void __lambda46_ (IsoMaster* self);
+static void __lambda47_ (IsoMaster* self);
 static void iso_master_delete_from_iso (IsoMaster* self);
-static void ___lambda46__gtk_button_clicked (GtkButton* _sender,
-                                      gpointer self);
-static void __lambda48_ (IsoMaster* self);
-static void iso_master_fs_go_up (IsoMaster* self);
-static void ___lambda48__gtk_button_clicked (GtkButton* _sender,
+static void ___lambda47__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
 static void __lambda49_ (IsoMaster* self);
-static void iso_master_fs_navigate_to (IsoMaster* self,
-                                const gchar* path);
-static void ___lambda49__gtk_entry_activate (GtkEntry* _sender,
+static void iso_master_fs_go_up (IsoMaster* self);
+static void ___lambda49__gtk_button_clicked (GtkButton* _sender,
                                       gpointer self);
 static void __lambda50_ (IsoMaster* self);
-static void ___lambda50__gtk_button_clicked (GtkButton* _sender,
+static void iso_master_fs_navigate_to (IsoMaster* self,
+                                const gchar* path);
+static void ___lambda50__gtk_entry_activate (GtkEntry* _sender,
                                       gpointer self);
-static void __lambda51_ (IsoMaster* self,
-                  GObject* item);
-static void ___lambda51__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
-                                                      GObject* object,
-                                                      gpointer self);
+static void __lambda51_ (IsoMaster* self);
+static void ___lambda51__gtk_button_clicked (GtkButton* _sender,
+                                      gpointer self);
 static void __lambda52_ (IsoMaster* self,
                   GObject* item);
-static void ___lambda52__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
-                                                     GObject* object,
-                                                     gpointer self);
-static void __lambda53_ (IsoMaster* self,
-                  guint pos);
-static void ___lambda53__gtk_list_view_activate (GtkListView* _sender,
-                                          guint position,
-                                          gpointer self);
-static void __lambda54_ (IsoMaster* self);
-static void iso_master_iso_go_up (IsoMaster* self);
-static void ___lambda54__gtk_button_clicked (GtkButton* _sender,
-                                      gpointer self);
-static void __lambda55_ (IsoMaster* self,
-                  GObject* item);
-static void ___lambda55__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
+static void ___lambda52__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
                                                       GObject* object,
                                                       gpointer self);
-static void __lambda56_ (IsoMaster* self,
+static void __lambda53_ (IsoMaster* self,
                   GObject* item);
-static void ___lambda56__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
+static void ___lambda53__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
                                                      GObject* object,
                                                      gpointer self);
+static void __lambda54_ (IsoMaster* self,
+                  guint pos);
+static void ___lambda54__gtk_list_view_activate (GtkListView* _sender,
+                                          guint position,
+                                          gpointer self);
+static void __lambda55_ (IsoMaster* self);
+static void iso_master_iso_go_up (IsoMaster* self);
+static void ___lambda55__gtk_button_clicked (GtkButton* _sender,
+                                      gpointer self);
+static void __lambda56_ (IsoMaster* self,
+                  GObject* item);
+static void ___lambda56__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
+                                                      GObject* object,
+                                                      gpointer self);
 static void __lambda57_ (IsoMaster* self,
+                  GObject* item);
+static void ___lambda57__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
+                                                     GObject* object,
+                                                     gpointer self);
+static void __lambda58_ (IsoMaster* self,
                   guint pos);
 static void iso_master_iso_navigate_to (IsoMaster* self,
                                  const gchar* path);
-static void ___lambda57__gtk_list_view_activate (GtkListView* _sender,
+static void ___lambda58__gtk_list_view_activate (GtkListView* _sender,
                                           guint position,
                                           gpointer self);
-static Block1Data* block1_data_ref (Block1Data* _data1_);
-static void block1_data_unref (void * _userdata_);
-static void __lambda6_ (Block1Data* _data1_,
+static Block2Data* block2_data_ref (Block2Data* _data2_);
+static void block2_data_unref (void * _userdata_);
+static void __lambda6_ (Block2Data* _data2_,
                  GObject* obj,
                  GAsyncResult* res);
 static void iso_master_open_iso_file (IsoMaster* self,
@@ -594,68 +612,68 @@ static void iso_master_show_error (IsoMaster* self,
                             ...);
 static gchar* iso_master_format_size (IsoMaster* self,
                                gint64 size);
-static Block2Data* block2_data_ref (Block2Data* _data2_);
-static void block2_data_unref (void * _userdata_);
-static void __lambda8_ (Block2Data* _data2_,
+static Block3Data* block3_data_ref (Block3Data* _data3_);
+static void block3_data_unref (void * _userdata_);
+static void __lambda8_ (Block3Data* _data3_,
                  GObject* obj,
                  GAsyncResult* res);
 static void ___lambda8__gasync_ready_callback (GObject* source_object,
                                         GAsyncResult* res,
                                         gpointer self);
-static Block3Data* block3_data_ref (Block3Data* _data3_);
-static void block3_data_unref (void * _userdata_);
-static void __lambda43_ (Block3Data* _data3_,
-                  GObject* obj,
-                  GAsyncResult* res);
-static void ___lambda43__gasync_ready_callback (GObject* source_object,
-                                         GAsyncResult* res,
-                                         gpointer self);
 static Block4Data* block4_data_ref (Block4Data* _data4_);
 static void block4_data_unref (void * _userdata_);
-static void __lambda45_ (Block4Data* _data4_,
+static void __lambda44_ (Block4Data* _data4_,
                   GObject* obj,
                   GAsyncResult* res);
-static void ___lambda45__gasync_ready_callback (GObject* source_object,
+static void ___lambda44__gasync_ready_callback (GObject* source_object,
                                          GAsyncResult* res,
                                          gpointer self);
 static Block5Data* block5_data_ref (Block5Data* _data5_);
 static void block5_data_unref (void * _userdata_);
-static void __lambda47_ (Block5Data* _data5_,
-                  const gchar* response);
-static void ___lambda47__adw_alert_dialog_response (AdwAlertDialog* _sender,
-                                             const gchar* response,
-                                             gpointer self);
+static void __lambda46_ (Block5Data* _data5_,
+                  GObject* obj,
+                  GAsyncResult* res);
+static void ___lambda46__gasync_ready_callback (GObject* source_object,
+                                         GAsyncResult* res,
+                                         gpointer self);
 static Block6Data* block6_data_ref (Block6Data* _data6_);
 static void block6_data_unref (void * _userdata_);
-static void __lambda17_ (Block6Data* _data6_,
+static void __lambda48_ (Block6Data* _data6_,
                   const gchar* response);
-static void ___lambda17__adw_alert_dialog_response (AdwAlertDialog* _sender,
+static void ___lambda48__adw_alert_dialog_response (AdwAlertDialog* _sender,
                                              const gchar* response,
                                              gpointer self);
 static Block7Data* block7_data_ref (Block7Data* _data7_);
 static void block7_data_unref (void * _userdata_);
-static void __lambda19_ (Block7Data* _data7_,
+static void __lambda17_ (Block7Data* _data7_,
                   const gchar* response);
-static void ___lambda19__adw_alert_dialog_response (AdwAlertDialog* _sender,
+static void ___lambda17__adw_alert_dialog_response (AdwAlertDialog* _sender,
                                              const gchar* response,
                                              gpointer self);
 static Block8Data* block8_data_ref (Block8Data* _data8_);
 static void block8_data_unref (void * _userdata_);
-static void __lambda21_ (Block8Data* _data8_,
+static void __lambda19_ (Block8Data* _data8_,
                   const gchar* response);
-static void ___lambda21__adw_alert_dialog_response (AdwAlertDialog* _sender,
+static void ___lambda19__adw_alert_dialog_response (AdwAlertDialog* _sender,
                                              const gchar* response,
                                              gpointer self);
 static Block9Data* block9_data_ref (Block9Data* _data9_);
 static void block9_data_unref (void * _userdata_);
-static void __lambda30_ (Block9Data* _data9_,
+static void __lambda21_ (Block9Data* _data9_,
                   const gchar* response);
-static void ___lambda30__adw_alert_dialog_response (AdwAlertDialog* _sender,
+static void ___lambda21__adw_alert_dialog_response (AdwAlertDialog* _sender,
                                              const gchar* response,
                                              gpointer self);
 static Block10Data* block10_data_ref (Block10Data* _data10_);
 static void block10_data_unref (void * _userdata_);
-static void __lambda34_ (Block10Data* _data10_,
+static void __lambda30_ (Block10Data* _data10_,
+                  const gchar* response);
+static void ___lambda30__adw_alert_dialog_response (AdwAlertDialog* _sender,
+                                             const gchar* response,
+                                             gpointer self);
+static Block11Data* block11_data_ref (Block11Data* _data11_);
+static void block11_data_unref (void * _userdata_);
+static void __lambda34_ (Block11Data* _data11_,
                   GObject* obj,
                   GAsyncResult* res);
 static void ___lambda34__gasync_ready_callback (GObject* source_object,
@@ -666,31 +684,31 @@ static void __lambda36_ (IsoMaster* self,
 static void ___lambda36__adw_alert_dialog_response (AdwAlertDialog* _sender,
                                              const gchar* response,
                                              gpointer self);
-static Block11Data* block11_data_ref (Block11Data* _data11_);
-static void block11_data_unref (void * _userdata_);
-static void __lambda10_ (Block11Data* _data11_,
+static Block12Data* block12_data_ref (Block12Data* _data12_);
+static void block12_data_unref (void * _userdata_);
+static void __lambda10_ (Block12Data* _data12_,
                   GObject* obj,
                   GAsyncResult* res);
 static void ___lambda10__gasync_ready_callback (GObject* source_object,
                                          GAsyncResult* res,
                                          gpointer self);
-static Block12Data* block12_data_ref (Block12Data* _data12_);
-static void block12_data_unref (void * _userdata_);
-static void __lambda25_ (Block12Data* _data12_,
+static Block13Data* block13_data_ref (Block13Data* _data13_);
+static void block13_data_unref (void * _userdata_);
+static void __lambda25_ (Block13Data* _data13_,
                   const gchar* response);
 static void ___lambda25__adw_alert_dialog_response (AdwAlertDialog* _sender,
                                              const gchar* response,
                                              gpointer self);
-static Block13Data* block13_data_ref (Block13Data* _data13_);
-static void block13_data_unref (void * _userdata_);
-static void __lambda27_ (Block13Data* _data13_,
+static Block14Data* block14_data_ref (Block14Data* _data14_);
+static void block14_data_unref (void * _userdata_);
+static void __lambda27_ (Block14Data* _data14_,
                   const gchar* response);
 static void ___lambda27__adw_alert_dialog_response (AdwAlertDialog* _sender,
                                              const gchar* response,
                                              gpointer self);
-static Block14Data* block14_data_ref (Block14Data* _data14_);
-static void block14_data_unref (void * _userdata_);
-static void __lambda32_ (Block14Data* _data14_,
+static Block15Data* block15_data_ref (Block15Data* _data15_);
+static void block15_data_unref (void * _userdata_);
+static void __lambda32_ (Block15Data* _data15_,
                   GObject* obj,
                   GAsyncResult* res);
 static void ___lambda32__gasync_ready_callback (GObject* source_object,
@@ -868,6 +886,28 @@ app_settings_set_case_sensitive_sort (AppSettings* self,
 	if (old_value != value) {
 		self->priv->_case_sensitive_sort = value;
 		g_object_notify_by_pspec ((GObject *) self, app_settings_properties[APP_SETTINGS_CASE_SENSITIVE_SORT_PROPERTY]);
+	}
+}
+
+gboolean
+app_settings_get_dark_mode (AppSettings* self)
+{
+	gboolean result;
+	g_return_val_if_fail (self != NULL, FALSE);
+	result = self->priv->_dark_mode;
+	return result;
+}
+
+void
+app_settings_set_dark_mode (AppSettings* self,
+                            gboolean value)
+{
+	gboolean old_value;
+	g_return_if_fail (self != NULL);
+	old_value = app_settings_get_dark_mode (self);
+	if (old_value != value) {
+		self->priv->_dark_mode = value;
+		g_object_notify_by_pspec ((GObject *) self, app_settings_properties[APP_SETTINGS_DARK_MODE_PROPERTY]);
 	}
 }
 
@@ -1055,6 +1095,7 @@ app_settings_class_init (AppSettingsClass * klass,
 	g_object_class_install_property (G_OBJECT_CLASS (klass), APP_SETTINGS_SHOW_HIDDEN_FILES_PROPERTY, app_settings_properties[APP_SETTINGS_SHOW_HIDDEN_FILES_PROPERTY] = g_param_spec_boolean ("show-hidden-files", "show-hidden-files", "show-hidden-files", FALSE, G_PARAM_STATIC_STRINGS | G_PARAM_READABLE | G_PARAM_WRITABLE));
 	g_object_class_install_property (G_OBJECT_CLASS (klass), APP_SETTINGS_SORT_DIRS_FIRST_PROPERTY, app_settings_properties[APP_SETTINGS_SORT_DIRS_FIRST_PROPERTY] = g_param_spec_boolean ("sort-dirs-first", "sort-dirs-first", "sort-dirs-first", TRUE, G_PARAM_STATIC_STRINGS | G_PARAM_READABLE | G_PARAM_WRITABLE));
 	g_object_class_install_property (G_OBJECT_CLASS (klass), APP_SETTINGS_CASE_SENSITIVE_SORT_PROPERTY, app_settings_properties[APP_SETTINGS_CASE_SENSITIVE_SORT_PROPERTY] = g_param_spec_boolean ("case-sensitive-sort", "case-sensitive-sort", "case-sensitive-sort", FALSE, G_PARAM_STATIC_STRINGS | G_PARAM_READABLE | G_PARAM_WRITABLE));
+	g_object_class_install_property (G_OBJECT_CLASS (klass), APP_SETTINGS_DARK_MODE_PROPERTY, app_settings_properties[APP_SETTINGS_DARK_MODE_PROPERTY] = g_param_spec_boolean ("dark-mode", "dark-mode", "dark-mode", FALSE, G_PARAM_STATIC_STRINGS | G_PARAM_READABLE | G_PARAM_WRITABLE));
 	g_object_class_install_property (G_OBJECT_CLASS (klass), APP_SETTINGS_TEMP_DIR_PROPERTY, app_settings_properties[APP_SETTINGS_TEMP_DIR_PROPERTY] = g_param_spec_string ("temp-dir", "temp-dir", "temp-dir", NULL, G_PARAM_STATIC_STRINGS | G_PARAM_READABLE | G_PARAM_WRITABLE));
 	g_object_class_install_property (G_OBJECT_CLASS (klass), APP_SETTINGS_EDITOR_PROPERTY, app_settings_properties[APP_SETTINGS_EDITOR_PROPERTY] = g_param_spec_string ("editor", "editor", "editor", NULL, G_PARAM_STATIC_STRINGS | G_PARAM_READABLE | G_PARAM_WRITABLE));
 	g_object_class_install_property (G_OBJECT_CLASS (klass), APP_SETTINGS_VIEWER_PROPERTY, app_settings_properties[APP_SETTINGS_VIEWER_PROPERTY] = g_param_spec_string ("viewer", "viewer", "viewer", NULL, G_PARAM_STATIC_STRINGS | G_PARAM_READABLE | G_PARAM_WRITABLE));
@@ -1077,6 +1118,7 @@ app_settings_instance_init (AppSettings * self,
 	self->priv->_show_hidden_files = FALSE;
 	self->priv->_sort_dirs_first = TRUE;
 	self->priv->_case_sensitive_sort = FALSE;
+	self->priv->_dark_mode = FALSE;
 	_tmp0_ = g_strdup ("/tmp");
 	self->priv->_temp_dir = _tmp0_;
 	_tmp1_ = g_strdup ("leafpad");
@@ -1151,6 +1193,9 @@ _vala_app_settings_get_property (GObject * object,
 		case APP_SETTINGS_CASE_SENSITIVE_SORT_PROPERTY:
 		g_value_set_boolean (value, app_settings_get_case_sensitive_sort (self));
 		break;
+		case APP_SETTINGS_DARK_MODE_PROPERTY:
+		g_value_set_boolean (value, app_settings_get_dark_mode (self));
+		break;
 		case APP_SETTINGS_TEMP_DIR_PROPERTY:
 		g_value_set_string (value, app_settings_get_temp_dir (self));
 		break;
@@ -1201,6 +1246,9 @@ _vala_app_settings_set_property (GObject * object,
 		break;
 		case APP_SETTINGS_CASE_SENSITIVE_SORT_PROPERTY:
 		app_settings_set_case_sensitive_sort (self, g_value_get_boolean (value));
+		break;
+		case APP_SETTINGS_DARK_MODE_PROPERTY:
+		app_settings_set_dark_mode (self, g_value_get_boolean (value));
 		break;
 		case APP_SETTINGS_TEMP_DIR_PROPERTY:
 		app_settings_set_temp_dir (self, g_value_get_string (value));
@@ -1512,14 +1560,92 @@ iso_master_new (void)
 	return iso_master_construct (TYPE_ISO_MASTER);
 }
 
+static Block1Data*
+block1_data_ref (Block1Data* _data1_)
+{
+	g_atomic_int_inc (&_data1_->_ref_count_);
+	return _data1_;
+}
+
+static void
+block1_data_unref (void * _userdata_)
+{
+	Block1Data* _data1_;
+	_data1_ = (Block1Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data1_->_ref_count_)) {
+		IsoMaster* self;
+		self = _data1_->self;
+		_g_object_unref0 (_data1_->theme_button);
+		_g_object_unref0 (self);
+		g_slice_free (Block1Data, _data1_);
+	}
+}
+
 static gpointer
 _g_object_ref0 (gpointer self)
 {
 	return self ? g_object_ref (self) : NULL;
 }
 
+static void
+__lambda39_ (Block1Data* _data1_)
+{
+	IsoMaster* self;
+	AdwStyleManager* _tmp0_;
+	AdwColorScheme _tmp1_;
+	AdwColorScheme _tmp2_;
+	self = _data1_->self;
+	_tmp0_ = self->priv->style_manager;
+	_tmp1_ = adw_style_manager_get_color_scheme (_tmp0_);
+	_tmp2_ = _tmp1_;
+	if (_tmp2_ == ADW_COLOR_SCHEME_PREFER_DARK) {
+		AdwStyleManager* _tmp3_;
+		GtkButton* _tmp4_;
+		GtkButton* _tmp5_;
+		gchar* _tmp6_;
+		gchar* _tmp7_;
+		AppSettings* _tmp8_;
+		_tmp3_ = self->priv->style_manager;
+		adw_style_manager_set_color_scheme (_tmp3_, ADW_COLOR_SCHEME_PREFER_LIGHT);
+		_tmp4_ = _data1_->theme_button;
+		gtk_button_set_icon_name (_tmp4_, "weather-clear-night-symbolic");
+		_tmp5_ = _data1_->theme_button;
+		_tmp6_ = _t ("Switch to Dark Mode");
+		_tmp7_ = _tmp6_;
+		gtk_widget_set_tooltip_text ((GtkWidget*) _tmp5_, _tmp7_);
+		_g_free0 (_tmp7_);
+		_tmp8_ = self->priv->settings;
+		app_settings_set_dark_mode (_tmp8_, FALSE);
+	} else {
+		AdwStyleManager* _tmp9_;
+		GtkButton* _tmp10_;
+		GtkButton* _tmp11_;
+		gchar* _tmp12_;
+		gchar* _tmp13_;
+		AppSettings* _tmp14_;
+		_tmp9_ = self->priv->style_manager;
+		adw_style_manager_set_color_scheme (_tmp9_, ADW_COLOR_SCHEME_PREFER_DARK);
+		_tmp10_ = _data1_->theme_button;
+		gtk_button_set_icon_name (_tmp10_, "weather-clear-symbolic");
+		_tmp11_ = _data1_->theme_button;
+		_tmp12_ = _t ("Switch to Light Mode");
+		_tmp13_ = _tmp12_;
+		gtk_widget_set_tooltip_text ((GtkWidget*) _tmp11_, _tmp13_);
+		_g_free0 (_tmp13_);
+		_tmp14_ = self->priv->settings;
+		app_settings_set_dark_mode (_tmp14_, TRUE);
+	}
+}
+
+static void
+___lambda39__gtk_button_clicked (GtkButton* _sender,
+                                 gpointer self)
+{
+	__lambda39_ (self);
+}
+
 static gboolean
-__lambda58_ (IsoMaster* self)
+__lambda59_ (IsoMaster* self)
 {
 	gboolean result;
 	iso_master_save_settings (self);
@@ -1528,11 +1654,11 @@ __lambda58_ (IsoMaster* self)
 }
 
 static gboolean
-___lambda58__gtk_window_close_request (GtkWindow* _sender,
+___lambda59__gtk_window_close_request (GtkWindow* _sender,
                                        gpointer self)
 {
 	gboolean result;
-	result = __lambda58_ ((IsoMaster*) self);
+	result = __lambda59_ ((IsoMaster*) self);
 	return result;
 }
 
@@ -1540,52 +1666,82 @@ static void
 iso_master_real_activate (GApplication* base)
 {
 	IsoMaster * self;
+	Block1Data* _data1_;
 	void* _tmp0_;
 	VolInfo* _tmp1_;
-	AdwStyleManager* style_manager = NULL;
 	AdwStyleManager* _tmp2_;
 	AdwStyleManager* _tmp3_;
-	AdwApplicationWindow* _tmp4_;
-	AdwApplicationWindow* _tmp5_;
-	gchar* _tmp6_;
-	gchar* _tmp7_;
-	AdwApplicationWindow* _tmp8_;
-	AppSettings* _tmp9_;
-	gint _tmp10_;
-	gint _tmp11_;
-	AdwApplicationWindow* _tmp12_;
-	AppSettings* _tmp13_;
-	gint _tmp14_;
+	AdwColorScheme _tmp4_ = 0;
+	AppSettings* _tmp5_;
+	gboolean _tmp6_;
+	gboolean _tmp7_;
+	AdwStyleManager* _tmp8_;
+	AdwApplicationWindow* _tmp9_;
+	AdwApplicationWindow* _tmp10_;
+	gchar* _tmp11_;
+	gchar* _tmp12_;
+	AdwApplicationWindow* _tmp13_;
+	AppSettings* _tmp14_;
 	gint _tmp15_;
-	AdwApplicationWindow* _tmp16_;
+	gint _tmp16_;
+	AdwApplicationWindow* _tmp17_;
+	AppSettings* _tmp18_;
+	gint _tmp19_;
+	gint _tmp20_;
+	AdwApplicationWindow* _tmp21_;
 	GtkBox* main_box = NULL;
-	GtkBox* _tmp17_;
+	GtkBox* _tmp22_;
 	AdwHeaderBar* header_bar = NULL;
-	AdwHeaderBar* _tmp18_;
-	gchar* _tmp19_;
-	gchar* _tmp20_;
-	AdwWindowTitle* _tmp21_;
-	AdwWindowTitle* _tmp22_;
-	GMenu* menubar = NULL;
-	GMenu* _tmp23_;
-	GtkMenuButton* menu_button = NULL;
-	GtkMenuButton* _tmp24_;
+	AdwHeaderBar* _tmp23_;
+	AdwHeaderBar* _tmp24_;
 	gchar* _tmp25_;
 	gchar* _tmp26_;
+	AdwWindowTitle* _tmp27_;
+	AdwWindowTitle* _tmp28_;
+	GMenu* menubar = NULL;
+	GMenu* _tmp29_;
+	GMenu* _tmp30_;
+	GtkButton* _tmp31_;
+	const gchar* _tmp32_ = NULL;
+	AdwStyleManager* _tmp33_;
+	AdwColorScheme _tmp34_;
+	AdwColorScheme _tmp35_;
+	GtkButton* _tmp36_;
+	gchar* _tmp37_ = NULL;
+	AdwStyleManager* _tmp38_;
+	AdwColorScheme _tmp39_;
+	AdwColorScheme _tmp40_;
+	GtkButton* _tmp43_;
+	GtkButton* _tmp44_;
+	AdwHeaderBar* _tmp45_;
+	GtkButton* _tmp46_;
+	GtkMenuButton* menu_button = NULL;
+	GtkMenuButton* _tmp47_;
+	GMenu* _tmp48_;
+	gchar* _tmp49_;
+	gchar* _tmp50_;
+	AdwHeaderBar* _tmp51_;
+	GtkBox* _tmp52_;
+	AdwHeaderBar* _tmp53_;
 	GtkBox* content_box = NULL;
-	GtkBox* _tmp27_;
-	AdwApplicationWindow* _tmp28_;
+	GtkBox* _tmp54_;
+	GtkBox* _tmp55_;
+	AdwApplicationWindow* _tmp56_;
+	GtkBox* _tmp57_;
 	GtkBox* toolbar = NULL;
-	GtkBox* _tmp29_;
+	GtkBox* _tmp58_;
 	GtkPaned* paned = NULL;
-	GtkPaned* _tmp30_;
+	GtkPaned* _tmp59_;
 	GtkBox* fs_box = NULL;
-	GtkBox* _tmp31_;
+	GtkBox* _tmp60_;
 	GtkBox* iso_box = NULL;
-	GtkBox* _tmp32_;
-	AdwApplicationWindow* _tmp33_;
-	AdwApplicationWindow* _tmp34_;
+	GtkBox* _tmp61_;
+	AdwApplicationWindow* _tmp62_;
+	AdwApplicationWindow* _tmp63_;
 	self = (IsoMaster*) base;
+	_data1_ = g_slice_new0 (Block1Data);
+	_data1_->_ref_count_ = 1;
+	_data1_->self = g_object_ref (self);
 	_tmp0_ = g_malloc ((gsize) sizeof (VolInfo));
 	self->priv->vol_info = (VolInfo*) _tmp0_;
 	_tmp1_ = self->priv->vol_info;
@@ -1593,95 +1749,149 @@ iso_master_real_activate (GApplication* base)
 	iso_master_load_settings (self);
 	_tmp2_ = adw_style_manager_get_default ();
 	_tmp3_ = _g_object_ref0 (_tmp2_);
-	style_manager = _tmp3_;
-	adw_style_manager_set_color_scheme (style_manager, ADW_COLOR_SCHEME_PREFER_LIGHT);
-	_tmp4_ = (AdwApplicationWindow*) adw_application_window_new ((GtkApplication*) self);
-	g_object_ref_sink (_tmp4_);
-	_g_object_unref0 (self->priv->main_window);
-	self->priv->main_window = _tmp4_;
-	_tmp5_ = self->priv->main_window;
-	_tmp6_ = _t ("ISO Master");
+	_g_object_unref0 (self->priv->style_manager);
+	self->priv->style_manager = _tmp3_;
+	_tmp5_ = self->priv->settings;
+	_tmp6_ = app_settings_get_dark_mode (_tmp5_);
 	_tmp7_ = _tmp6_;
-	gtk_window_set_title ((GtkWindow*) _tmp5_, _tmp7_);
-	_g_free0 (_tmp7_);
-	_tmp8_ = self->priv->main_window;
-	_tmp9_ = self->priv->settings;
-	_tmp10_ = app_settings_get_window_width (_tmp9_);
-	_tmp11_ = _tmp10_;
-	g_object_set ((GtkWindow*) _tmp8_, "default-width", _tmp11_, NULL);
-	_tmp12_ = self->priv->main_window;
-	_tmp13_ = self->priv->settings;
-	_tmp14_ = app_settings_get_window_height (_tmp13_);
-	_tmp15_ = _tmp14_;
-	g_object_set ((GtkWindow*) _tmp12_, "default-height", _tmp15_, NULL);
-	_tmp16_ = self->priv->main_window;
-	gtk_window_set_icon_name ((GtkWindow*) _tmp16_, "isomaster");
-	_tmp17_ = (GtkBox*) gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-	g_object_ref_sink (_tmp17_);
-	main_box = _tmp17_;
-	_tmp18_ = (AdwHeaderBar*) adw_header_bar_new ();
-	g_object_ref_sink (_tmp18_);
-	header_bar = _tmp18_;
-	_tmp19_ = _t ("ISO Master");
+	if (_tmp7_) {
+		_tmp4_ = ADW_COLOR_SCHEME_PREFER_DARK;
+	} else {
+		_tmp4_ = ADW_COLOR_SCHEME_PREFER_LIGHT;
+	}
+	_tmp8_ = self->priv->style_manager;
+	adw_style_manager_set_color_scheme (_tmp8_, _tmp4_);
+	_tmp9_ = (AdwApplicationWindow*) adw_application_window_new ((GtkApplication*) self);
+	g_object_ref_sink (_tmp9_);
+	_g_object_unref0 (self->priv->main_window);
+	self->priv->main_window = _tmp9_;
+	_tmp10_ = self->priv->main_window;
+	_tmp11_ = _t ("ISO Master");
+	_tmp12_ = _tmp11_;
+	gtk_window_set_title ((GtkWindow*) _tmp10_, _tmp12_);
+	_g_free0 (_tmp12_);
+	_tmp13_ = self->priv->main_window;
+	_tmp14_ = self->priv->settings;
+	_tmp15_ = app_settings_get_window_width (_tmp14_);
+	_tmp16_ = _tmp15_;
+	g_object_set ((GtkWindow*) _tmp13_, "default-width", _tmp16_, NULL);
+	_tmp17_ = self->priv->main_window;
+	_tmp18_ = self->priv->settings;
+	_tmp19_ = app_settings_get_window_height (_tmp18_);
 	_tmp20_ = _tmp19_;
-	_tmp21_ = (AdwWindowTitle*) adw_window_title_new (_tmp20_, "");
-	g_object_ref_sink (_tmp21_);
-	_tmp22_ = _tmp21_;
-	adw_header_bar_set_title_widget (header_bar, (GtkWidget*) _tmp22_);
-	_g_object_unref0 (_tmp22_);
-	_g_free0 (_tmp20_);
-	_tmp23_ = iso_master_build_menubar (self);
-	menubar = _tmp23_;
-	gtk_application_set_menubar ((GtkApplication*) self, (GMenuModel*) menubar);
-	_tmp24_ = (GtkMenuButton*) gtk_menu_button_new ();
-	g_object_ref_sink (_tmp24_);
-	menu_button = _tmp24_;
-	gtk_menu_button_set_icon_name (menu_button, "open-menu-symbolic");
-	gtk_menu_button_set_menu_model (menu_button, (GMenuModel*) menubar);
-	_tmp25_ = _t ("Menu");
+	g_object_set ((GtkWindow*) _tmp17_, "default-height", _tmp20_, NULL);
+	_tmp21_ = self->priv->main_window;
+	gtk_window_set_icon_name ((GtkWindow*) _tmp21_, "isomaster");
+	_tmp22_ = (GtkBox*) gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+	g_object_ref_sink (_tmp22_);
+	main_box = _tmp22_;
+	_tmp23_ = (AdwHeaderBar*) adw_header_bar_new ();
+	g_object_ref_sink (_tmp23_);
+	header_bar = _tmp23_;
+	_tmp24_ = header_bar;
+	_tmp25_ = _t ("ISO Master");
 	_tmp26_ = _tmp25_;
-	gtk_widget_set_tooltip_text ((GtkWidget*) menu_button, _tmp26_);
-	_g_free0 (_tmp26_);
-	adw_header_bar_pack_end (header_bar, (GtkWidget*) menu_button);
-	gtk_box_append (main_box, (GtkWidget*) header_bar);
-	_tmp27_ = (GtkBox*) gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+	_tmp27_ = (AdwWindowTitle*) adw_window_title_new (_tmp26_, "");
 	g_object_ref_sink (_tmp27_);
-	content_box = _tmp27_;
-	gtk_box_append (main_box, (GtkWidget*) content_box);
-	_tmp28_ = self->priv->main_window;
-	adw_application_window_set_content (_tmp28_, (GtkWidget*) main_box);
-	_tmp29_ = iso_master_build_toolbar (self);
-	toolbar = _tmp29_;
+	_tmp28_ = _tmp27_;
+	adw_header_bar_set_title_widget (_tmp24_, (GtkWidget*) _tmp28_);
+	_g_object_unref0 (_tmp28_);
+	_g_free0 (_tmp26_);
+	_tmp29_ = iso_master_build_menubar (self);
+	menubar = _tmp29_;
+	_tmp30_ = menubar;
+	gtk_application_set_menubar ((GtkApplication*) self, (GMenuModel*) _tmp30_);
+	_tmp31_ = (GtkButton*) gtk_button_new ();
+	g_object_ref_sink (_tmp31_);
+	_data1_->theme_button = _tmp31_;
+	_tmp33_ = self->priv->style_manager;
+	_tmp34_ = adw_style_manager_get_color_scheme (_tmp33_);
+	_tmp35_ = _tmp34_;
+	if (_tmp35_ == ADW_COLOR_SCHEME_PREFER_DARK) {
+		_tmp32_ = "weather-clear-symbolic";
+	} else {
+		_tmp32_ = "weather-clear-night-symbolic";
+	}
+	_tmp36_ = _data1_->theme_button;
+	gtk_button_set_icon_name (_tmp36_, _tmp32_);
+	_tmp38_ = self->priv->style_manager;
+	_tmp39_ = adw_style_manager_get_color_scheme (_tmp38_);
+	_tmp40_ = _tmp39_;
+	if (_tmp40_ == ADW_COLOR_SCHEME_PREFER_DARK) {
+		gchar* _tmp41_;
+		_tmp41_ = _t ("Switch to Light Mode");
+		_g_free0 (_tmp37_);
+		_tmp37_ = _tmp41_;
+	} else {
+		gchar* _tmp42_;
+		_tmp42_ = _t ("Switch to Dark Mode");
+		_g_free0 (_tmp37_);
+		_tmp37_ = _tmp42_;
+	}
+	_tmp43_ = _data1_->theme_button;
+	gtk_widget_set_tooltip_text ((GtkWidget*) _tmp43_, _tmp37_);
+	_tmp44_ = _data1_->theme_button;
+	g_signal_connect_data (_tmp44_, "clicked", (GCallback) ___lambda39__gtk_button_clicked, block1_data_ref (_data1_), (GClosureNotify) block1_data_unref, 0);
+	_tmp45_ = header_bar;
+	_tmp46_ = _data1_->theme_button;
+	adw_header_bar_pack_start (_tmp45_, (GtkWidget*) _tmp46_);
+	_tmp47_ = (GtkMenuButton*) gtk_menu_button_new ();
+	g_object_ref_sink (_tmp47_);
+	menu_button = _tmp47_;
+	gtk_menu_button_set_icon_name (menu_button, "open-menu-symbolic");
+	_tmp48_ = menubar;
+	gtk_menu_button_set_menu_model (menu_button, (GMenuModel*) _tmp48_);
+	_tmp49_ = _t ("Menu");
+	_tmp50_ = _tmp49_;
+	gtk_widget_set_tooltip_text ((GtkWidget*) menu_button, _tmp50_);
+	_g_free0 (_tmp50_);
+	_tmp51_ = header_bar;
+	adw_header_bar_pack_end (_tmp51_, (GtkWidget*) menu_button);
+	_tmp52_ = main_box;
+	_tmp53_ = header_bar;
+	gtk_box_append (_tmp52_, (GtkWidget*) _tmp53_);
+	_tmp54_ = (GtkBox*) gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+	g_object_ref_sink (_tmp54_);
+	content_box = _tmp54_;
+	_tmp55_ = main_box;
+	gtk_box_append (_tmp55_, (GtkWidget*) content_box);
+	_tmp56_ = self->priv->main_window;
+	_tmp57_ = main_box;
+	adw_application_window_set_content (_tmp56_, (GtkWidget*) _tmp57_);
+	_tmp58_ = iso_master_build_toolbar (self);
+	toolbar = _tmp58_;
 	gtk_box_append (content_box, (GtkWidget*) toolbar);
-	_tmp30_ = (GtkPaned*) gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
-	g_object_ref_sink (_tmp30_);
-	paned = _tmp30_;
+	_tmp59_ = (GtkPaned*) gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
+	g_object_ref_sink (_tmp59_);
+	paned = _tmp59_;
 	gtk_widget_set_vexpand ((GtkWidget*) paned, TRUE);
-	_tmp31_ = iso_master_build_fs_browser (self);
-	fs_box = _tmp31_;
+	_tmp60_ = iso_master_build_fs_browser (self);
+	fs_box = _tmp60_;
 	gtk_paned_set_start_child (paned, (GtkWidget*) fs_box);
 	gtk_paned_set_resize_start_child (paned, TRUE);
 	gtk_paned_set_shrink_start_child (paned, FALSE);
-	_tmp32_ = iso_master_build_iso_browser (self);
-	iso_box = _tmp32_;
+	_tmp61_ = iso_master_build_iso_browser (self);
+	iso_box = _tmp61_;
 	gtk_paned_set_end_child (paned, (GtkWidget*) iso_box);
 	gtk_paned_set_resize_end_child (paned, TRUE);
 	gtk_paned_set_shrink_end_child (paned, FALSE);
 	gtk_box_append (content_box, (GtkWidget*) paned);
-	_tmp33_ = self->priv->main_window;
-	g_signal_connect_object ((GtkWindow*) _tmp33_, "close-request", (GCallback) ___lambda58__gtk_window_close_request, self, 0);
-	_tmp34_ = self->priv->main_window;
-	gtk_window_present ((GtkWindow*) _tmp34_);
+	_tmp62_ = self->priv->main_window;
+	g_signal_connect_object ((GtkWindow*) _tmp62_, "close-request", (GCallback) ___lambda59__gtk_window_close_request, self, 0);
+	_tmp63_ = self->priv->main_window;
+	gtk_window_present ((GtkWindow*) _tmp63_);
 	_g_object_unref0 (iso_box);
 	_g_object_unref0 (fs_box);
 	_g_object_unref0 (paned);
 	_g_object_unref0 (toolbar);
 	_g_object_unref0 (content_box);
 	_g_object_unref0 (menu_button);
+	_g_free0 (_tmp37_);
 	_g_object_unref0 (menubar);
 	_g_object_unref0 (header_bar);
 	_g_object_unref0 (main_box);
-	_g_object_unref0 (style_manager);
+	block1_data_unref (_data1_);
+	_data1_ = NULL;
 }
 
 static GMenu*
@@ -2517,22 +2727,9 @@ iso_master_setup_actions (IsoMaster* self)
 }
 
 static void
-__lambda39_ (IsoMaster* self)
-{
-	iso_master_new_iso (self);
-}
-
-static void
-___lambda39__gtk_button_clicked (GtkButton* _sender,
-                                 gpointer self)
-{
-	__lambda39_ ((IsoMaster*) self);
-}
-
-static void
 __lambda40_ (IsoMaster* self)
 {
-	iso_master_open_iso (self);
+	iso_master_new_iso (self);
 }
 
 static void
@@ -2545,7 +2742,7 @@ ___lambda40__gtk_button_clicked (GtkButton* _sender,
 static void
 __lambda41_ (IsoMaster* self)
 {
-	iso_master_save_iso (self);
+	iso_master_open_iso (self);
 }
 
 static void
@@ -2558,7 +2755,7 @@ ___lambda41__gtk_button_clicked (GtkButton* _sender,
 static void
 __lambda42_ (IsoMaster* self)
 {
-	iso_master_add_to_iso (self);
+	iso_master_save_iso (self);
 }
 
 static void
@@ -2569,29 +2766,42 @@ ___lambda42__gtk_button_clicked (GtkButton* _sender,
 }
 
 static void
-__lambda44_ (IsoMaster* self)
+__lambda43_ (IsoMaster* self)
+{
+	iso_master_add_to_iso (self);
+}
+
+static void
+___lambda43__gtk_button_clicked (GtkButton* _sender,
+                                 gpointer self)
+{
+	__lambda43_ ((IsoMaster*) self);
+}
+
+static void
+__lambda45_ (IsoMaster* self)
 {
 	iso_master_extract_from_iso (self);
 }
 
 static void
-___lambda44__gtk_button_clicked (GtkButton* _sender,
+___lambda45__gtk_button_clicked (GtkButton* _sender,
                                  gpointer self)
 {
-	__lambda44_ ((IsoMaster*) self);
+	__lambda45_ ((IsoMaster*) self);
 }
 
 static void
-__lambda46_ (IsoMaster* self)
+__lambda47_ (IsoMaster* self)
 {
 	iso_master_delete_from_iso (self);
 }
 
 static void
-___lambda46__gtk_button_clicked (GtkButton* _sender,
+___lambda47__gtk_button_clicked (GtkButton* _sender,
                                  gpointer self)
 {
-	__lambda46_ ((IsoMaster*) self);
+	__lambda47_ ((IsoMaster*) self);
 }
 
 static GtkBox*
@@ -2702,7 +2912,7 @@ iso_master_build_toolbar (IsoMaster* self)
 	_tmp13_ = _tmp12_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) new_btn, _tmp13_);
 	_g_free0 (_tmp13_);
-	g_signal_connect_object (new_btn, "clicked", (GCallback) ___lambda39__gtk_button_clicked, self, 0);
+	g_signal_connect_object (new_btn, "clicked", (GCallback) ___lambda40__gtk_button_clicked, self, 0);
 	_tmp14_ = toolbar;
 	gtk_box_append (_tmp14_, (GtkWidget*) new_btn);
 	_tmp15_ = (GtkButton*) gtk_button_new ();
@@ -2719,7 +2929,7 @@ iso_master_build_toolbar (IsoMaster* self)
 	_tmp21_ = _tmp20_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) open_btn, _tmp21_);
 	_g_free0 (_tmp21_);
-	g_signal_connect_object (open_btn, "clicked", (GCallback) ___lambda40__gtk_button_clicked, self, 0);
+	g_signal_connect_object (open_btn, "clicked", (GCallback) ___lambda41__gtk_button_clicked, self, 0);
 	_tmp22_ = toolbar;
 	gtk_box_append (_tmp22_, (GtkWidget*) open_btn);
 	_tmp23_ = (GtkButton*) gtk_button_new ();
@@ -2736,7 +2946,7 @@ iso_master_build_toolbar (IsoMaster* self)
 	_tmp29_ = _tmp28_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) save_btn, _tmp29_);
 	_g_free0 (_tmp29_);
-	g_signal_connect_object (save_btn, "clicked", (GCallback) ___lambda41__gtk_button_clicked, self, 0);
+	g_signal_connect_object (save_btn, "clicked", (GCallback) ___lambda42__gtk_button_clicked, self, 0);
 	_tmp30_ = toolbar;
 	gtk_box_append (_tmp30_, (GtkWidget*) save_btn);
 	_tmp31_ = toolbar;
@@ -2759,7 +2969,7 @@ iso_master_build_toolbar (IsoMaster* self)
 	_tmp40_ = _tmp39_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) add_btn, _tmp40_);
 	_g_free0 (_tmp40_);
-	g_signal_connect_object (add_btn, "clicked", (GCallback) ___lambda42__gtk_button_clicked, self, 0);
+	g_signal_connect_object (add_btn, "clicked", (GCallback) ___lambda43__gtk_button_clicked, self, 0);
 	_tmp41_ = toolbar;
 	gtk_box_append (_tmp41_, (GtkWidget*) add_btn);
 	_tmp42_ = (GtkButton*) gtk_button_new ();
@@ -2776,7 +2986,7 @@ iso_master_build_toolbar (IsoMaster* self)
 	_tmp48_ = _tmp47_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) extract_btn, _tmp48_);
 	_g_free0 (_tmp48_);
-	g_signal_connect_object (extract_btn, "clicked", (GCallback) ___lambda44__gtk_button_clicked, self, 0);
+	g_signal_connect_object (extract_btn, "clicked", (GCallback) ___lambda45__gtk_button_clicked, self, 0);
 	_tmp49_ = toolbar;
 	gtk_box_append (_tmp49_, (GtkWidget*) extract_btn);
 	_tmp50_ = (GtkButton*) gtk_button_new ();
@@ -2793,7 +3003,7 @@ iso_master_build_toolbar (IsoMaster* self)
 	_tmp56_ = _tmp55_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) delete_btn, _tmp56_);
 	_g_free0 (_tmp56_);
-	g_signal_connect_object (delete_btn, "clicked", (GCallback) ___lambda46__gtk_button_clicked, self, 0);
+	g_signal_connect_object (delete_btn, "clicked", (GCallback) ___lambda47__gtk_button_clicked, self, 0);
 	_tmp57_ = toolbar;
 	gtk_box_append (_tmp57_, (GtkWidget*) delete_btn);
 	result = toolbar;
@@ -2823,18 +3033,18 @@ iso_master_load_icon (IsoMaster* self,
 	g_return_val_if_fail (self != NULL, NULL);
 	g_return_val_if_fail (path != NULL, NULL);
 	{
-		GdkPixbuf* pixbuf = NULL;
-		GdkPixbuf* _tmp0_;
+		GdkTexture* texture = NULL;
+		GdkTexture* _tmp0_;
 		GtkImage* _tmp1_;
-		_tmp0_ = gdk_pixbuf_new_from_file_at_scale (path, size, size, TRUE, &_inner_error0_);
-		pixbuf = _tmp0_;
+		_tmp0_ = gdk_texture_new_from_filename (path, &_inner_error0_);
+		texture = _tmp0_;
 		if (G_UNLIKELY (_inner_error0_ != NULL)) {
 			goto __catch0_g_error;
 		}
-		_tmp1_ = (GtkImage*) gtk_image_new_from_pixbuf (pixbuf);
+		_tmp1_ = (GtkImage*) gtk_image_new_from_paintable ((GdkPaintable*) texture);
 		g_object_ref_sink (_tmp1_);
 		result = _tmp1_;
-		_g_object_unref0 (pixbuf);
+		_g_object_unref0 (texture);
 		return result;
 	}
 	goto __finally0;
@@ -2854,20 +3064,20 @@ iso_master_load_icon (IsoMaster* self,
 }
 
 static void
-__lambda48_ (IsoMaster* self)
+__lambda49_ (IsoMaster* self)
 {
 	iso_master_fs_go_up (self);
 }
 
 static void
-___lambda48__gtk_button_clicked (GtkButton* _sender,
+___lambda49__gtk_button_clicked (GtkButton* _sender,
                                  gpointer self)
 {
-	__lambda48_ ((IsoMaster*) self);
+	__lambda49_ ((IsoMaster*) self);
 }
 
 static void
-__lambda49_ (IsoMaster* self)
+__lambda50_ (IsoMaster* self)
 {
 	GtkEntry* _tmp0_;
 	const gchar* _tmp1_;
@@ -2879,27 +3089,27 @@ __lambda49_ (IsoMaster* self)
 }
 
 static void
-___lambda49__gtk_entry_activate (GtkEntry* _sender,
-                                 gpointer self)
-{
-	__lambda49_ ((IsoMaster*) self);
-}
-
-static void
-__lambda50_ (IsoMaster* self)
-{
-	iso_master_refresh_fs_view (self);
-}
-
-static void
-___lambda50__gtk_button_clicked (GtkButton* _sender,
+___lambda50__gtk_entry_activate (GtkEntry* _sender,
                                  gpointer self)
 {
 	__lambda50_ ((IsoMaster*) self);
 }
 
 static void
-__lambda51_ (IsoMaster* self,
+__lambda51_ (IsoMaster* self)
+{
+	iso_master_refresh_fs_view (self);
+}
+
+static void
+___lambda51__gtk_button_clicked (GtkButton* _sender,
+                                 gpointer self)
+{
+	__lambda51_ ((IsoMaster*) self);
+}
+
+static void
+__lambda52_ (IsoMaster* self,
              GObject* item)
 {
 	GtkListItem* list_item = NULL;
@@ -2933,15 +3143,15 @@ __lambda51_ (IsoMaster* self,
 }
 
 static void
-___lambda51__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
+___lambda52__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
                                                  GObject* object,
                                                  gpointer self)
 {
-	__lambda51_ ((IsoMaster*) self, object);
+	__lambda52_ ((IsoMaster*) self, object);
 }
 
 static void
-__lambda52_ (IsoMaster* self,
+__lambda53_ (IsoMaster* self,
              GObject* item)
 {
 	GtkListItem* list_item = NULL;
@@ -2995,15 +3205,15 @@ __lambda52_ (IsoMaster* self,
 }
 
 static void
-___lambda52__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
+___lambda53__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
                                                 GObject* object,
                                                 gpointer self)
 {
-	__lambda52_ ((IsoMaster*) self, object);
+	__lambda53_ ((IsoMaster*) self, object);
 }
 
 static void
-__lambda53_ (IsoMaster* self,
+__lambda54_ (IsoMaster* self,
              guint pos)
 {
 	FileItem* item = NULL;
@@ -3044,11 +3254,11 @@ __lambda53_ (IsoMaster* self,
 }
 
 static void
-___lambda53__gtk_list_view_activate (GtkListView* _sender,
+___lambda54__gtk_list_view_activate (GtkListView* _sender,
                                      guint position,
                                      gpointer self)
 {
-	__lambda53_ ((IsoMaster*) self, position);
+	__lambda54_ ((IsoMaster*) self, position);
 }
 
 static GtkBox*
@@ -3124,7 +3334,7 @@ iso_master_build_fs_browser (IsoMaster* self)
 	_tmp10_ = _tmp9_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) up_btn, _tmp10_);
 	_g_free0 (_tmp10_);
-	g_signal_connect_object (up_btn, "clicked", (GCallback) ___lambda48__gtk_button_clicked, self, 0);
+	g_signal_connect_object (up_btn, "clicked", (GCallback) ___lambda49__gtk_button_clicked, self, 0);
 	gtk_box_append (nav_box, (GtkWidget*) up_btn);
 	_tmp11_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp11_);
@@ -3133,7 +3343,7 @@ iso_master_build_fs_browser (IsoMaster* self)
 	_tmp12_ = self->priv->fs_path_entry;
 	gtk_widget_set_hexpand ((GtkWidget*) _tmp12_, TRUE);
 	_tmp13_ = self->priv->fs_path_entry;
-	g_signal_connect_object (_tmp13_, "activate", (GCallback) ___lambda49__gtk_entry_activate, self, 0);
+	g_signal_connect_object (_tmp13_, "activate", (GCallback) ___lambda50__gtk_entry_activate, self, 0);
 	_tmp14_ = self->priv->fs_path_entry;
 	gtk_box_append (nav_box, (GtkWidget*) _tmp14_);
 	_tmp15_ = (GtkButton*) gtk_button_new_from_icon_name ("view-refresh");
@@ -3143,7 +3353,7 @@ iso_master_build_fs_browser (IsoMaster* self)
 	_tmp17_ = _tmp16_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) refresh_btn, _tmp17_);
 	_g_free0 (_tmp17_);
-	g_signal_connect_object (refresh_btn, "clicked", (GCallback) ___lambda50__gtk_button_clicked, self, 0);
+	g_signal_connect_object (refresh_btn, "clicked", (GCallback) ___lambda51__gtk_button_clicked, self, 0);
 	gtk_box_append (nav_box, (GtkWidget*) refresh_btn);
 	_tmp18_ = box;
 	gtk_box_append (_tmp18_, (GtkWidget*) nav_box);
@@ -3152,8 +3362,8 @@ iso_master_build_fs_browser (IsoMaster* self)
 	self->priv->fs_store = _tmp19_;
 	_tmp20_ = (GtkSignalListItemFactory*) gtk_signal_list_item_factory_new ();
 	factory = _tmp20_;
-	g_signal_connect_object (factory, "setup", (GCallback) ___lambda51__gtk_signal_list_item_factory_setup, self, 0);
-	g_signal_connect_object (factory, "bind", (GCallback) ___lambda52__gtk_signal_list_item_factory_bind, self, 0);
+	g_signal_connect_object (factory, "setup", (GCallback) ___lambda52__gtk_signal_list_item_factory_setup, self, 0);
+	g_signal_connect_object (factory, "bind", (GCallback) ___lambda53__gtk_signal_list_item_factory_bind, self, 0);
 	_tmp21_ = self->priv->fs_store;
 	_tmp22_ = _g_object_ref0 ((GListModel*) _tmp21_);
 	_tmp23_ = gtk_single_selection_new (_tmp22_);
@@ -3167,7 +3377,7 @@ iso_master_build_fs_browser (IsoMaster* self)
 	_tmp27_ = self->priv->fs_list_view;
 	gtk_widget_set_vexpand ((GtkWidget*) _tmp27_, TRUE);
 	_tmp28_ = self->priv->fs_list_view;
-	g_signal_connect_object (_tmp28_, "activate", (GCallback) ___lambda53__gtk_list_view_activate, self, 0);
+	g_signal_connect_object (_tmp28_, "activate", (GCallback) ___lambda54__gtk_list_view_activate, self, 0);
 	_tmp29_ = (GtkScrolledWindow*) gtk_scrolled_window_new ();
 	g_object_ref_sink (_tmp29_);
 	scrolled = _tmp29_;
@@ -3191,20 +3401,20 @@ iso_master_build_fs_browser (IsoMaster* self)
 }
 
 static void
-__lambda54_ (IsoMaster* self)
+__lambda55_ (IsoMaster* self)
 {
 	iso_master_iso_go_up (self);
 }
 
 static void
-___lambda54__gtk_button_clicked (GtkButton* _sender,
+___lambda55__gtk_button_clicked (GtkButton* _sender,
                                  gpointer self)
 {
-	__lambda54_ ((IsoMaster*) self);
+	__lambda55_ ((IsoMaster*) self);
 }
 
 static void
-__lambda55_ (IsoMaster* self,
+__lambda56_ (IsoMaster* self,
              GObject* item)
 {
 	GtkListItem* list_item = NULL;
@@ -3238,15 +3448,15 @@ __lambda55_ (IsoMaster* self,
 }
 
 static void
-___lambda55__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
+___lambda56__gtk_signal_list_item_factory_setup (GtkSignalListItemFactory* _sender,
                                                  GObject* object,
                                                  gpointer self)
 {
-	__lambda55_ ((IsoMaster*) self, object);
+	__lambda56_ ((IsoMaster*) self, object);
 }
 
 static void
-__lambda56_ (IsoMaster* self,
+__lambda57_ (IsoMaster* self,
              GObject* item)
 {
 	GtkListItem* list_item = NULL;
@@ -3300,15 +3510,15 @@ __lambda56_ (IsoMaster* self,
 }
 
 static void
-___lambda56__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
+___lambda57__gtk_signal_list_item_factory_bind (GtkSignalListItemFactory* _sender,
                                                 GObject* object,
                                                 gpointer self)
 {
-	__lambda56_ ((IsoMaster*) self, object);
+	__lambda57_ ((IsoMaster*) self, object);
 }
 
 static void
-__lambda57_ (IsoMaster* self,
+__lambda58_ (IsoMaster* self,
              guint pos)
 {
 	FileItem* item = NULL;
@@ -3349,11 +3559,11 @@ __lambda57_ (IsoMaster* self,
 }
 
 static void
-___lambda57__gtk_list_view_activate (GtkListView* _sender,
+___lambda58__gtk_list_view_activate (GtkListView* _sender,
                                      guint position,
                                      gpointer self)
 {
-	__lambda57_ ((IsoMaster*) self, position);
+	__lambda58_ ((IsoMaster*) self, position);
 }
 
 static GtkBox*
@@ -3425,7 +3635,7 @@ iso_master_build_iso_browser (IsoMaster* self)
 	_tmp10_ = _tmp9_;
 	gtk_widget_set_tooltip_text ((GtkWidget*) up_btn, _tmp10_);
 	_g_free0 (_tmp10_);
-	g_signal_connect_object (up_btn, "clicked", (GCallback) ___lambda54__gtk_button_clicked, self, 0);
+	g_signal_connect_object (up_btn, "clicked", (GCallback) ___lambda55__gtk_button_clicked, self, 0);
 	gtk_box_append (nav_box, (GtkWidget*) up_btn);
 	_tmp11_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp11_);
@@ -3450,8 +3660,8 @@ iso_master_build_iso_browser (IsoMaster* self)
 	self->priv->iso_store = _tmp18_;
 	_tmp19_ = (GtkSignalListItemFactory*) gtk_signal_list_item_factory_new ();
 	factory = _tmp19_;
-	g_signal_connect_object (factory, "setup", (GCallback) ___lambda55__gtk_signal_list_item_factory_setup, self, 0);
-	g_signal_connect_object (factory, "bind", (GCallback) ___lambda56__gtk_signal_list_item_factory_bind, self, 0);
+	g_signal_connect_object (factory, "setup", (GCallback) ___lambda56__gtk_signal_list_item_factory_setup, self, 0);
+	g_signal_connect_object (factory, "bind", (GCallback) ___lambda57__gtk_signal_list_item_factory_bind, self, 0);
 	_tmp20_ = self->priv->iso_store;
 	_tmp21_ = _g_object_ref0 ((GListModel*) _tmp20_);
 	_tmp22_ = gtk_single_selection_new (_tmp21_);
@@ -3465,7 +3675,7 @@ iso_master_build_iso_browser (IsoMaster* self)
 	_tmp26_ = self->priv->iso_list_view;
 	gtk_widget_set_vexpand ((GtkWidget*) _tmp26_, TRUE);
 	_tmp27_ = self->priv->iso_list_view;
-	g_signal_connect_object (_tmp27_, "activate", (GCallback) ___lambda57__gtk_list_view_activate, self, 0);
+	g_signal_connect_object (_tmp27_, "activate", (GCallback) ___lambda58__gtk_list_view_activate, self, 0);
 	_tmp28_ = (GtkScrolledWindow*) gtk_scrolled_window_new ();
 	g_object_ref_sink (_tmp28_);
 	scrolled = _tmp28_;
@@ -3489,40 +3699,40 @@ iso_master_new_iso (IsoMaster* self)
 	g_return_if_fail (self != NULL);
 }
 
-static Block1Data*
-block1_data_ref (Block1Data* _data1_)
+static Block2Data*
+block2_data_ref (Block2Data* _data2_)
 {
-	g_atomic_int_inc (&_data1_->_ref_count_);
-	return _data1_;
+	g_atomic_int_inc (&_data2_->_ref_count_);
+	return _data2_;
 }
 
 static void
-block1_data_unref (void * _userdata_)
+block2_data_unref (void * _userdata_)
 {
-	Block1Data* _data1_;
-	_data1_ = (Block1Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data1_->_ref_count_)) {
+	Block2Data* _data2_;
+	_data2_ = (Block2Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data2_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data1_->self;
-		_g_object_unref0 (_data1_->dialog);
+		self = _data2_->self;
+		_g_object_unref0 (_data2_->dialog);
 		_g_object_unref0 (self);
-		g_slice_free (Block1Data, _data1_);
+		g_slice_free (Block2Data, _data2_);
 	}
 }
 
 static void
-__lambda6_ (Block1Data* _data1_,
+__lambda6_ (Block2Data* _data2_,
             GObject* obj,
             GAsyncResult* res)
 {
 	IsoMaster* self;
 	GError* _inner_error0_ = NULL;
-	self = _data1_->self;
+	self = _data2_->self;
 	g_return_if_fail (res != NULL);
 	{
 		GFile* file = NULL;
 		GFile* _tmp0_;
-		_tmp0_ = gtk_file_dialog_open_finish (_data1_->dialog, res, &_inner_error0_);
+		_tmp0_ = gtk_file_dialog_open_finish (_data2_->dialog, res, &_inner_error0_);
 		file = _tmp0_;
 		if (G_UNLIKELY (_inner_error0_ != NULL)) {
 			goto __catch0_g_error;
@@ -3556,13 +3766,13 @@ ___lambda6__gasync_ready_callback (GObject* source_object,
                                    gpointer self)
 {
 	__lambda6_ (self, source_object, res);
-	block1_data_unref (self);
+	block2_data_unref (self);
 }
 
 static void
 iso_master_open_iso (IsoMaster* self)
 {
-	Block1Data* _data1_;
+	Block2Data* _data2_;
 	GtkFileDialog* _tmp0_;
 	gchar* _tmp1_;
 	gchar* _tmp2_;
@@ -3572,14 +3782,14 @@ iso_master_open_iso (IsoMaster* self)
 	GListStore* _tmp4_;
 	AdwApplicationWindow* _tmp5_;
 	g_return_if_fail (self != NULL);
-	_data1_ = g_slice_new0 (Block1Data);
-	_data1_->_ref_count_ = 1;
-	_data1_->self = g_object_ref (self);
+	_data2_ = g_slice_new0 (Block2Data);
+	_data2_->_ref_count_ = 1;
+	_data2_->self = g_object_ref (self);
 	_tmp0_ = gtk_file_dialog_new ();
-	_data1_->dialog = _tmp0_;
+	_data2_->dialog = _tmp0_;
 	_tmp1_ = _t ("Open ISO Image");
 	_tmp2_ = _tmp1_;
-	gtk_file_dialog_set_title (_data1_->dialog, _tmp2_);
+	gtk_file_dialog_set_title (_data2_->dialog, _tmp2_);
 	_g_free0 (_tmp2_);
 	_tmp3_ = gtk_file_filter_new ();
 	filter = _tmp3_;
@@ -3590,13 +3800,13 @@ iso_master_open_iso (IsoMaster* self)
 	_tmp4_ = g_list_store_new (gtk_file_filter_get_type ());
 	filters = _tmp4_;
 	g_list_store_append (filters, (GObject*) filter);
-	gtk_file_dialog_set_filters (_data1_->dialog, (GListModel*) filters);
+	gtk_file_dialog_set_filters (_data2_->dialog, (GListModel*) filters);
 	_tmp5_ = self->priv->main_window;
-	gtk_file_dialog_open (_data1_->dialog, (GtkWindow*) _tmp5_, NULL, ___lambda6__gasync_ready_callback, block1_data_ref (_data1_));
+	gtk_file_dialog_open (_data2_->dialog, (GtkWindow*) _tmp5_, NULL, ___lambda6__gasync_ready_callback, block2_data_ref (_data2_));
 	_g_object_unref0 (filters);
 	_g_object_unref0 (filter);
-	block1_data_unref (_data1_);
-	_data1_ = NULL;
+	block2_data_unref (_data2_);
+	_data2_ = NULL;
 }
 
 static void
@@ -3720,41 +3930,41 @@ iso_master_open_iso_file (IsoMaster* self,
 	_g_free0 (vol_name);
 }
 
-static Block2Data*
-block2_data_ref (Block2Data* _data2_)
+static Block3Data*
+block3_data_ref (Block3Data* _data3_)
 {
-	g_atomic_int_inc (&_data2_->_ref_count_);
-	return _data2_;
+	g_atomic_int_inc (&_data3_->_ref_count_);
+	return _data3_;
 }
 
 static void
-block2_data_unref (void * _userdata_)
+block3_data_unref (void * _userdata_)
 {
-	Block2Data* _data2_;
-	_data2_ = (Block2Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data2_->_ref_count_)) {
+	Block3Data* _data3_;
+	_data3_ = (Block3Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data3_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data2_->self;
-		_g_object_unref0 (_data2_->dialog);
+		self = _data3_->self;
+		_g_object_unref0 (_data3_->dialog);
 		_g_object_unref0 (self);
-		g_slice_free (Block2Data, _data2_);
+		g_slice_free (Block3Data, _data3_);
 	}
 }
 
 static void
-__lambda8_ (Block2Data* _data2_,
+__lambda8_ (Block3Data* _data3_,
             GObject* obj,
             GAsyncResult* res)
 {
 	IsoMaster* self;
 	GError* _inner_error0_ = NULL;
-	self = _data2_->self;
+	self = _data3_->self;
 	g_return_if_fail (res != NULL);
 	{
 		GFile* file = NULL;
 		GtkFileDialog* _tmp0_;
 		GFile* _tmp1_;
-		_tmp0_ = _data2_->dialog;
+		_tmp0_ = _data3_->dialog;
 		_tmp1_ = gtk_file_dialog_save_finish (_tmp0_, res, &_inner_error0_);
 		file = _tmp1_;
 		if (G_UNLIKELY (_inner_error0_ != NULL)) {
@@ -3804,13 +4014,13 @@ ___lambda8__gasync_ready_callback (GObject* source_object,
                                    gpointer self)
 {
 	__lambda8_ (self, source_object, res);
-	block2_data_unref (self);
+	block3_data_unref (self);
 }
 
 static void
 iso_master_save_iso (IsoMaster* self)
 {
-	Block2Data* _data2_;
+	Block3Data* _data3_;
 	GtkFileDialog* _tmp0_;
 	GtkFileDialog* _tmp1_;
 	gchar* _tmp2_;
@@ -3828,17 +4038,17 @@ iso_master_save_iso (IsoMaster* self)
 	GtkFileDialog* _tmp12_;
 	AdwApplicationWindow* _tmp13_;
 	g_return_if_fail (self != NULL);
-	_data2_ = g_slice_new0 (Block2Data);
-	_data2_->_ref_count_ = 1;
-	_data2_->self = g_object_ref (self);
+	_data3_ = g_slice_new0 (Block3Data);
+	_data3_->_ref_count_ = 1;
+	_data3_->self = g_object_ref (self);
 	if (!self->priv->iso_loaded) {
-		block2_data_unref (_data2_);
-		_data2_ = NULL;
+		block3_data_unref (_data3_);
+		_data3_ = NULL;
 		return;
 	}
 	_tmp0_ = gtk_file_dialog_new ();
-	_data2_->dialog = _tmp0_;
-	_tmp1_ = _data2_->dialog;
+	_data3_->dialog = _tmp0_;
+	_tmp1_ = _data3_->dialog;
 	_tmp2_ = _t ("Save ISO Image");
 	_tmp3_ = _tmp2_;
 	gtk_file_dialog_set_title (_tmp1_, _tmp3_);
@@ -3854,53 +4064,53 @@ iso_master_save_iso (IsoMaster* self)
 	_tmp8_ = filters;
 	_tmp9_ = filter;
 	g_list_store_append (_tmp8_, (GObject*) _tmp9_);
-	_tmp10_ = _data2_->dialog;
+	_tmp10_ = _data3_->dialog;
 	_tmp11_ = filters;
 	gtk_file_dialog_set_filters (_tmp10_, (GListModel*) _tmp11_);
-	_tmp12_ = _data2_->dialog;
+	_tmp12_ = _data3_->dialog;
 	_tmp13_ = self->priv->main_window;
-	gtk_file_dialog_save (_tmp12_, (GtkWindow*) _tmp13_, NULL, ___lambda8__gasync_ready_callback, block2_data_ref (_data2_));
+	gtk_file_dialog_save (_tmp12_, (GtkWindow*) _tmp13_, NULL, ___lambda8__gasync_ready_callback, block3_data_ref (_data3_));
 	_g_object_unref0 (filters);
 	_g_object_unref0 (filter);
-	block2_data_unref (_data2_);
-	_data2_ = NULL;
+	block3_data_unref (_data3_);
+	_data3_ = NULL;
 }
 
-static Block3Data*
-block3_data_ref (Block3Data* _data3_)
+static Block4Data*
+block4_data_ref (Block4Data* _data4_)
 {
-	g_atomic_int_inc (&_data3_->_ref_count_);
-	return _data3_;
+	g_atomic_int_inc (&_data4_->_ref_count_);
+	return _data4_;
 }
 
 static void
-block3_data_unref (void * _userdata_)
+block4_data_unref (void * _userdata_)
 {
-	Block3Data* _data3_;
-	_data3_ = (Block3Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data3_->_ref_count_)) {
+	Block4Data* _data4_;
+	_data4_ = (Block4Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data4_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data3_->self;
-		_g_object_unref0 (_data3_->dialog);
+		self = _data4_->self;
+		_g_object_unref0 (_data4_->dialog);
 		_g_object_unref0 (self);
-		g_slice_free (Block3Data, _data3_);
+		g_slice_free (Block4Data, _data4_);
 	}
 }
 
 static void
-__lambda43_ (Block3Data* _data3_,
+__lambda44_ (Block4Data* _data4_,
              GObject* obj,
              GAsyncResult* res)
 {
 	IsoMaster* self;
 	GError* _inner_error0_ = NULL;
-	self = _data3_->self;
+	self = _data4_->self;
 	g_return_if_fail (res != NULL);
 	{
 		GFile* file = NULL;
 		GtkFileDialog* _tmp0_;
 		GFile* _tmp1_;
-		_tmp0_ = _data3_->dialog;
+		_tmp0_ = _data4_->dialog;
 		_tmp1_ = gtk_file_dialog_open_finish (_tmp0_, res, &_inner_error0_);
 		file = _tmp1_;
 		if (G_UNLIKELY (_inner_error0_ != NULL)) {
@@ -3949,18 +4159,18 @@ __lambda43_ (Block3Data* _data3_,
 }
 
 static void
-___lambda43__gasync_ready_callback (GObject* source_object,
+___lambda44__gasync_ready_callback (GObject* source_object,
                                     GAsyncResult* res,
                                     gpointer self)
 {
-	__lambda43_ (self, source_object, res);
-	block3_data_unref (self);
+	__lambda44_ (self, source_object, res);
+	block4_data_unref (self);
 }
 
 static void
 iso_master_add_to_iso (IsoMaster* self)
 {
-	Block3Data* _data3_;
+	Block4Data* _data4_;
 	GtkFileDialog* _tmp2_;
 	GtkFileDialog* _tmp3_;
 	gchar* _tmp4_;
@@ -3968,9 +4178,9 @@ iso_master_add_to_iso (IsoMaster* self)
 	GtkFileDialog* _tmp6_;
 	AdwApplicationWindow* _tmp7_;
 	g_return_if_fail (self != NULL);
-	_data3_ = g_slice_new0 (Block3Data);
-	_data3_->_ref_count_ = 1;
-	_data3_->self = g_object_ref (self);
+	_data4_ = g_slice_new0 (Block4Data);
+	_data4_->_ref_count_ = 1;
+	_data4_->self = g_object_ref (self);
 	if (!self->priv->iso_loaded) {
 		gchar* _tmp0_;
 		gchar* _tmp1_;
@@ -3978,60 +4188,60 @@ iso_master_add_to_iso (IsoMaster* self)
 		_tmp1_ = _tmp0_;
 		iso_master_show_error (self, _tmp1_, NULL);
 		_g_free0 (_tmp1_);
-		block3_data_unref (_data3_);
-		_data3_ = NULL;
+		block4_data_unref (_data4_);
+		_data4_ = NULL;
 		return;
 	}
 	_tmp2_ = gtk_file_dialog_new ();
-	_data3_->dialog = _tmp2_;
-	_tmp3_ = _data3_->dialog;
+	_data4_->dialog = _tmp2_;
+	_tmp3_ = _data4_->dialog;
 	_tmp4_ = _t ("Add files to ISO");
 	_tmp5_ = _tmp4_;
 	gtk_file_dialog_set_title (_tmp3_, _tmp5_);
 	_g_free0 (_tmp5_);
-	_tmp6_ = _data3_->dialog;
+	_tmp6_ = _data4_->dialog;
 	_tmp7_ = self->priv->main_window;
-	gtk_file_dialog_open (_tmp6_, (GtkWindow*) _tmp7_, NULL, ___lambda43__gasync_ready_callback, block3_data_ref (_data3_));
-	block3_data_unref (_data3_);
-	_data3_ = NULL;
+	gtk_file_dialog_open (_tmp6_, (GtkWindow*) _tmp7_, NULL, ___lambda44__gasync_ready_callback, block4_data_ref (_data4_));
+	block4_data_unref (_data4_);
+	_data4_ = NULL;
 }
 
-static Block4Data*
-block4_data_ref (Block4Data* _data4_)
+static Block5Data*
+block5_data_ref (Block5Data* _data5_)
 {
-	g_atomic_int_inc (&_data4_->_ref_count_);
-	return _data4_;
+	g_atomic_int_inc (&_data5_->_ref_count_);
+	return _data5_;
 }
 
 static void
-block4_data_unref (void * _userdata_)
+block5_data_unref (void * _userdata_)
 {
-	Block4Data* _data4_;
-	_data4_ = (Block4Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data4_->_ref_count_)) {
+	Block5Data* _data5_;
+	_data5_ = (Block5Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data5_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data4_->self;
-		_g_object_unref0 (_data4_->dialog);
-		_g_object_unref0 (_data4_->item);
+		self = _data5_->self;
+		_g_object_unref0 (_data5_->dialog);
+		_g_object_unref0 (_data5_->item);
 		_g_object_unref0 (self);
-		g_slice_free (Block4Data, _data4_);
+		g_slice_free (Block5Data, _data5_);
 	}
 }
 
 static void
-__lambda45_ (Block4Data* _data4_,
+__lambda46_ (Block5Data* _data5_,
              GObject* obj,
              GAsyncResult* res)
 {
 	IsoMaster* self;
 	GError* _inner_error0_ = NULL;
-	self = _data4_->self;
+	self = _data5_->self;
 	g_return_if_fail (res != NULL);
 	{
 		GFile* file = NULL;
 		GtkFileDialog* _tmp0_;
 		GFile* _tmp1_;
-		_tmp0_ = _data4_->dialog;
+		_tmp0_ = _data5_->dialog;
 		_tmp1_ = gtk_file_dialog_save_finish (_tmp0_, res, &_inner_error0_);
 		file = _tmp1_;
 		if (G_UNLIKELY (_inner_error0_ != NULL)) {
@@ -4047,7 +4257,7 @@ __lambda45_ (Block4Data* _data4_,
 			gchar* _tmp7_;
 			gint _tmp8_;
 			_tmp2_ = self->priv->vol_info;
-			_tmp3_ = _data4_->item;
+			_tmp3_ = _data5_->item;
 			_tmp4_ = file_item_get_path (_tmp3_);
 			_tmp5_ = _tmp4_;
 			_tmp6_ = g_file_get_path (file);
@@ -4082,18 +4292,18 @@ __lambda45_ (Block4Data* _data4_,
 }
 
 static void
-___lambda45__gasync_ready_callback (GObject* source_object,
+___lambda46__gasync_ready_callback (GObject* source_object,
                                     GAsyncResult* res,
                                     gpointer self)
 {
-	__lambda45_ (self, source_object, res);
-	block4_data_unref (self);
+	__lambda46_ (self, source_object, res);
+	block5_data_unref (self);
 }
 
 static void
 iso_master_extract_from_iso (IsoMaster* self)
 {
-	Block4Data* _data4_;
+	Block5Data* _data5_;
 	GtkSingleSelection* selection = NULL;
 	GtkListView* _tmp2_;
 	GtkSelectionModel* _tmp3_;
@@ -4118,190 +4328,6 @@ iso_master_extract_from_iso (IsoMaster* self)
 	GFile* _tmp29_;
 	GtkFileDialog* _tmp30_;
 	AdwApplicationWindow* _tmp31_;
-	g_return_if_fail (self != NULL);
-	_data4_ = g_slice_new0 (Block4Data);
-	_data4_->_ref_count_ = 1;
-	_data4_->self = g_object_ref (self);
-	if (!self->priv->iso_loaded) {
-		gchar* _tmp0_;
-		gchar* _tmp1_;
-		_tmp0_ = _t ("No ISO image loaded");
-		_tmp1_ = _tmp0_;
-		iso_master_show_error (self, _tmp1_, NULL);
-		_g_free0 (_tmp1_);
-		block4_data_unref (_data4_);
-		_data4_ = NULL;
-		return;
-	}
-	_tmp2_ = self->priv->iso_list_view;
-	_tmp3_ = gtk_list_view_get_model (_tmp2_);
-	_tmp4_ = _tmp3_;
-	_tmp5_ = _g_object_ref0 (G_TYPE_CHECK_INSTANCE_TYPE (_tmp4_, gtk_single_selection_get_type ()) ? ((GtkSingleSelection*) _tmp4_) : NULL);
-	selection = _tmp5_;
-	_tmp7_ = selection;
-	if (_tmp7_ == NULL) {
-		_tmp6_ = TRUE;
-	} else {
-		GtkSingleSelection* _tmp8_;
-		GObject* _tmp9_;
-		GObject* _tmp10_;
-		_tmp8_ = selection;
-		_tmp9_ = gtk_single_selection_get_selected_item (_tmp8_);
-		_tmp10_ = _tmp9_;
-		_tmp6_ = _tmp10_ == NULL;
-	}
-	if (_tmp6_) {
-		gchar* _tmp11_;
-		gchar* _tmp12_;
-		_tmp11_ = _t ("No file selected");
-		_tmp12_ = _tmp11_;
-		iso_master_show_error (self, _tmp12_, NULL);
-		_g_free0 (_tmp12_);
-		_g_object_unref0 (selection);
-		block4_data_unref (_data4_);
-		_data4_ = NULL;
-		return;
-	}
-	_tmp13_ = selection;
-	_tmp14_ = gtk_single_selection_get_selected_item (_tmp13_);
-	_tmp15_ = _tmp14_;
-	_tmp16_ = _g_object_ref0 (IS_FILE_ITEM (_tmp15_) ? ((FileItem*) _tmp15_) : NULL);
-	_data4_->item = _tmp16_;
-	_tmp17_ = _data4_->item;
-	if (_tmp17_ == NULL) {
-		gchar* _tmp18_;
-		gchar* _tmp19_;
-		_tmp18_ = _t ("No file selected");
-		_tmp19_ = _tmp18_;
-		iso_master_show_error (self, _tmp19_, NULL);
-		_g_free0 (_tmp19_);
-		_g_object_unref0 (selection);
-		block4_data_unref (_data4_);
-		_data4_ = NULL;
-		return;
-	}
-	_tmp20_ = gtk_file_dialog_new ();
-	_data4_->dialog = _tmp20_;
-	_tmp21_ = _data4_->dialog;
-	_tmp22_ = _t ("Extract to...");
-	_tmp23_ = _tmp22_;
-	gtk_file_dialog_set_title (_tmp21_, _tmp23_);
-	_g_free0 (_tmp23_);
-	_tmp24_ = _data4_->dialog;
-	_tmp25_ = _data4_->item;
-	_tmp26_ = file_item_get_name (_tmp25_);
-	_tmp27_ = _tmp26_;
-	_tmp28_ = g_file_new_for_path (_tmp27_);
-	_tmp29_ = _tmp28_;
-	gtk_file_dialog_set_initial_file (_tmp24_, _tmp29_);
-	_g_object_unref0 (_tmp29_);
-	_tmp30_ = _data4_->dialog;
-	_tmp31_ = self->priv->main_window;
-	gtk_file_dialog_save (_tmp30_, (GtkWindow*) _tmp31_, NULL, ___lambda45__gasync_ready_callback, block4_data_ref (_data4_));
-	_g_object_unref0 (selection);
-	block4_data_unref (_data4_);
-	_data4_ = NULL;
-}
-
-static Block5Data*
-block5_data_ref (Block5Data* _data5_)
-{
-	g_atomic_int_inc (&_data5_->_ref_count_);
-	return _data5_;
-}
-
-static void
-block5_data_unref (void * _userdata_)
-{
-	Block5Data* _data5_;
-	_data5_ = (Block5Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data5_->_ref_count_)) {
-		IsoMaster* self;
-		self = _data5_->self;
-		_g_object_unref0 (_data5_->item);
-		_g_object_unref0 (self);
-		g_slice_free (Block5Data, _data5_);
-	}
-}
-
-static void
-__lambda47_ (Block5Data* _data5_,
-             const gchar* response)
-{
-	IsoMaster* self;
-	self = _data5_->self;
-	g_return_if_fail (response != NULL);
-	if (g_strcmp0 (response, "delete") == 0) {
-		gint _result_ = 0;
-		VolInfo* _tmp0_;
-		FileItem* _tmp1_;
-		const gchar* _tmp2_;
-		const gchar* _tmp3_;
-		_tmp0_ = self->priv->vol_info;
-		_tmp1_ = _data5_->item;
-		_tmp2_ = file_item_get_path (_tmp1_);
-		_tmp3_ = _tmp2_;
-		_result_ = bk_delete (_tmp0_, _tmp3_);
-		if (_result_ < 0) {
-			gchar* _tmp4_;
-			gchar* _tmp5_;
-			const gchar* _tmp6_;
-			_tmp4_ = _t ("Failed to delete: %s");
-			_tmp5_ = _tmp4_;
-			_tmp6_ = bk_get_error_string (_result_);
-			iso_master_show_error (self, _tmp5_, _tmp6_, NULL);
-			_g_free0 (_tmp5_);
-		} else {
-			iso_master_refresh_iso_view (self);
-		}
-	}
-}
-
-static void
-___lambda47__adw_alert_dialog_response (AdwAlertDialog* _sender,
-                                        const gchar* response,
-                                        gpointer self)
-{
-	__lambda47_ (self, response);
-}
-
-static void
-iso_master_delete_from_iso (IsoMaster* self)
-{
-	Block5Data* _data5_;
-	GtkSingleSelection* selection = NULL;
-	GtkListView* _tmp2_;
-	GtkSelectionModel* _tmp3_;
-	GtkSelectionModel* _tmp4_;
-	GtkSingleSelection* _tmp5_;
-	gboolean _tmp6_ = FALSE;
-	GtkSingleSelection* _tmp7_;
-	GtkSingleSelection* _tmp13_;
-	GObject* _tmp14_;
-	GObject* _tmp15_;
-	FileItem* _tmp16_;
-	FileItem* _tmp17_;
-	AdwAlertDialog* dialog = NULL;
-	gchar* _tmp20_;
-	gchar* _tmp21_;
-	gchar* _tmp22_;
-	gchar* _tmp23_;
-	FileItem* _tmp24_;
-	const gchar* _tmp25_;
-	const gchar* _tmp26_;
-	gchar* _tmp27_;
-	gchar* _tmp28_;
-	AdwAlertDialog* _tmp29_;
-	AdwAlertDialog* _tmp30_;
-	AdwAlertDialog* _tmp31_;
-	gchar* _tmp32_;
-	gchar* _tmp33_;
-	AdwAlertDialog* _tmp34_;
-	gchar* _tmp35_;
-	gchar* _tmp36_;
-	AdwAlertDialog* _tmp37_;
-	AdwAlertDialog* _tmp38_;
-	AdwApplicationWindow* _tmp39_;
 	g_return_if_fail (self != NULL);
 	_data5_ = g_slice_new0 (Block5Data);
 	_data5_->_ref_count_ = 1;
@@ -4364,11 +4390,195 @@ iso_master_delete_from_iso (IsoMaster* self)
 		_data5_ = NULL;
 		return;
 	}
+	_tmp20_ = gtk_file_dialog_new ();
+	_data5_->dialog = _tmp20_;
+	_tmp21_ = _data5_->dialog;
+	_tmp22_ = _t ("Extract to...");
+	_tmp23_ = _tmp22_;
+	gtk_file_dialog_set_title (_tmp21_, _tmp23_);
+	_g_free0 (_tmp23_);
+	_tmp24_ = _data5_->dialog;
+	_tmp25_ = _data5_->item;
+	_tmp26_ = file_item_get_name (_tmp25_);
+	_tmp27_ = _tmp26_;
+	_tmp28_ = g_file_new_for_path (_tmp27_);
+	_tmp29_ = _tmp28_;
+	gtk_file_dialog_set_initial_file (_tmp24_, _tmp29_);
+	_g_object_unref0 (_tmp29_);
+	_tmp30_ = _data5_->dialog;
+	_tmp31_ = self->priv->main_window;
+	gtk_file_dialog_save (_tmp30_, (GtkWindow*) _tmp31_, NULL, ___lambda46__gasync_ready_callback, block5_data_ref (_data5_));
+	_g_object_unref0 (selection);
+	block5_data_unref (_data5_);
+	_data5_ = NULL;
+}
+
+static Block6Data*
+block6_data_ref (Block6Data* _data6_)
+{
+	g_atomic_int_inc (&_data6_->_ref_count_);
+	return _data6_;
+}
+
+static void
+block6_data_unref (void * _userdata_)
+{
+	Block6Data* _data6_;
+	_data6_ = (Block6Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data6_->_ref_count_)) {
+		IsoMaster* self;
+		self = _data6_->self;
+		_g_object_unref0 (_data6_->item);
+		_g_object_unref0 (self);
+		g_slice_free (Block6Data, _data6_);
+	}
+}
+
+static void
+__lambda48_ (Block6Data* _data6_,
+             const gchar* response)
+{
+	IsoMaster* self;
+	self = _data6_->self;
+	g_return_if_fail (response != NULL);
+	if (g_strcmp0 (response, "delete") == 0) {
+		gint _result_ = 0;
+		VolInfo* _tmp0_;
+		FileItem* _tmp1_;
+		const gchar* _tmp2_;
+		const gchar* _tmp3_;
+		_tmp0_ = self->priv->vol_info;
+		_tmp1_ = _data6_->item;
+		_tmp2_ = file_item_get_path (_tmp1_);
+		_tmp3_ = _tmp2_;
+		_result_ = bk_delete (_tmp0_, _tmp3_);
+		if (_result_ < 0) {
+			gchar* _tmp4_;
+			gchar* _tmp5_;
+			const gchar* _tmp6_;
+			_tmp4_ = _t ("Failed to delete: %s");
+			_tmp5_ = _tmp4_;
+			_tmp6_ = bk_get_error_string (_result_);
+			iso_master_show_error (self, _tmp5_, _tmp6_, NULL);
+			_g_free0 (_tmp5_);
+		} else {
+			iso_master_refresh_iso_view (self);
+		}
+	}
+}
+
+static void
+___lambda48__adw_alert_dialog_response (AdwAlertDialog* _sender,
+                                        const gchar* response,
+                                        gpointer self)
+{
+	__lambda48_ (self, response);
+}
+
+static void
+iso_master_delete_from_iso (IsoMaster* self)
+{
+	Block6Data* _data6_;
+	GtkSingleSelection* selection = NULL;
+	GtkListView* _tmp2_;
+	GtkSelectionModel* _tmp3_;
+	GtkSelectionModel* _tmp4_;
+	GtkSingleSelection* _tmp5_;
+	gboolean _tmp6_ = FALSE;
+	GtkSingleSelection* _tmp7_;
+	GtkSingleSelection* _tmp13_;
+	GObject* _tmp14_;
+	GObject* _tmp15_;
+	FileItem* _tmp16_;
+	FileItem* _tmp17_;
+	AdwAlertDialog* dialog = NULL;
+	gchar* _tmp20_;
+	gchar* _tmp21_;
+	gchar* _tmp22_;
+	gchar* _tmp23_;
+	FileItem* _tmp24_;
+	const gchar* _tmp25_;
+	const gchar* _tmp26_;
+	gchar* _tmp27_;
+	gchar* _tmp28_;
+	AdwAlertDialog* _tmp29_;
+	AdwAlertDialog* _tmp30_;
+	AdwAlertDialog* _tmp31_;
+	gchar* _tmp32_;
+	gchar* _tmp33_;
+	AdwAlertDialog* _tmp34_;
+	gchar* _tmp35_;
+	gchar* _tmp36_;
+	AdwAlertDialog* _tmp37_;
+	AdwAlertDialog* _tmp38_;
+	AdwApplicationWindow* _tmp39_;
+	g_return_if_fail (self != NULL);
+	_data6_ = g_slice_new0 (Block6Data);
+	_data6_->_ref_count_ = 1;
+	_data6_->self = g_object_ref (self);
+	if (!self->priv->iso_loaded) {
+		gchar* _tmp0_;
+		gchar* _tmp1_;
+		_tmp0_ = _t ("No ISO image loaded");
+		_tmp1_ = _tmp0_;
+		iso_master_show_error (self, _tmp1_, NULL);
+		_g_free0 (_tmp1_);
+		block6_data_unref (_data6_);
+		_data6_ = NULL;
+		return;
+	}
+	_tmp2_ = self->priv->iso_list_view;
+	_tmp3_ = gtk_list_view_get_model (_tmp2_);
+	_tmp4_ = _tmp3_;
+	_tmp5_ = _g_object_ref0 (G_TYPE_CHECK_INSTANCE_TYPE (_tmp4_, gtk_single_selection_get_type ()) ? ((GtkSingleSelection*) _tmp4_) : NULL);
+	selection = _tmp5_;
+	_tmp7_ = selection;
+	if (_tmp7_ == NULL) {
+		_tmp6_ = TRUE;
+	} else {
+		GtkSingleSelection* _tmp8_;
+		GObject* _tmp9_;
+		GObject* _tmp10_;
+		_tmp8_ = selection;
+		_tmp9_ = gtk_single_selection_get_selected_item (_tmp8_);
+		_tmp10_ = _tmp9_;
+		_tmp6_ = _tmp10_ == NULL;
+	}
+	if (_tmp6_) {
+		gchar* _tmp11_;
+		gchar* _tmp12_;
+		_tmp11_ = _t ("No file selected");
+		_tmp12_ = _tmp11_;
+		iso_master_show_error (self, _tmp12_, NULL);
+		_g_free0 (_tmp12_);
+		_g_object_unref0 (selection);
+		block6_data_unref (_data6_);
+		_data6_ = NULL;
+		return;
+	}
+	_tmp13_ = selection;
+	_tmp14_ = gtk_single_selection_get_selected_item (_tmp13_);
+	_tmp15_ = _tmp14_;
+	_tmp16_ = _g_object_ref0 (IS_FILE_ITEM (_tmp15_) ? ((FileItem*) _tmp15_) : NULL);
+	_data6_->item = _tmp16_;
+	_tmp17_ = _data6_->item;
+	if (_tmp17_ == NULL) {
+		gchar* _tmp18_;
+		gchar* _tmp19_;
+		_tmp18_ = _t ("No file selected");
+		_tmp19_ = _tmp18_;
+		iso_master_show_error (self, _tmp19_, NULL);
+		_g_free0 (_tmp19_);
+		_g_object_unref0 (selection);
+		block6_data_unref (_data6_);
+		_data6_ = NULL;
+		return;
+	}
 	_tmp20_ = _t ("Confirm Delete");
 	_tmp21_ = _tmp20_;
 	_tmp22_ = _t ("Are you sure you want to delete '%s' from the ISO?");
 	_tmp23_ = _tmp22_;
-	_tmp24_ = _data5_->item;
+	_tmp24_ = _data6_->item;
 	_tmp25_ = file_item_get_name (_tmp24_);
 	_tmp26_ = _tmp25_;
 	_tmp27_ = g_strdup_printf (_tmp23_, _tmp26_);
@@ -4391,44 +4601,44 @@ iso_master_delete_from_iso (IsoMaster* self)
 	adw_alert_dialog_add_response (_tmp34_, "delete", _tmp36_);
 	_g_free0 (_tmp36_);
 	_tmp37_ = dialog;
-	g_signal_connect_data (_tmp37_, "response", (GCallback) ___lambda47__adw_alert_dialog_response, block5_data_ref (_data5_), (GClosureNotify) block5_data_unref, 0);
+	g_signal_connect_data (_tmp37_, "response", (GCallback) ___lambda48__adw_alert_dialog_response, block6_data_ref (_data6_), (GClosureNotify) block6_data_unref, 0);
 	_tmp38_ = dialog;
 	_tmp39_ = self->priv->main_window;
 	adw_dialog_present ((AdwDialog*) _tmp38_, (GtkWidget*) _tmp39_);
 	_g_object_unref0 (dialog);
 	_g_object_unref0 (selection);
-	block5_data_unref (_data5_);
-	_data5_ = NULL;
+	block6_data_unref (_data6_);
+	_data6_ = NULL;
 }
 
-static Block6Data*
-block6_data_ref (Block6Data* _data6_)
+static Block7Data*
+block7_data_ref (Block7Data* _data7_)
 {
-	g_atomic_int_inc (&_data6_->_ref_count_);
-	return _data6_;
+	g_atomic_int_inc (&_data7_->_ref_count_);
+	return _data7_;
 }
 
 static void
-block6_data_unref (void * _userdata_)
+block7_data_unref (void * _userdata_)
 {
-	Block6Data* _data6_;
-	_data6_ = (Block6Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data6_->_ref_count_)) {
+	Block7Data* _data7_;
+	_data7_ = (Block7Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data7_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data6_->self;
-		_g_object_unref0 (_data6_->entry);
+		self = _data7_->self;
+		_g_object_unref0 (_data7_->entry);
 		_g_object_unref0 (self);
-		g_slice_free (Block6Data, _data6_);
+		g_slice_free (Block7Data, _data7_);
 	}
 }
 
 static void
-__lambda17_ (Block6Data* _data6_,
+__lambda17_ (Block7Data* _data7_,
              const gchar* response)
 {
 	IsoMaster* self;
 	gboolean _tmp0_ = FALSE;
-	self = _data6_->self;
+	self = _data7_->self;
 	g_return_if_fail (response != NULL);
 	if (g_strcmp0 (response, "create") == 0) {
 		GtkEntry* _tmp1_;
@@ -4436,7 +4646,7 @@ __lambda17_ (Block6Data* _data6_,
 		const gchar* _tmp3_;
 		gint _tmp4_;
 		gint _tmp5_;
-		_tmp1_ = _data6_->entry;
+		_tmp1_ = _data7_->entry;
 		_tmp2_ = gtk_editable_get_text ((GtkEditable*) _tmp1_);
 		_tmp3_ = _tmp2_;
 		_tmp4_ = strlen (_tmp3_);
@@ -4454,7 +4664,7 @@ __lambda17_ (Block6Data* _data6_,
 		const gchar* _tmp10_;
 		_tmp6_ = self->priv->vol_info;
 		_tmp7_ = self->priv->current_iso_path;
-		_tmp8_ = _data6_->entry;
+		_tmp8_ = _data7_->entry;
 		_tmp9_ = gtk_editable_get_text ((GtkEditable*) _tmp8_);
 		_tmp10_ = _tmp9_;
 		_result_ = bk_create_dir (_tmp6_, _tmp7_, _tmp10_);
@@ -4484,7 +4694,7 @@ ___lambda17__adw_alert_dialog_response (AdwAlertDialog* _sender,
 static void
 iso_master_create_iso_dir (IsoMaster* self)
 {
-	Block6Data* _data6_;
+	Block7Data* _data7_;
 	AdwAlertDialog* dialog = NULL;
 	gchar* _tmp2_;
 	gchar* _tmp3_;
@@ -4508,9 +4718,9 @@ iso_master_create_iso_dir (IsoMaster* self)
 	AdwAlertDialog* _tmp21_;
 	AdwApplicationWindow* _tmp22_;
 	g_return_if_fail (self != NULL);
-	_data6_ = g_slice_new0 (Block6Data);
-	_data6_->_ref_count_ = 1;
-	_data6_->self = g_object_ref (self);
+	_data7_ = g_slice_new0 (Block7Data);
+	_data7_->_ref_count_ = 1;
+	_data7_->self = g_object_ref (self);
 	if (!self->priv->iso_loaded) {
 		gchar* _tmp0_;
 		gchar* _tmp1_;
@@ -4518,8 +4728,8 @@ iso_master_create_iso_dir (IsoMaster* self)
 		_tmp1_ = _tmp0_;
 		iso_master_show_error (self, _tmp1_, NULL);
 		_g_free0 (_tmp1_);
-		block6_data_unref (_data6_);
-		_data6_ = NULL;
+		block7_data_unref (_data7_);
+		_data7_ = NULL;
 		return;
 	}
 	_tmp2_ = _t ("Create Directory");
@@ -4544,54 +4754,54 @@ iso_master_create_iso_dir (IsoMaster* self)
 	_g_free0 (_tmp13_);
 	_tmp14_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp14_);
-	_data6_->entry = _tmp14_;
-	_tmp15_ = _data6_->entry;
+	_data7_->entry = _tmp14_;
+	_tmp15_ = _data7_->entry;
 	_tmp16_ = _t ("New directory");
 	_tmp17_ = _tmp16_;
 	gtk_entry_set_placeholder_text (_tmp15_, _tmp17_);
 	_g_free0 (_tmp17_);
 	_tmp18_ = dialog;
-	_tmp19_ = _data6_->entry;
+	_tmp19_ = _data7_->entry;
 	adw_alert_dialog_set_extra_child (_tmp18_, (GtkWidget*) _tmp19_);
 	_tmp20_ = dialog;
-	g_signal_connect_data (_tmp20_, "response", (GCallback) ___lambda17__adw_alert_dialog_response, block6_data_ref (_data6_), (GClosureNotify) block6_data_unref, 0);
+	g_signal_connect_data (_tmp20_, "response", (GCallback) ___lambda17__adw_alert_dialog_response, block7_data_ref (_data7_), (GClosureNotify) block7_data_unref, 0);
 	_tmp21_ = dialog;
 	_tmp22_ = self->priv->main_window;
 	adw_dialog_present ((AdwDialog*) _tmp21_, (GtkWidget*) _tmp22_);
 	_g_object_unref0 (dialog);
-	block6_data_unref (_data6_);
-	_data6_ = NULL;
+	block7_data_unref (_data7_);
+	_data7_ = NULL;
 }
 
-static Block7Data*
-block7_data_ref (Block7Data* _data7_)
+static Block8Data*
+block8_data_ref (Block8Data* _data8_)
 {
-	g_atomic_int_inc (&_data7_->_ref_count_);
-	return _data7_;
+	g_atomic_int_inc (&_data8_->_ref_count_);
+	return _data8_;
 }
 
 static void
-block7_data_unref (void * _userdata_)
+block8_data_unref (void * _userdata_)
 {
-	Block7Data* _data7_;
-	_data7_ = (Block7Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data7_->_ref_count_)) {
+	Block8Data* _data8_;
+	_data8_ = (Block8Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data8_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data7_->self;
-		_g_object_unref0 (_data7_->entry);
-		_g_object_unref0 (_data7_->item);
+		self = _data8_->self;
+		_g_object_unref0 (_data8_->entry);
+		_g_object_unref0 (_data8_->item);
 		_g_object_unref0 (self);
-		g_slice_free (Block7Data, _data7_);
+		g_slice_free (Block8Data, _data8_);
 	}
 }
 
 static void
-__lambda19_ (Block7Data* _data7_,
+__lambda19_ (Block8Data* _data8_,
              const gchar* response)
 {
 	IsoMaster* self;
 	gboolean _tmp0_ = FALSE;
-	self = _data7_->self;
+	self = _data8_->self;
 	g_return_if_fail (response != NULL);
 	if (g_strcmp0 (response, "rename") == 0) {
 		GtkEntry* _tmp1_;
@@ -4599,7 +4809,7 @@ __lambda19_ (Block7Data* _data7_,
 		const gchar* _tmp3_;
 		gint _tmp4_;
 		gint _tmp5_;
-		_tmp1_ = _data7_->entry;
+		_tmp1_ = _data8_->entry;
 		_tmp2_ = gtk_editable_get_text ((GtkEditable*) _tmp1_);
 		_tmp3_ = _tmp2_;
 		_tmp4_ = strlen (_tmp3_);
@@ -4629,7 +4839,7 @@ __lambda19_ (Block7Data* _data7_,
 		VolInfo* _tmp20_;
 		const gchar* _tmp21_;
 		const gchar* _tmp22_;
-		_tmp6_ = _data7_->item;
+		_tmp6_ = _data8_->item;
 		_tmp7_ = file_item_get_path (_tmp6_);
 		_tmp8_ = _tmp7_;
 		_tmp9_ = g_strdup (_tmp8_);
@@ -4639,7 +4849,7 @@ __lambda19_ (Block7Data* _data7_,
 		_tmp12_ = _tmp11_;
 		_tmp13_ = g_strconcat (_tmp12_, "/", NULL);
 		_tmp14_ = _tmp13_;
-		_tmp15_ = _data7_->entry;
+		_tmp15_ = _data8_->entry;
 		_tmp16_ = gtk_editable_get_text ((GtkEditable*) _tmp15_);
 		_tmp17_ = _tmp16_;
 		_tmp18_ = g_strconcat (_tmp14_, _tmp17_, NULL);
@@ -4679,7 +4889,7 @@ ___lambda19__adw_alert_dialog_response (AdwAlertDialog* _sender,
 static void
 iso_master_rename_iso_item (IsoMaster* self)
 {
-	Block7Data* _data7_;
+	Block8Data* _data8_;
 	GtkSingleSelection* selection = NULL;
 	GtkListView* _tmp2_;
 	GtkSelectionModel* _tmp3_;
@@ -4716,9 +4926,9 @@ iso_master_rename_iso_item (IsoMaster* self)
 	AdwAlertDialog* _tmp40_;
 	AdwApplicationWindow* _tmp41_;
 	g_return_if_fail (self != NULL);
-	_data7_ = g_slice_new0 (Block7Data);
-	_data7_->_ref_count_ = 1;
-	_data7_->self = g_object_ref (self);
+	_data8_ = g_slice_new0 (Block8Data);
+	_data8_->_ref_count_ = 1;
+	_data8_->self = g_object_ref (self);
 	if (!self->priv->iso_loaded) {
 		gchar* _tmp0_;
 		gchar* _tmp1_;
@@ -4726,8 +4936,8 @@ iso_master_rename_iso_item (IsoMaster* self)
 		_tmp1_ = _tmp0_;
 		iso_master_show_error (self, _tmp1_, NULL);
 		_g_free0 (_tmp1_);
-		block7_data_unref (_data7_);
-		_data7_ = NULL;
+		block8_data_unref (_data8_);
+		_data8_ = NULL;
 		return;
 	}
 	_tmp2_ = self->priv->iso_list_view;
@@ -4755,16 +4965,16 @@ iso_master_rename_iso_item (IsoMaster* self)
 		iso_master_show_error (self, _tmp12_, NULL);
 		_g_free0 (_tmp12_);
 		_g_object_unref0 (selection);
-		block7_data_unref (_data7_);
-		_data7_ = NULL;
+		block8_data_unref (_data8_);
+		_data8_ = NULL;
 		return;
 	}
 	_tmp13_ = selection;
 	_tmp14_ = gtk_single_selection_get_selected_item (_tmp13_);
 	_tmp15_ = _tmp14_;
 	_tmp16_ = _g_object_ref0 (IS_FILE_ITEM (_tmp15_) ? ((FileItem*) _tmp15_) : NULL);
-	_data7_->item = _tmp16_;
-	_tmp17_ = _data7_->item;
+	_data8_->item = _tmp16_;
+	_tmp17_ = _data8_->item;
 	if (_tmp17_ == NULL) {
 		gchar* _tmp18_;
 		gchar* _tmp19_;
@@ -4773,8 +4983,8 @@ iso_master_rename_iso_item (IsoMaster* self)
 		iso_master_show_error (self, _tmp19_, NULL);
 		_g_free0 (_tmp19_);
 		_g_object_unref0 (selection);
-		block7_data_unref (_data7_);
-		_data7_ = NULL;
+		block8_data_unref (_data8_);
+		_data8_ = NULL;
 		return;
 	}
 	_tmp20_ = _t ("Rename");
@@ -4799,54 +5009,54 @@ iso_master_rename_iso_item (IsoMaster* self)
 	_g_free0 (_tmp31_);
 	_tmp32_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp32_);
-	_data7_->entry = _tmp32_;
-	_tmp33_ = _data7_->entry;
-	_tmp34_ = _data7_->item;
+	_data8_->entry = _tmp32_;
+	_tmp33_ = _data8_->entry;
+	_tmp34_ = _data8_->item;
 	_tmp35_ = file_item_get_name (_tmp34_);
 	_tmp36_ = _tmp35_;
 	gtk_editable_set_text ((GtkEditable*) _tmp33_, _tmp36_);
 	_tmp37_ = dialog;
-	_tmp38_ = _data7_->entry;
+	_tmp38_ = _data8_->entry;
 	adw_alert_dialog_set_extra_child (_tmp37_, (GtkWidget*) _tmp38_);
 	_tmp39_ = dialog;
-	g_signal_connect_data (_tmp39_, "response", (GCallback) ___lambda19__adw_alert_dialog_response, block7_data_ref (_data7_), (GClosureNotify) block7_data_unref, 0);
+	g_signal_connect_data (_tmp39_, "response", (GCallback) ___lambda19__adw_alert_dialog_response, block8_data_ref (_data8_), (GClosureNotify) block8_data_unref, 0);
 	_tmp40_ = dialog;
 	_tmp41_ = self->priv->main_window;
 	adw_dialog_present ((AdwDialog*) _tmp40_, (GtkWidget*) _tmp41_);
 	_g_object_unref0 (dialog);
 	_g_object_unref0 (selection);
-	block7_data_unref (_data7_);
-	_data7_ = NULL;
+	block8_data_unref (_data8_);
+	_data8_ = NULL;
 }
 
-static Block8Data*
-block8_data_ref (Block8Data* _data8_)
+static Block9Data*
+block9_data_ref (Block9Data* _data9_)
 {
-	g_atomic_int_inc (&_data8_->_ref_count_);
-	return _data8_;
+	g_atomic_int_inc (&_data9_->_ref_count_);
+	return _data9_;
 }
 
 static void
-block8_data_unref (void * _userdata_)
+block9_data_unref (void * _userdata_)
 {
-	Block8Data* _data8_;
-	_data8_ = (Block8Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data8_->_ref_count_)) {
+	Block9Data* _data9_;
+	_data9_ = (Block9Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data9_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data8_->self;
-		_g_object_unref0 (_data8_->pub_entry);
-		_g_object_unref0 (_data8_->name_entry);
+		self = _data9_->self;
+		_g_object_unref0 (_data9_->pub_entry);
+		_g_object_unref0 (_data9_->name_entry);
 		_g_object_unref0 (self);
-		g_slice_free (Block8Data, _data8_);
+		g_slice_free (Block9Data, _data9_);
 	}
 }
 
 static void
-__lambda21_ (Block8Data* _data8_,
+__lambda21_ (Block9Data* _data9_,
              const gchar* response)
 {
 	IsoMaster* self;
-	self = _data8_->self;
+	self = _data9_->self;
 	g_return_if_fail (response != NULL);
 	if (g_strcmp0 (response, "ok") == 0) {
 		GtkEntry* _tmp0_;
@@ -4865,7 +5075,7 @@ __lambda21_ (Block8Data* _data8_,
 		const gchar* _tmp27_;
 		gchar* _tmp28_;
 		gchar* _tmp29_;
-		_tmp0_ = _data8_->name_entry;
+		_tmp0_ = _data9_->name_entry;
 		_tmp1_ = gtk_editable_get_text ((GtkEditable*) _tmp0_);
 		_tmp2_ = _tmp1_;
 		_tmp3_ = strlen (_tmp2_);
@@ -4877,7 +5087,7 @@ __lambda21_ (Block8Data* _data8_,
 			const gchar* _tmp7_;
 			const gchar* _tmp8_;
 			_tmp5_ = self->priv->vol_info;
-			_tmp6_ = _data8_->name_entry;
+			_tmp6_ = _data9_->name_entry;
 			_tmp7_ = gtk_editable_get_text ((GtkEditable*) _tmp6_);
 			_tmp8_ = _tmp7_;
 			_result_ = bk_set_vol_name (_tmp5_, _tmp8_);
@@ -4892,7 +5102,7 @@ __lambda21_ (Block8Data* _data8_,
 				_g_free0 (_tmp10_);
 			}
 		}
-		_tmp12_ = _data8_->pub_entry;
+		_tmp12_ = _data9_->pub_entry;
 		_tmp13_ = gtk_editable_get_text ((GtkEditable*) _tmp12_);
 		_tmp14_ = _tmp13_;
 		_tmp15_ = strlen (_tmp14_);
@@ -4904,7 +5114,7 @@ __lambda21_ (Block8Data* _data8_,
 			const gchar* _tmp19_;
 			const gchar* _tmp20_;
 			_tmp17_ = self->priv->vol_info;
-			_tmp18_ = _data8_->pub_entry;
+			_tmp18_ = _data9_->pub_entry;
 			_tmp19_ = gtk_editable_get_text ((GtkEditable*) _tmp18_);
 			_tmp20_ = _tmp19_;
 			_result_ = bk_set_publisher (_tmp17_, _tmp20_);
@@ -4920,7 +5130,7 @@ __lambda21_ (Block8Data* _data8_,
 			}
 		}
 		_tmp24_ = self->priv->main_window;
-		_tmp25_ = _data8_->name_entry;
+		_tmp25_ = _data9_->name_entry;
 		_tmp26_ = gtk_editable_get_text ((GtkEditable*) _tmp25_);
 		_tmp27_ = _tmp26_;
 		_tmp28_ = g_strdup_printf ("ISO Master - %s", _tmp27_);
@@ -4941,7 +5151,7 @@ ___lambda21__adw_alert_dialog_response (AdwAlertDialog* _sender,
 static void
 iso_master_show_volume_properties (IsoMaster* self)
 {
-	Block8Data* _data8_;
+	Block9Data* _data9_;
 	gchar* vol_name = NULL;
 	VolInfo* _tmp2_;
 	const gchar* _tmp3_;
@@ -5013,9 +5223,9 @@ iso_master_show_volume_properties (IsoMaster* self)
 	AdwAlertDialog* _tmp65_;
 	AdwApplicationWindow* _tmp66_;
 	g_return_if_fail (self != NULL);
-	_data8_ = g_slice_new0 (Block8Data);
-	_data8_->_ref_count_ = 1;
-	_data8_->self = g_object_ref (self);
+	_data9_ = g_slice_new0 (Block9Data);
+	_data9_->_ref_count_ = 1;
+	_data9_->self = g_object_ref (self);
 	if (!self->priv->iso_loaded) {
 		gchar* _tmp0_;
 		gchar* _tmp1_;
@@ -5023,8 +5233,8 @@ iso_master_show_volume_properties (IsoMaster* self)
 		_tmp1_ = _tmp0_;
 		iso_master_show_error (self, _tmp1_, NULL);
 		_g_free0 (_tmp1_);
-		block8_data_unref (_data8_);
-		_data8_ = NULL;
+		block9_data_unref (_data9_);
+		_data9_ = NULL;
 		return;
 	}
 	_tmp2_ = self->priv->vol_info;
@@ -5103,16 +5313,16 @@ iso_master_show_volume_properties (IsoMaster* self)
 	gtk_box_append (_tmp41_, (GtkWidget*) _tmp42_);
 	_tmp43_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp43_);
-	_data8_->name_entry = _tmp43_;
+	_data9_->name_entry = _tmp43_;
 	_tmp45_ = vol_name;
 	_tmp44_ = _tmp45_;
 	if (_tmp44_ == NULL) {
 		_tmp44_ = "";
 	}
-	_tmp46_ = _data8_->name_entry;
+	_tmp46_ = _data9_->name_entry;
 	gtk_editable_set_text ((GtkEditable*) _tmp46_, _tmp44_);
 	_tmp47_ = box;
-	_tmp48_ = _data8_->name_entry;
+	_tmp48_ = _data9_->name_entry;
 	gtk_box_append (_tmp47_, (GtkWidget*) _tmp48_);
 	_tmp49_ = _t ("Publisher:");
 	_tmp50_ = _tmp49_;
@@ -5128,22 +5338,22 @@ iso_master_show_volume_properties (IsoMaster* self)
 	gtk_box_append (_tmp54_, (GtkWidget*) _tmp55_);
 	_tmp56_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp56_);
-	_data8_->pub_entry = _tmp56_;
+	_data9_->pub_entry = _tmp56_;
 	_tmp58_ = publisher;
 	_tmp57_ = _tmp58_;
 	if (_tmp57_ == NULL) {
 		_tmp57_ = "";
 	}
-	_tmp59_ = _data8_->pub_entry;
+	_tmp59_ = _data9_->pub_entry;
 	gtk_editable_set_text ((GtkEditable*) _tmp59_, _tmp57_);
 	_tmp60_ = box;
-	_tmp61_ = _data8_->pub_entry;
+	_tmp61_ = _data9_->pub_entry;
 	gtk_box_append (_tmp60_, (GtkWidget*) _tmp61_);
 	_tmp62_ = dialog;
 	_tmp63_ = box;
 	adw_alert_dialog_set_extra_child (_tmp62_, (GtkWidget*) _tmp63_);
 	_tmp64_ = dialog;
-	g_signal_connect_data (_tmp64_, "response", (GCallback) ___lambda21__adw_alert_dialog_response, block8_data_ref (_data8_), (GClosureNotify) block8_data_unref, 0);
+	g_signal_connect_data (_tmp64_, "response", (GCallback) ___lambda21__adw_alert_dialog_response, block9_data_ref (_data9_), (GClosureNotify) block9_data_unref, 0);
 	_tmp65_ = dialog;
 	_tmp66_ = self->priv->main_window;
 	adw_dialog_present ((AdwDialog*) _tmp65_, (GtkWidget*) _tmp66_);
@@ -5155,37 +5365,37 @@ iso_master_show_volume_properties (IsoMaster* self)
 	_g_object_unref0 (dialog);
 	_g_free0 (publisher);
 	_g_free0 (vol_name);
-	block8_data_unref (_data8_);
-	_data8_ = NULL;
+	block9_data_unref (_data9_);
+	_data9_ = NULL;
 }
 
-static Block9Data*
-block9_data_ref (Block9Data* _data9_)
+static Block10Data*
+block10_data_ref (Block10Data* _data10_)
 {
-	g_atomic_int_inc (&_data9_->_ref_count_);
-	return _data9_;
+	g_atomic_int_inc (&_data10_->_ref_count_);
+	return _data10_;
 }
 
 static void
-block9_data_unref (void * _userdata_)
+block10_data_unref (void * _userdata_)
 {
-	Block9Data* _data9_;
-	_data9_ = (Block9Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data9_->_ref_count_)) {
+	Block10Data* _data10_;
+	_data10_ = (Block10Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data10_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data9_->self;
-		_g_object_unref0 (_data9_->item);
+		self = _data10_->self;
+		_g_object_unref0 (_data10_->item);
 		_g_object_unref0 (self);
-		g_slice_free (Block9Data, _data9_);
+		g_slice_free (Block10Data, _data10_);
 	}
 }
 
 static void
-__lambda30_ (Block9Data* _data9_,
+__lambda30_ (Block10Data* _data10_,
              const gchar* response)
 {
 	IsoMaster* self;
-	self = _data9_->self;
+	self = _data10_->self;
 	g_return_if_fail (response != NULL);
 	if (g_strcmp0 (response, "set") == 0) {
 		gint _result_ = 0;
@@ -5194,7 +5404,7 @@ __lambda30_ (Block9Data* _data9_,
 		const gchar* _tmp2_;
 		const gchar* _tmp3_;
 		_tmp0_ = self->priv->vol_info;
-		_tmp1_ = _data9_->item;
+		_tmp1_ = _data10_->item;
 		_tmp2_ = file_item_get_path (_tmp1_);
 		_tmp3_ = _tmp2_;
 		_result_ = bk_set_boot_file (_tmp0_, _tmp3_);
@@ -5229,7 +5439,7 @@ ___lambda30__adw_alert_dialog_response (AdwAlertDialog* _sender,
 static void
 iso_master_set_boot_file (IsoMaster* self)
 {
-	Block9Data* _data9_;
+	Block10Data* _data10_;
 	GtkSingleSelection* selection = NULL;
 	GtkListView* _tmp2_;
 	GtkSelectionModel* _tmp3_;
@@ -5265,9 +5475,9 @@ iso_master_set_boot_file (IsoMaster* self)
 	AdwAlertDialog* _tmp40_;
 	AdwApplicationWindow* _tmp41_;
 	g_return_if_fail (self != NULL);
-	_data9_ = g_slice_new0 (Block9Data);
-	_data9_->_ref_count_ = 1;
-	_data9_->self = g_object_ref (self);
+	_data10_ = g_slice_new0 (Block10Data);
+	_data10_->_ref_count_ = 1;
+	_data10_->self = g_object_ref (self);
 	if (!self->priv->iso_loaded) {
 		gchar* _tmp0_;
 		gchar* _tmp1_;
@@ -5275,8 +5485,8 @@ iso_master_set_boot_file (IsoMaster* self)
 		_tmp1_ = _tmp0_;
 		iso_master_show_error (self, _tmp1_, NULL);
 		_g_free0 (_tmp1_);
-		block9_data_unref (_data9_);
-		_data9_ = NULL;
+		block10_data_unref (_data10_);
+		_data10_ = NULL;
 		return;
 	}
 	_tmp2_ = self->priv->iso_list_view;
@@ -5304,23 +5514,23 @@ iso_master_set_boot_file (IsoMaster* self)
 		iso_master_show_error (self, _tmp12_, NULL);
 		_g_free0 (_tmp12_);
 		_g_object_unref0 (selection);
-		block9_data_unref (_data9_);
-		_data9_ = NULL;
+		block10_data_unref (_data10_);
+		_data10_ = NULL;
 		return;
 	}
 	_tmp13_ = selection;
 	_tmp14_ = gtk_single_selection_get_selected_item (_tmp13_);
 	_tmp15_ = _tmp14_;
 	_tmp16_ = _g_object_ref0 (IS_FILE_ITEM (_tmp15_) ? ((FileItem*) _tmp15_) : NULL);
-	_data9_->item = _tmp16_;
-	_tmp18_ = _data9_->item;
+	_data10_->item = _tmp16_;
+	_tmp18_ = _data10_->item;
 	if (_tmp18_ == NULL) {
 		_tmp17_ = TRUE;
 	} else {
 		FileItem* _tmp19_;
 		gboolean _tmp20_;
 		gboolean _tmp21_;
-		_tmp19_ = _data9_->item;
+		_tmp19_ = _data10_->item;
 		_tmp20_ = file_item_get_is_dir (_tmp19_);
 		_tmp21_ = _tmp20_;
 		_tmp17_ = _tmp21_;
@@ -5328,15 +5538,15 @@ iso_master_set_boot_file (IsoMaster* self)
 	if (_tmp17_) {
 		iso_master_show_error (self, "Please select a file (not a directory)", NULL);
 		_g_object_unref0 (selection);
-		block9_data_unref (_data9_);
-		_data9_ = NULL;
+		block10_data_unref (_data10_);
+		_data10_ = NULL;
 		return;
 	}
 	_tmp22_ = _t ("Set Boot File");
 	_tmp23_ = _tmp22_;
 	_tmp24_ = _t ("Set '%s' as boot file?");
 	_tmp25_ = _tmp24_;
-	_tmp26_ = _data9_->item;
+	_tmp26_ = _data10_->item;
 	_tmp27_ = file_item_get_name (_tmp26_);
 	_tmp28_ = _tmp27_;
 	_tmp29_ = g_strdup_printf (_tmp25_, _tmp28_);
@@ -5359,51 +5569,51 @@ iso_master_set_boot_file (IsoMaster* self)
 	adw_alert_dialog_add_response (_tmp36_, "set", _tmp38_);
 	_g_free0 (_tmp38_);
 	_tmp39_ = dialog;
-	g_signal_connect_data (_tmp39_, "response", (GCallback) ___lambda30__adw_alert_dialog_response, block9_data_ref (_data9_), (GClosureNotify) block9_data_unref, 0);
+	g_signal_connect_data (_tmp39_, "response", (GCallback) ___lambda30__adw_alert_dialog_response, block10_data_ref (_data10_), (GClosureNotify) block10_data_unref, 0);
 	_tmp40_ = dialog;
 	_tmp41_ = self->priv->main_window;
 	adw_dialog_present ((AdwDialog*) _tmp40_, (GtkWidget*) _tmp41_);
 	_g_object_unref0 (dialog);
 	_g_object_unref0 (selection);
-	block9_data_unref (_data9_);
-	_data9_ = NULL;
+	block10_data_unref (_data10_);
+	_data10_ = NULL;
 }
 
-static Block10Data*
-block10_data_ref (Block10Data* _data10_)
+static Block11Data*
+block11_data_ref (Block11Data* _data11_)
 {
-	g_atomic_int_inc (&_data10_->_ref_count_);
-	return _data10_;
+	g_atomic_int_inc (&_data11_->_ref_count_);
+	return _data11_;
 }
 
 static void
-block10_data_unref (void * _userdata_)
+block11_data_unref (void * _userdata_)
 {
-	Block10Data* _data10_;
-	_data10_ = (Block10Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data10_->_ref_count_)) {
+	Block11Data* _data11_;
+	_data11_ = (Block11Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data11_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data10_->self;
-		_g_object_unref0 (_data10_->dialog);
+		self = _data11_->self;
+		_g_object_unref0 (_data11_->dialog);
 		_g_object_unref0 (self);
-		g_slice_free (Block10Data, _data10_);
+		g_slice_free (Block11Data, _data11_);
 	}
 }
 
 static void
-__lambda34_ (Block10Data* _data10_,
+__lambda34_ (Block11Data* _data11_,
              GObject* obj,
              GAsyncResult* res)
 {
 	IsoMaster* self;
 	GError* _inner_error0_ = NULL;
-	self = _data10_->self;
+	self = _data11_->self;
 	g_return_if_fail (res != NULL);
 	{
 		GFile* file = NULL;
 		GtkFileDialog* _tmp0_;
 		GFile* _tmp1_;
-		_tmp0_ = _data10_->dialog;
+		_tmp0_ = _data11_->dialog;
 		_tmp1_ = gtk_file_dialog_save_finish (_tmp0_, res, &_inner_error0_);
 		file = _tmp1_;
 		if (G_UNLIKELY (_inner_error0_ != NULL)) {
@@ -5448,13 +5658,13 @@ ___lambda34__gasync_ready_callback (GObject* source_object,
                                     gpointer self)
 {
 	__lambda34_ (self, source_object, res);
-	block10_data_unref (self);
+	block11_data_unref (self);
 }
 
 static void
 iso_master_extract_boot_record (IsoMaster* self)
 {
-	Block10Data* _data10_;
+	Block11Data* _data11_;
 	GtkFileDialog* _tmp2_;
 	GtkFileDialog* _tmp3_;
 	gchar* _tmp4_;
@@ -5465,9 +5675,9 @@ iso_master_extract_boot_record (IsoMaster* self)
 	GtkFileDialog* _tmp9_;
 	AdwApplicationWindow* _tmp10_;
 	g_return_if_fail (self != NULL);
-	_data10_ = g_slice_new0 (Block10Data);
-	_data10_->_ref_count_ = 1;
-	_data10_->self = g_object_ref (self);
+	_data11_ = g_slice_new0 (Block11Data);
+	_data11_->_ref_count_ = 1;
+	_data11_->self = g_object_ref (self);
 	if (!self->priv->iso_loaded) {
 		gchar* _tmp0_;
 		gchar* _tmp1_;
@@ -5475,27 +5685,27 @@ iso_master_extract_boot_record (IsoMaster* self)
 		_tmp1_ = _tmp0_;
 		iso_master_show_error (self, _tmp1_, NULL);
 		_g_free0 (_tmp1_);
-		block10_data_unref (_data10_);
-		_data10_ = NULL;
+		block11_data_unref (_data11_);
+		_data11_ = NULL;
 		return;
 	}
 	_tmp2_ = gtk_file_dialog_new ();
-	_data10_->dialog = _tmp2_;
-	_tmp3_ = _data10_->dialog;
+	_data11_->dialog = _tmp2_;
+	_tmp3_ = _data11_->dialog;
 	_tmp4_ = _t ("Extract Boot Record to...");
 	_tmp5_ = _tmp4_;
 	gtk_file_dialog_set_title (_tmp3_, _tmp5_);
 	_g_free0 (_tmp5_);
-	_tmp6_ = _data10_->dialog;
+	_tmp6_ = _data11_->dialog;
 	_tmp7_ = g_file_new_for_path ("boot.img");
 	_tmp8_ = _tmp7_;
 	gtk_file_dialog_set_initial_file (_tmp6_, _tmp8_);
 	_g_object_unref0 (_tmp8_);
-	_tmp9_ = _data10_->dialog;
+	_tmp9_ = _data11_->dialog;
 	_tmp10_ = self->priv->main_window;
-	gtk_file_dialog_save (_tmp9_, (GtkWindow*) _tmp10_, NULL, ___lambda34__gasync_ready_callback, block10_data_ref (_data10_));
-	block10_data_unref (_data10_);
-	_data10_ = NULL;
+	gtk_file_dialog_save (_tmp9_, (GtkWindow*) _tmp10_, NULL, ___lambda34__gasync_ready_callback, block11_data_ref (_data11_));
+	block11_data_unref (_data11_);
+	_data11_ = NULL;
 }
 
 static void
@@ -5978,8 +6188,15 @@ iso_master_format_size (IsoMaster* self,
 				return result;
 			} else {
 				gchar* _tmp3_;
-				_tmp3_ = g_strdup_printf ("%lld B", size);
-				result = _tmp3_;
+				gchar* _tmp4_;
+				gchar* _tmp5_;
+				gchar* _tmp6_;
+				_tmp3_ = g_strdup_printf ("%" G_GINT64_FORMAT, size);
+				_tmp4_ = _tmp3_;
+				_tmp5_ = g_strconcat (_tmp4_, " B", NULL);
+				_tmp6_ = _tmp5_;
+				_g_free0 (_tmp4_);
+				result = _tmp6_;
 				return result;
 			}
 		}
@@ -6037,41 +6254,41 @@ iso_master_show_error (IsoMaster* self,
 	va_end (va);
 }
 
-static Block11Data*
-block11_data_ref (Block11Data* _data11_)
+static Block12Data*
+block12_data_ref (Block12Data* _data12_)
 {
-	g_atomic_int_inc (&_data11_->_ref_count_);
-	return _data11_;
+	g_atomic_int_inc (&_data12_->_ref_count_);
+	return _data12_;
 }
 
 static void
-block11_data_unref (void * _userdata_)
+block12_data_unref (void * _userdata_)
 {
-	Block11Data* _data11_;
-	_data11_ = (Block11Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data11_->_ref_count_)) {
+	Block12Data* _data12_;
+	_data12_ = (Block12Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data12_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data11_->self;
-		_g_object_unref0 (_data11_->dialog);
+		self = _data12_->self;
+		_g_object_unref0 (_data12_->dialog);
 		_g_object_unref0 (self);
-		g_slice_free (Block11Data, _data11_);
+		g_slice_free (Block12Data, _data12_);
 	}
 }
 
 static void
-__lambda10_ (Block11Data* _data11_,
+__lambda10_ (Block12Data* _data12_,
              GObject* obj,
              GAsyncResult* res)
 {
 	IsoMaster* self;
 	GError* _inner_error0_ = NULL;
-	self = _data11_->self;
+	self = _data12_->self;
 	g_return_if_fail (res != NULL);
 	{
 		GFile* file = NULL;
 		GtkFileDialog* _tmp0_;
 		GFile* _tmp1_;
-		_tmp0_ = _data11_->dialog;
+		_tmp0_ = _data12_->dialog;
 		_tmp1_ = gtk_file_dialog_save_finish (_tmp0_, res, &_inner_error0_);
 		file = _tmp1_;
 		if (G_UNLIKELY (_inner_error0_ != NULL)) {
@@ -6121,13 +6338,13 @@ ___lambda10__gasync_ready_callback (GObject* source_object,
                                     gpointer self)
 {
 	__lambda10_ (self, source_object, res);
-	block11_data_unref (self);
+	block12_data_unref (self);
 }
 
 static void
 iso_master_save_iso_as (IsoMaster* self)
 {
-	Block11Data* _data11_;
+	Block12Data* _data12_;
 	GtkFileDialog* _tmp2_;
 	GtkFileDialog* _tmp3_;
 	gchar* _tmp4_;
@@ -6147,9 +6364,9 @@ iso_master_save_iso_as (IsoMaster* self)
 	GtkFileDialog* _tmp16_;
 	AdwApplicationWindow* _tmp17_;
 	g_return_if_fail (self != NULL);
-	_data11_ = g_slice_new0 (Block11Data);
-	_data11_->_ref_count_ = 1;
-	_data11_->self = g_object_ref (self);
+	_data12_ = g_slice_new0 (Block12Data);
+	_data12_->_ref_count_ = 1;
+	_data12_->self = g_object_ref (self);
 	if (!self->priv->iso_loaded) {
 		gchar* _tmp0_;
 		gchar* _tmp1_;
@@ -6157,13 +6374,13 @@ iso_master_save_iso_as (IsoMaster* self)
 		_tmp1_ = _tmp0_;
 		iso_master_show_error (self, _tmp1_, NULL);
 		_g_free0 (_tmp1_);
-		block11_data_unref (_data11_);
-		_data11_ = NULL;
+		block12_data_unref (_data12_);
+		_data12_ = NULL;
 		return;
 	}
 	_tmp2_ = gtk_file_dialog_new ();
-	_data11_->dialog = _tmp2_;
-	_tmp3_ = _data11_->dialog;
+	_data12_->dialog = _tmp2_;
+	_tmp3_ = _data12_->dialog;
 	_tmp4_ = _t ("Save ISO Image");
 	_tmp5_ = _tmp4_;
 	gtk_file_dialog_set_title (_tmp3_, _tmp5_);
@@ -6182,16 +6399,16 @@ iso_master_save_iso_as (IsoMaster* self)
 	_tmp12_ = filters;
 	_tmp13_ = filter;
 	g_list_store_append (_tmp12_, (GObject*) _tmp13_);
-	_tmp14_ = _data11_->dialog;
+	_tmp14_ = _data12_->dialog;
 	_tmp15_ = filters;
 	gtk_file_dialog_set_filters (_tmp14_, (GListModel*) _tmp15_);
-	_tmp16_ = _data11_->dialog;
+	_tmp16_ = _data12_->dialog;
 	_tmp17_ = self->priv->main_window;
-	gtk_file_dialog_save (_tmp16_, (GtkWindow*) _tmp17_, NULL, ___lambda10__gasync_ready_callback, block11_data_ref (_data11_));
+	gtk_file_dialog_save (_tmp16_, (GtkWindow*) _tmp17_, NULL, ___lambda10__gasync_ready_callback, block12_data_ref (_data12_));
 	_g_object_unref0 (filters);
 	_g_object_unref0 (filter);
-	block11_data_unref (_data11_);
-	_data11_ = NULL;
+	block12_data_unref (_data12_);
+	_data12_ = NULL;
 }
 
 static void
@@ -6564,41 +6781,41 @@ iso_master_view_selected_file (IsoMaster* self)
 	_g_object_unref0 (selection);
 }
 
-static Block12Data*
-block12_data_ref (Block12Data* _data12_)
+static Block13Data*
+block13_data_ref (Block13Data* _data13_)
 {
-	g_atomic_int_inc (&_data12_->_ref_count_);
-	return _data12_;
+	g_atomic_int_inc (&_data13_->_ref_count_);
+	return _data13_;
 }
 
 static void
-block12_data_unref (void * _userdata_)
+block13_data_unref (void * _userdata_)
 {
-	Block12Data* _data12_;
-	_data12_ = (Block12Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data12_->_ref_count_)) {
+	Block13Data* _data13_;
+	_data13_ = (Block13Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data13_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data12_->self;
-		_g_object_unref0 (_data12_->other_exec);
-		_g_object_unref0 (_data12_->other_write);
-		_g_object_unref0 (_data12_->other_read);
-		_g_object_unref0 (_data12_->group_exec);
-		_g_object_unref0 (_data12_->group_write);
-		_g_object_unref0 (_data12_->group_read);
-		_g_object_unref0 (_data12_->owner_exec);
-		_g_object_unref0 (_data12_->owner_write);
-		_g_object_unref0 (_data12_->owner_read);
+		self = _data13_->self;
+		_g_object_unref0 (_data13_->other_exec);
+		_g_object_unref0 (_data13_->other_write);
+		_g_object_unref0 (_data13_->other_read);
+		_g_object_unref0 (_data13_->group_exec);
+		_g_object_unref0 (_data13_->group_write);
+		_g_object_unref0 (_data13_->group_read);
+		_g_object_unref0 (_data13_->owner_exec);
+		_g_object_unref0 (_data13_->owner_write);
+		_g_object_unref0 (_data13_->owner_read);
 		_g_object_unref0 (self);
-		g_slice_free (Block12Data, _data12_);
+		g_slice_free (Block13Data, _data13_);
 	}
 }
 
 static void
-__lambda25_ (Block12Data* _data12_,
+__lambda25_ (Block13Data* _data13_,
              const gchar* response)
 {
 	IsoMaster* self;
-	self = _data12_->self;
+	self = _data13_->self;
 	g_return_if_fail (response != NULL);
 	if (g_strcmp0 (response, "apply") == 0) {
 		guint perms = 0U;
@@ -6632,55 +6849,55 @@ __lambda25_ (Block12Data* _data12_,
 		gchar* _tmp27_;
 		gchar* _tmp28_;
 		perms = (guint) 0;
-		_tmp0_ = _data12_->owner_read;
+		_tmp0_ = _data13_->owner_read;
 		_tmp1_ = gtk_check_button_get_active (_tmp0_);
 		_tmp2_ = _tmp1_;
 		if (_tmp2_) {
 			perms |= (guint) 0400;
 		}
-		_tmp3_ = _data12_->owner_write;
+		_tmp3_ = _data13_->owner_write;
 		_tmp4_ = gtk_check_button_get_active (_tmp3_);
 		_tmp5_ = _tmp4_;
 		if (_tmp5_) {
 			perms |= (guint) 0200;
 		}
-		_tmp6_ = _data12_->owner_exec;
+		_tmp6_ = _data13_->owner_exec;
 		_tmp7_ = gtk_check_button_get_active (_tmp6_);
 		_tmp8_ = _tmp7_;
 		if (_tmp8_) {
 			perms |= (guint) 0100;
 		}
-		_tmp9_ = _data12_->group_read;
+		_tmp9_ = _data13_->group_read;
 		_tmp10_ = gtk_check_button_get_active (_tmp9_);
 		_tmp11_ = _tmp10_;
 		if (_tmp11_) {
 			perms |= (guint) 0040;
 		}
-		_tmp12_ = _data12_->group_write;
+		_tmp12_ = _data13_->group_write;
 		_tmp13_ = gtk_check_button_get_active (_tmp12_);
 		_tmp14_ = _tmp13_;
 		if (_tmp14_) {
 			perms |= (guint) 0020;
 		}
-		_tmp15_ = _data12_->group_exec;
+		_tmp15_ = _data13_->group_exec;
 		_tmp16_ = gtk_check_button_get_active (_tmp15_);
 		_tmp17_ = _tmp16_;
 		if (_tmp17_) {
 			perms |= (guint) 0010;
 		}
-		_tmp18_ = _data12_->other_read;
+		_tmp18_ = _data13_->other_read;
 		_tmp19_ = gtk_check_button_get_active (_tmp18_);
 		_tmp20_ = _tmp19_;
 		if (_tmp20_) {
 			perms |= (guint) 0004;
 		}
-		_tmp21_ = _data12_->other_write;
+		_tmp21_ = _data13_->other_write;
 		_tmp22_ = gtk_check_button_get_active (_tmp21_);
 		_tmp23_ = _tmp22_;
 		if (_tmp23_) {
 			perms |= (guint) 0002;
 		}
-		_tmp24_ = _data12_->other_exec;
+		_tmp24_ = _data13_->other_exec;
 		_tmp25_ = gtk_check_button_get_active (_tmp24_);
 		_tmp26_ = _tmp25_;
 		if (_tmp26_) {
@@ -6704,7 +6921,7 @@ ___lambda25__adw_alert_dialog_response (AdwAlertDialog* _sender,
 static void
 iso_master_change_permissions (IsoMaster* self)
 {
-	Block12Data* _data12_;
+	Block13Data* _data13_;
 	GtkSingleSelection* selection = NULL;
 	GtkListView* _tmp2_;
 	GtkSelectionModel* _tmp3_;
@@ -6831,9 +7048,9 @@ iso_master_change_permissions (IsoMaster* self)
 	AdwAlertDialog* _tmp125_;
 	AdwApplicationWindow* _tmp126_;
 	g_return_if_fail (self != NULL);
-	_data12_ = g_slice_new0 (Block12Data);
-	_data12_->_ref_count_ = 1;
-	_data12_->self = g_object_ref (self);
+	_data13_ = g_slice_new0 (Block13Data);
+	_data13_->_ref_count_ = 1;
+	_data13_->self = g_object_ref (self);
 	if (!self->priv->iso_loaded) {
 		gchar* _tmp0_;
 		gchar* _tmp1_;
@@ -6841,8 +7058,8 @@ iso_master_change_permissions (IsoMaster* self)
 		_tmp1_ = _tmp0_;
 		iso_master_show_error (self, _tmp1_, NULL);
 		_g_free0 (_tmp1_);
-		block12_data_unref (_data12_);
-		_data12_ = NULL;
+		block13_data_unref (_data13_);
+		_data13_ = NULL;
 		return;
 	}
 	_tmp2_ = self->priv->iso_list_view;
@@ -6870,8 +7087,8 @@ iso_master_change_permissions (IsoMaster* self)
 		iso_master_show_error (self, _tmp12_, NULL);
 		_g_free0 (_tmp12_);
 		_g_object_unref0 (selection);
-		block12_data_unref (_data12_);
-		_data12_ = NULL;
+		block13_data_unref (_data13_);
+		_data13_ = NULL;
 		return;
 	}
 	_tmp13_ = selection;
@@ -6889,8 +7106,8 @@ iso_master_change_permissions (IsoMaster* self)
 		_g_free0 (_tmp19_);
 		_g_object_unref0 (item);
 		_g_object_unref0 (selection);
-		block12_data_unref (_data12_);
-		_data12_ = NULL;
+		block13_data_unref (_data13_);
+		_data13_ = NULL;
 		return;
 	}
 	_tmp20_ = _t ("Change Permissions");
@@ -6942,11 +7159,11 @@ iso_master_change_permissions (IsoMaster* self)
 	g_object_ref_sink (_tmp47_);
 	_tmp48_ = _tmp47_;
 	_g_free0 (_tmp46_);
-	_data12_->owner_read = _tmp48_;
-	_tmp49_ = _data12_->owner_read;
+	_data13_->owner_read = _tmp48_;
+	_tmp49_ = _data13_->owner_read;
 	gtk_check_button_set_active (_tmp49_, TRUE);
 	_tmp50_ = box;
-	_tmp51_ = _data12_->owner_read;
+	_tmp51_ = _data13_->owner_read;
 	gtk_box_append (_tmp50_, (GtkWidget*) _tmp51_);
 	_tmp52_ = _t ("Write");
 	_tmp53_ = _tmp52_;
@@ -6954,11 +7171,11 @@ iso_master_change_permissions (IsoMaster* self)
 	g_object_ref_sink (_tmp54_);
 	_tmp55_ = _tmp54_;
 	_g_free0 (_tmp53_);
-	_data12_->owner_write = _tmp55_;
-	_tmp56_ = _data12_->owner_write;
+	_data13_->owner_write = _tmp55_;
+	_tmp56_ = _data13_->owner_write;
 	gtk_check_button_set_active (_tmp56_, TRUE);
 	_tmp57_ = box;
-	_tmp58_ = _data12_->owner_write;
+	_tmp58_ = _data13_->owner_write;
 	gtk_box_append (_tmp57_, (GtkWidget*) _tmp58_);
 	_tmp59_ = _t ("Execute");
 	_tmp60_ = _tmp59_;
@@ -6966,11 +7183,11 @@ iso_master_change_permissions (IsoMaster* self)
 	g_object_ref_sink (_tmp61_);
 	_tmp62_ = _tmp61_;
 	_g_free0 (_tmp60_);
-	_data12_->owner_exec = _tmp62_;
-	_tmp63_ = _data12_->owner_exec;
+	_data13_->owner_exec = _tmp62_;
+	_tmp63_ = _data13_->owner_exec;
 	gtk_check_button_set_active (_tmp63_, FALSE);
 	_tmp64_ = box;
-	_tmp65_ = _data12_->owner_exec;
+	_tmp65_ = _data13_->owner_exec;
 	gtk_box_append (_tmp64_, (GtkWidget*) _tmp65_);
 	_tmp66_ = _t ("Group:");
 	_tmp67_ = _tmp66_;
@@ -6990,11 +7207,11 @@ iso_master_change_permissions (IsoMaster* self)
 	g_object_ref_sink (_tmp75_);
 	_tmp76_ = _tmp75_;
 	_g_free0 (_tmp74_);
-	_data12_->group_read = _tmp76_;
-	_tmp77_ = _data12_->group_read;
+	_data13_->group_read = _tmp76_;
+	_tmp77_ = _data13_->group_read;
 	gtk_check_button_set_active (_tmp77_, TRUE);
 	_tmp78_ = box;
-	_tmp79_ = _data12_->group_read;
+	_tmp79_ = _data13_->group_read;
 	gtk_box_append (_tmp78_, (GtkWidget*) _tmp79_);
 	_tmp80_ = _t ("Write");
 	_tmp81_ = _tmp80_;
@@ -7002,11 +7219,11 @@ iso_master_change_permissions (IsoMaster* self)
 	g_object_ref_sink (_tmp82_);
 	_tmp83_ = _tmp82_;
 	_g_free0 (_tmp81_);
-	_data12_->group_write = _tmp83_;
-	_tmp84_ = _data12_->group_write;
+	_data13_->group_write = _tmp83_;
+	_tmp84_ = _data13_->group_write;
 	gtk_check_button_set_active (_tmp84_, FALSE);
 	_tmp85_ = box;
-	_tmp86_ = _data12_->group_write;
+	_tmp86_ = _data13_->group_write;
 	gtk_box_append (_tmp85_, (GtkWidget*) _tmp86_);
 	_tmp87_ = _t ("Execute");
 	_tmp88_ = _tmp87_;
@@ -7014,11 +7231,11 @@ iso_master_change_permissions (IsoMaster* self)
 	g_object_ref_sink (_tmp89_);
 	_tmp90_ = _tmp89_;
 	_g_free0 (_tmp88_);
-	_data12_->group_exec = _tmp90_;
-	_tmp91_ = _data12_->group_exec;
+	_data13_->group_exec = _tmp90_;
+	_tmp91_ = _data13_->group_exec;
 	gtk_check_button_set_active (_tmp91_, FALSE);
 	_tmp92_ = box;
-	_tmp93_ = _data12_->group_exec;
+	_tmp93_ = _data13_->group_exec;
 	gtk_box_append (_tmp92_, (GtkWidget*) _tmp93_);
 	_tmp94_ = _t ("Other:");
 	_tmp95_ = _tmp94_;
@@ -7038,11 +7255,11 @@ iso_master_change_permissions (IsoMaster* self)
 	g_object_ref_sink (_tmp103_);
 	_tmp104_ = _tmp103_;
 	_g_free0 (_tmp102_);
-	_data12_->other_read = _tmp104_;
-	_tmp105_ = _data12_->other_read;
+	_data13_->other_read = _tmp104_;
+	_tmp105_ = _data13_->other_read;
 	gtk_check_button_set_active (_tmp105_, TRUE);
 	_tmp106_ = box;
-	_tmp107_ = _data12_->other_read;
+	_tmp107_ = _data13_->other_read;
 	gtk_box_append (_tmp106_, (GtkWidget*) _tmp107_);
 	_tmp108_ = _t ("Write");
 	_tmp109_ = _tmp108_;
@@ -7050,11 +7267,11 @@ iso_master_change_permissions (IsoMaster* self)
 	g_object_ref_sink (_tmp110_);
 	_tmp111_ = _tmp110_;
 	_g_free0 (_tmp109_);
-	_data12_->other_write = _tmp111_;
-	_tmp112_ = _data12_->other_write;
+	_data13_->other_write = _tmp111_;
+	_tmp112_ = _data13_->other_write;
 	gtk_check_button_set_active (_tmp112_, FALSE);
 	_tmp113_ = box;
-	_tmp114_ = _data12_->other_write;
+	_tmp114_ = _data13_->other_write;
 	gtk_box_append (_tmp113_, (GtkWidget*) _tmp114_);
 	_tmp115_ = _t ("Execute");
 	_tmp116_ = _tmp115_;
@@ -7062,17 +7279,17 @@ iso_master_change_permissions (IsoMaster* self)
 	g_object_ref_sink (_tmp117_);
 	_tmp118_ = _tmp117_;
 	_g_free0 (_tmp116_);
-	_data12_->other_exec = _tmp118_;
-	_tmp119_ = _data12_->other_exec;
+	_data13_->other_exec = _tmp118_;
+	_tmp119_ = _data13_->other_exec;
 	gtk_check_button_set_active (_tmp119_, FALSE);
 	_tmp120_ = box;
-	_tmp121_ = _data12_->other_exec;
+	_tmp121_ = _data13_->other_exec;
 	gtk_box_append (_tmp120_, (GtkWidget*) _tmp121_);
 	_tmp122_ = dialog;
 	_tmp123_ = box;
 	adw_alert_dialog_set_extra_child (_tmp122_, (GtkWidget*) _tmp123_);
 	_tmp124_ = dialog;
-	g_signal_connect_data (_tmp124_, "response", (GCallback) ___lambda25__adw_alert_dialog_response, block12_data_ref (_data12_), (GClosureNotify) block12_data_unref, 0);
+	g_signal_connect_data (_tmp124_, "response", (GCallback) ___lambda25__adw_alert_dialog_response, block13_data_ref (_data13_), (GClosureNotify) block13_data_unref, 0);
 	_tmp125_ = dialog;
 	_tmp126_ = self->priv->main_window;
 	adw_dialog_present ((AdwDialog*) _tmp125_, (GtkWidget*) _tmp126_);
@@ -7083,39 +7300,39 @@ iso_master_change_permissions (IsoMaster* self)
 	_g_object_unref0 (dialog);
 	_g_object_unref0 (item);
 	_g_object_unref0 (selection);
-	block12_data_unref (_data12_);
-	_data12_ = NULL;
+	block13_data_unref (_data13_);
+	_data13_ = NULL;
 }
 
-static Block13Data*
-block13_data_ref (Block13Data* _data13_)
+static Block14Data*
+block14_data_ref (Block14Data* _data14_)
 {
-	g_atomic_int_inc (&_data13_->_ref_count_);
-	return _data13_;
+	g_atomic_int_inc (&_data14_->_ref_count_);
+	return _data14_;
 }
 
 static void
-block13_data_unref (void * _userdata_)
+block14_data_unref (void * _userdata_)
 {
-	Block13Data* _data13_;
-	_data13_ = (Block13Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data13_->_ref_count_)) {
+	Block14Data* _data14_;
+	_data14_ = (Block14Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data14_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data13_->self;
-		_g_object_unref0 (_data13_->viewer_entry);
-		_g_object_unref0 (_data13_->editor_entry);
-		_g_object_unref0 (_data13_->temp_entry);
+		self = _data14_->self;
+		_g_object_unref0 (_data14_->viewer_entry);
+		_g_object_unref0 (_data14_->editor_entry);
+		_g_object_unref0 (_data14_->temp_entry);
 		_g_object_unref0 (self);
-		g_slice_free (Block13Data, _data13_);
+		g_slice_free (Block14Data, _data14_);
 	}
 }
 
 static void
-__lambda27_ (Block13Data* _data13_,
+__lambda27_ (Block14Data* _data14_,
              const gchar* response)
 {
 	IsoMaster* self;
-	self = _data13_->self;
+	self = _data14_->self;
 	g_return_if_fail (response != NULL);
 	if (g_strcmp0 (response, "ok") == 0) {
 		AppSettings* _tmp0_;
@@ -7131,17 +7348,17 @@ __lambda27_ (Block13Data* _data13_,
 		const gchar* _tmp10_;
 		const gchar* _tmp11_;
 		_tmp0_ = self->priv->settings;
-		_tmp1_ = _data13_->temp_entry;
+		_tmp1_ = _data14_->temp_entry;
 		_tmp2_ = gtk_editable_get_text ((GtkEditable*) _tmp1_);
 		_tmp3_ = _tmp2_;
 		app_settings_set_temp_dir (_tmp0_, _tmp3_);
 		_tmp4_ = self->priv->settings;
-		_tmp5_ = _data13_->editor_entry;
+		_tmp5_ = _data14_->editor_entry;
 		_tmp6_ = gtk_editable_get_text ((GtkEditable*) _tmp5_);
 		_tmp7_ = _tmp6_;
 		app_settings_set_editor (_tmp4_, _tmp7_);
 		_tmp8_ = self->priv->settings;
-		_tmp9_ = _data13_->viewer_entry;
+		_tmp9_ = _data14_->viewer_entry;
 		_tmp10_ = gtk_editable_get_text ((GtkEditable*) _tmp9_);
 		_tmp11_ = _tmp10_;
 		app_settings_set_viewer (_tmp8_, _tmp11_);
@@ -7159,7 +7376,7 @@ ___lambda27__adw_alert_dialog_response (AdwAlertDialog* _sender,
 static void
 iso_master_show_preferences (IsoMaster* self)
 {
-	Block13Data* _data13_;
+	Block14Data* _data14_;
 	AdwAlertDialog* dialog = NULL;
 	gchar* _tmp0_;
 	gchar* _tmp1_;
@@ -7228,9 +7445,9 @@ iso_master_show_preferences (IsoMaster* self)
 	AdwAlertDialog* _tmp60_;
 	AdwApplicationWindow* _tmp61_;
 	g_return_if_fail (self != NULL);
-	_data13_ = g_slice_new0 (Block13Data);
-	_data13_->_ref_count_ = 1;
-	_data13_->self = g_object_ref (self);
+	_data14_ = g_slice_new0 (Block14Data);
+	_data14_->_ref_count_ = 1;
+	_data14_->self = g_object_ref (self);
 	_tmp0_ = _t ("Preferences");
 	_tmp1_ = _tmp0_;
 	_tmp2_ = (AdwAlertDialog*) adw_alert_dialog_new (_tmp1_, NULL);
@@ -7268,7 +7485,7 @@ iso_master_show_preferences (IsoMaster* self)
 	gtk_box_append (_tmp17_, (GtkWidget*) _tmp18_);
 	_tmp19_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp19_);
-	_data13_->temp_entry = _tmp19_;
+	_data14_->temp_entry = _tmp19_;
 	_tmp21_ = self->priv->settings;
 	_tmp22_ = app_settings_get_temp_dir (_tmp21_);
 	_tmp23_ = _tmp22_;
@@ -7276,10 +7493,10 @@ iso_master_show_preferences (IsoMaster* self)
 	if (_tmp20_ == NULL) {
 		_tmp20_ = "/tmp";
 	}
-	_tmp24_ = _data13_->temp_entry;
+	_tmp24_ = _data14_->temp_entry;
 	gtk_editable_set_text ((GtkEditable*) _tmp24_, _tmp20_);
 	_tmp25_ = box;
-	_tmp26_ = _data13_->temp_entry;
+	_tmp26_ = _data14_->temp_entry;
 	gtk_box_append (_tmp25_, (GtkWidget*) _tmp26_);
 	_tmp27_ = _t ("Editor:");
 	_tmp28_ = _tmp27_;
@@ -7295,7 +7512,7 @@ iso_master_show_preferences (IsoMaster* self)
 	gtk_box_append (_tmp32_, (GtkWidget*) _tmp33_);
 	_tmp34_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp34_);
-	_data13_->editor_entry = _tmp34_;
+	_data14_->editor_entry = _tmp34_;
 	_tmp36_ = self->priv->settings;
 	_tmp37_ = app_settings_get_editor (_tmp36_);
 	_tmp38_ = _tmp37_;
@@ -7303,10 +7520,10 @@ iso_master_show_preferences (IsoMaster* self)
 	if (_tmp35_ == NULL) {
 		_tmp35_ = "leafpad";
 	}
-	_tmp39_ = _data13_->editor_entry;
+	_tmp39_ = _data14_->editor_entry;
 	gtk_editable_set_text ((GtkEditable*) _tmp39_, _tmp35_);
 	_tmp40_ = box;
-	_tmp41_ = _data13_->editor_entry;
+	_tmp41_ = _data14_->editor_entry;
 	gtk_box_append (_tmp40_, (GtkWidget*) _tmp41_);
 	_tmp42_ = _t ("Viewer:");
 	_tmp43_ = _tmp42_;
@@ -7322,7 +7539,7 @@ iso_master_show_preferences (IsoMaster* self)
 	gtk_box_append (_tmp47_, (GtkWidget*) _tmp48_);
 	_tmp49_ = (GtkEntry*) gtk_entry_new ();
 	g_object_ref_sink (_tmp49_);
-	_data13_->viewer_entry = _tmp49_;
+	_data14_->viewer_entry = _tmp49_;
 	_tmp51_ = self->priv->settings;
 	_tmp52_ = app_settings_get_viewer (_tmp51_);
 	_tmp53_ = _tmp52_;
@@ -7330,16 +7547,16 @@ iso_master_show_preferences (IsoMaster* self)
 	if (_tmp50_ == NULL) {
 		_tmp50_ = "firefox";
 	}
-	_tmp54_ = _data13_->viewer_entry;
+	_tmp54_ = _data14_->viewer_entry;
 	gtk_editable_set_text ((GtkEditable*) _tmp54_, _tmp50_);
 	_tmp55_ = box;
-	_tmp56_ = _data13_->viewer_entry;
+	_tmp56_ = _data14_->viewer_entry;
 	gtk_box_append (_tmp55_, (GtkWidget*) _tmp56_);
 	_tmp57_ = dialog;
 	_tmp58_ = box;
 	adw_alert_dialog_set_extra_child (_tmp57_, (GtkWidget*) _tmp58_);
 	_tmp59_ = dialog;
-	g_signal_connect_data (_tmp59_, "response", (GCallback) ___lambda27__adw_alert_dialog_response, block13_data_ref (_data13_), (GClosureNotify) block13_data_unref, 0);
+	g_signal_connect_data (_tmp59_, "response", (GCallback) ___lambda27__adw_alert_dialog_response, block14_data_ref (_data14_), (GClosureNotify) block14_data_unref, 0);
 	_tmp60_ = dialog;
 	_tmp61_ = self->priv->main_window;
 	adw_dialog_present ((AdwDialog*) _tmp60_, (GtkWidget*) _tmp61_);
@@ -7348,8 +7565,8 @@ iso_master_show_preferences (IsoMaster* self)
 	_g_object_unref0 (temp_label);
 	_g_object_unref0 (box);
 	_g_object_unref0 (dialog);
-	block13_data_unref (_data13_);
-	_data13_ = NULL;
+	block14_data_unref (_data14_);
+	_data14_ = NULL;
 }
 
 static void
@@ -7401,41 +7618,41 @@ iso_master_show_boot_info (IsoMaster* self)
 	_g_object_unref0 (dialog);
 }
 
-static Block14Data*
-block14_data_ref (Block14Data* _data14_)
+static Block15Data*
+block15_data_ref (Block15Data* _data15_)
 {
-	g_atomic_int_inc (&_data14_->_ref_count_);
-	return _data14_;
+	g_atomic_int_inc (&_data15_->_ref_count_);
+	return _data15_;
 }
 
 static void
-block14_data_unref (void * _userdata_)
+block15_data_unref (void * _userdata_)
 {
-	Block14Data* _data14_;
-	_data14_ = (Block14Data*) _userdata_;
-	if (g_atomic_int_dec_and_test (&_data14_->_ref_count_)) {
+	Block15Data* _data15_;
+	_data15_ = (Block15Data*) _userdata_;
+	if (g_atomic_int_dec_and_test (&_data15_->_ref_count_)) {
 		IsoMaster* self;
-		self = _data14_->self;
-		_g_object_unref0 (_data14_->dialog);
+		self = _data15_->self;
+		_g_object_unref0 (_data15_->dialog);
 		_g_object_unref0 (self);
-		g_slice_free (Block14Data, _data14_);
+		g_slice_free (Block15Data, _data15_);
 	}
 }
 
 static void
-__lambda32_ (Block14Data* _data14_,
+__lambda32_ (Block15Data* _data15_,
              GObject* obj,
              GAsyncResult* res)
 {
 	IsoMaster* self;
 	GError* _inner_error0_ = NULL;
-	self = _data14_->self;
+	self = _data15_->self;
 	g_return_if_fail (res != NULL);
 	{
 		GFile* file = NULL;
 		GtkFileDialog* _tmp0_;
 		GFile* _tmp1_;
-		_tmp0_ = _data14_->dialog;
+		_tmp0_ = _data15_->dialog;
 		_tmp1_ = gtk_file_dialog_open_finish (_tmp0_, res, &_inner_error0_);
 		file = _tmp1_;
 		if (G_UNLIKELY (_inner_error0_ != NULL)) {
@@ -7492,13 +7709,13 @@ ___lambda32__gasync_ready_callback (GObject* source_object,
                                     gpointer self)
 {
 	__lambda32_ (self, source_object, res);
-	block14_data_unref (self);
+	block15_data_unref (self);
 }
 
 static void
 iso_master_add_boot_record_from_file (IsoMaster* self)
 {
-	Block14Data* _data14_;
+	Block15Data* _data15_;
 	GtkFileDialog* _tmp2_;
 	GtkFileDialog* _tmp3_;
 	gchar* _tmp4_;
@@ -7506,9 +7723,9 @@ iso_master_add_boot_record_from_file (IsoMaster* self)
 	GtkFileDialog* _tmp6_;
 	AdwApplicationWindow* _tmp7_;
 	g_return_if_fail (self != NULL);
-	_data14_ = g_slice_new0 (Block14Data);
-	_data14_->_ref_count_ = 1;
-	_data14_->self = g_object_ref (self);
+	_data15_ = g_slice_new0 (Block15Data);
+	_data15_->_ref_count_ = 1;
+	_data15_->self = g_object_ref (self);
 	if (!self->priv->iso_loaded) {
 		gchar* _tmp0_;
 		gchar* _tmp1_;
@@ -7516,22 +7733,22 @@ iso_master_add_boot_record_from_file (IsoMaster* self)
 		_tmp1_ = _tmp0_;
 		iso_master_show_error (self, _tmp1_, NULL);
 		_g_free0 (_tmp1_);
-		block14_data_unref (_data14_);
-		_data14_ = NULL;
+		block15_data_unref (_data15_);
+		_data15_ = NULL;
 		return;
 	}
 	_tmp2_ = gtk_file_dialog_new ();
-	_data14_->dialog = _tmp2_;
-	_tmp3_ = _data14_->dialog;
+	_data15_->dialog = _tmp2_;
+	_tmp3_ = _data15_->dialog;
 	_tmp4_ = _t ("Select Boot Record File");
 	_tmp5_ = _tmp4_;
 	gtk_file_dialog_set_title (_tmp3_, _tmp5_);
 	_g_free0 (_tmp5_);
-	_tmp6_ = _data14_->dialog;
+	_tmp6_ = _data15_->dialog;
 	_tmp7_ = self->priv->main_window;
-	gtk_file_dialog_open (_tmp6_, (GtkWindow*) _tmp7_, NULL, ___lambda32__gasync_ready_callback, block14_data_ref (_data14_));
-	block14_data_unref (_data14_);
-	_data14_ = NULL;
+	gtk_file_dialog_open (_tmp6_, (GtkWindow*) _tmp7_, NULL, ___lambda32__gasync_ready_callback, block15_data_ref (_data15_));
+	block15_data_unref (_data15_);
+	_data15_ = NULL;
 }
 
 static void
@@ -7788,82 +8005,24 @@ iso_master_show_about (IsoMaster* self)
 {
 	AdwAboutDialog* about = NULL;
 	AdwAboutDialog* _tmp0_;
-	AdwAboutDialog* _tmp1_;
+	gchar* _tmp1_;
 	gchar* _tmp2_;
-	gchar* _tmp3_;
-	AdwAboutDialog* _tmp4_;
-	AdwAboutDialog* _tmp5_;
-	AdwAboutDialog* _tmp6_;
-	AdwAboutDialog* _tmp7_;
-	AdwAboutDialog* _tmp8_;
-	const gchar* _tmp9_ = NULL;
-	gchar* icon_path = NULL;
-	gchar* _tmp10_;
-	AdwAboutDialog* _tmp16_;
-	AdwApplicationWindow* _tmp17_;
-	GError* _inner_error0_ = NULL;
+	AdwApplicationWindow* _tmp3_;
 	g_return_if_fail (self != NULL);
 	_tmp0_ = (AdwAboutDialog*) adw_about_dialog_new ();
 	g_object_ref_sink (_tmp0_);
 	about = _tmp0_;
-	_tmp1_ = about;
-	_tmp2_ = _t ("ISO Master");
-	_tmp3_ = _tmp2_;
-	adw_about_dialog_set_application_name (_tmp1_, _tmp3_);
-	_g_free0 (_tmp3_);
-	_tmp4_ = about;
-	adw_about_dialog_set_application_icon (_tmp4_, "isomaster");
-	_tmp5_ = about;
-	adw_about_dialog_set_version (_tmp5_, "2.0.0");
-	_tmp6_ = about;
-	adw_about_dialog_set_developer_name (_tmp6_, "Andrew Smith");
-	_tmp7_ = about;
-	adw_about_dialog_set_website (_tmp7_, "http://littlesvr.ca/isomaster/");
-	_tmp8_ = about;
-	adw_about_dialog_set_license_type (_tmp8_, GTK_LICENSE_GPL_2_0);
-	_tmp9_ = ICONPATH;
-	if (_tmp9_ == NULL) {
-		_tmp9_ = "/usr/local/share/isomaster/icons";
-	}
-	_tmp10_ = g_strdup (_tmp9_);
-	icon_path = _tmp10_;
-	{
-		GdkPixbuf* icon_pixbuf = NULL;
-		gchar* _tmp11_;
-		gchar* _tmp12_;
-		GdkPixbuf* _tmp13_;
-		GdkPixbuf* _tmp14_;
-		AdwAboutDialog* _tmp15_;
-		_tmp11_ = g_strconcat (icon_path, "/isomaster.png", NULL);
-		_tmp12_ = _tmp11_;
-		_tmp13_ = gdk_pixbuf_new_from_file (_tmp12_, &_inner_error0_);
-		_tmp14_ = _tmp13_;
-		_g_free0 (_tmp12_);
-		icon_pixbuf = _tmp14_;
-		if (G_UNLIKELY (_inner_error0_ != NULL)) {
-			goto __catch0_g_error;
-		}
-		_tmp15_ = about;
-		adw_about_dialog_set_application_icon (_tmp15_, "isomaster");
-		_g_object_unref0 (icon_pixbuf);
-	}
-	goto __finally0;
-	__catch0_g_error:
-	{
-		g_clear_error (&_inner_error0_);
-	}
-	__finally0:
-	if (G_UNLIKELY (_inner_error0_ != NULL)) {
-		_g_free0 (icon_path);
-		_g_object_unref0 (about);
-		g_critical ("file %s: line %d: uncaught error: %s (%s, %d)", __FILE__, __LINE__, _inner_error0_->message, g_quark_to_string (_inner_error0_->domain), _inner_error0_->code);
-		g_clear_error (&_inner_error0_);
-		return;
-	}
-	_tmp16_ = about;
-	_tmp17_ = self->priv->main_window;
-	adw_dialog_present ((AdwDialog*) _tmp16_, (GtkWidget*) _tmp17_);
-	_g_free0 (icon_path);
+	_tmp1_ = _t ("ISO Master");
+	_tmp2_ = _tmp1_;
+	adw_about_dialog_set_application_name (about, _tmp2_);
+	_g_free0 (_tmp2_);
+	adw_about_dialog_set_application_icon (about, "isomaster");
+	adw_about_dialog_set_version (about, "2.0.0");
+	adw_about_dialog_set_developer_name (about, "Andrew Smith");
+	adw_about_dialog_set_website (about, "http://littlesvr.ca/isomaster/");
+	adw_about_dialog_set_license_type (about, GTK_LICENSE_GPL_2_0);
+	_tmp3_ = self->priv->main_window;
+	adw_dialog_present ((AdwDialog*) about, (GtkWidget*) _tmp3_);
 	_g_object_unref0 (about);
 }
 
@@ -7901,6 +8060,8 @@ iso_master_load_settings (IsoMaster* self)
 	dictionary* _tmp13_;
 	AppSettings* _tmp14_;
 	dictionary* _tmp15_;
+	AppSettings* _tmp16_;
+	dictionary* _tmp17_;
 	g_return_if_fail (self != NULL);
 	_tmp0_ = iso_master_get_settings_path (self);
 	path = _tmp0_;
@@ -7931,6 +8092,9 @@ iso_master_load_settings (IsoMaster* self)
 	_tmp14_ = self->priv->settings;
 	_tmp15_ = dict;
 	app_settings_set_case_sensitive_sort (_tmp14_, iniparser_getboolean (_tmp15_, "browser:caseSensitiveSort", 0) != 0);
+	_tmp16_ = self->priv->settings;
+	_tmp17_ = dict;
+	app_settings_set_dark_mode (_tmp16_, iniparser_getboolean (_tmp17_, "ui:darkMode", 0) != 0);
 	_dictionary_del0 (dict);
 	_g_free0 (path);
 }
@@ -8012,6 +8176,12 @@ iso_master_save_settings (IsoMaster* self)
 			gboolean _tmp41_;
 			gboolean _tmp42_;
 			FILE* _tmp43_;
+			FILE* _tmp44_;
+			gint _tmp45_ = 0;
+			AppSettings* _tmp46_;
+			gboolean _tmp47_;
+			gboolean _tmp48_;
+			FILE* _tmp49_;
 			_tmp15_ = file;
 			fprintf (_tmp15_, "[window]\n");
 			_tmp16_ = file;
@@ -8061,6 +8231,18 @@ iso_master_save_settings (IsoMaster* self)
 			}
 			_tmp43_ = file;
 			fprintf (_tmp43_, "caseSensitiveSort = %d\n", _tmp39_);
+			_tmp44_ = file;
+			fprintf (_tmp44_, "\n[ui]\n");
+			_tmp46_ = self->priv->settings;
+			_tmp47_ = app_settings_get_dark_mode (_tmp46_);
+			_tmp48_ = _tmp47_;
+			if (_tmp48_) {
+				_tmp45_ = 1;
+			} else {
+				_tmp45_ = 0;
+			}
+			_tmp49_ = file;
+			fprintf (_tmp49_, "darkMode = %d\n", _tmp45_);
 		}
 		_fclose0 (file);
 	}
@@ -8100,6 +8282,7 @@ iso_master_instance_init (IsoMaster * self,
 	self->priv->iso_loaded = FALSE;
 	_tmp0_ = g_strdup ("/");
 	self->priv->current_iso_path = _tmp0_;
+	self->priv->style_manager = NULL;
 }
 
 static void
@@ -8110,6 +8293,7 @@ iso_master_finalize (GObject * obj)
 	_g_object_unref0 (self->priv->main_window);
 	_g_object_unref0 (self->priv->settings);
 	_g_free0 (self->priv->current_iso_path);
+	_g_object_unref0 (self->priv->style_manager);
 	_g_object_unref0 (self->priv->fs_list_view);
 	_g_object_unref0 (self->priv->fs_store);
 	_g_object_unref0 (self->priv->fs_path_entry);

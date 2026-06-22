@@ -311,3 +311,10 @@ msgstr "引导记录添加成功"
 
 msgid "ISO Images"
 msgstr "ISO 镜像"
+
+# Theme switching
+msgid "Switch to Light Mode"
+msgstr ""
+
+msgid "Switch to Dark Mode"
+msgstr ""

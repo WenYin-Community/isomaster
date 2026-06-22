@@ -311,3 +311,10 @@ msgstr "부트 레코드가 성공적으로 추가되었습니다"
 
 msgid "ISO Images"
 msgstr "ISO 이미지"
+
+# Theme switching
+msgid "Switch to Light Mode"
+msgstr ""
+
+msgid "Switch to Dark Mode"
+msgstr ""

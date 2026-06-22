@@ -311,3 +311,10 @@ msgstr "開機記錄新增成功"
 
 msgid "ISO Images"
 msgstr "ISO 映像檔"
+
+# Theme switching
+msgid "Switch to Light Mode"
+msgstr ""
+
+msgid "Switch to Dark Mode"
+msgstr ""

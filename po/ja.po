@@ -311,3 +311,10 @@ msgstr "ブートレコードが正常に追加されました"
 
 msgid "ISO Images"
 msgstr "ISO イメージ"
+
+# Theme switching
+msgid "Switch to Light Mode"
+msgstr ""
+
+msgid "Switch to Dark Mode"
+msgstr ""

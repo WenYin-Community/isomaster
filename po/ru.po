@@ -311,3 +311,10 @@ msgstr "Загрузочная запись успешно добавлена"
 
 msgid "ISO Images"
 msgstr "Образы ISO"
+
+# Theme switching
+msgid "Switch to Light Mode"
+msgstr ""
+
+msgid "Switch to Dark Mode"
+msgstr ""

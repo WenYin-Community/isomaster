@@ -22,6 +22,7 @@ public class AppSettings : Object {
     public bool show_hidden_files { get; set; default = false; }
     public bool sort_dirs_first { get; set; default = true; }
     public bool case_sensitive_sort { get; set; default = false; }
+    public bool dark_mode { get; set; default = false; }
     public string? temp_dir { get; set; default = "/tmp"; }
     public string? editor { get; set; default = "leafpad"; }
     public string? viewer { get; set; default = "firefox"; }
@@ -46,6 +47,7 @@ public class IsoMaster : Adw.Application {
     private Bk.VolInfo* vol_info = null;
     private bool iso_loaded = false;
     private string current_iso_path = "/";
+    private Adw.StyleManager? style_manager = null;
 
     // File system browser widgets
     private Gtk.ListView fs_list_view;
@@ -74,9 +76,13 @@ public class IsoMaster : Adw.Application {
         // Load settings
         load_settings();
 
-        // Set Adwaita style
-        var style_manager = Adw.StyleManager.get_default();
-        style_manager.color_scheme = Adw.ColorScheme.PREFER_LIGHT;
+        // Initialize style manager (must be after gtk_init)
+        style_manager = Adw.StyleManager.get_default();
+        
+        // Set Adwaita style based on settings
+        style_manager.color_scheme = settings.dark_mode 
+            ? Adw.ColorScheme.PREFER_DARK 
+            : Adw.ColorScheme.PREFER_LIGHT;
 
         // Create main window with Adwaita
         main_window = new Adw.ApplicationWindow(this);
@@ -95,6 +101,27 @@ public class IsoMaster : Adw.Application {
         // Menu bar
         var menubar = build_menubar();
         this.set_menubar(menubar);
+
+        // Theme toggle button
+        var theme_button = new Gtk.Button();
+        theme_button.icon_name = style_manager.color_scheme == Adw.ColorScheme.PREFER_DARK 
+            ? "weather-clear-symbolic" : "weather-clear-night-symbolic";
+        theme_button.tooltip_text = style_manager.color_scheme == Adw.ColorScheme.PREFER_DARK 
+            ? _t("Switch to Light Mode") : _t("Switch to Dark Mode");
+        theme_button.clicked.connect(() => {
+            if (style_manager.color_scheme == Adw.ColorScheme.PREFER_DARK) {
+                style_manager.color_scheme = Adw.ColorScheme.PREFER_LIGHT;
+                theme_button.icon_name = "weather-clear-night-symbolic";
+                theme_button.tooltip_text = _t("Switch to Dark Mode");
+                settings.dark_mode = false;
+            } else {
+                style_manager.color_scheme = Adw.ColorScheme.PREFER_DARK;
+                theme_button.icon_name = "weather-clear-symbolic";
+                theme_button.tooltip_text = _t("Switch to Light Mode");
+                settings.dark_mode = true;
+            }
+        });
+        header_bar.pack_start(theme_button);
 
         // Add hamburger menu button to header bar
         var menu_button = new Gtk.MenuButton();
@@ -381,8 +408,8 @@ public class IsoMaster : Adw.Application {
 
     private Gtk.Image load_icon(string path, int size) {
         try {
-            var pixbuf = new Gdk.Pixbuf.from_file_at_scale(path, size, size, true);
-            return new Gtk.Image.from_pixbuf(pixbuf);
+            var texture = Gdk.Texture.from_filename(path);
+            return new Gtk.Image.from_paintable(texture);
         } catch (Error e) {
             // Fallback to missing image icon
             return new Gtk.Image.from_icon_name("image-missing");
@@ -1042,7 +1069,7 @@ public class IsoMaster : Adw.Application {
         } else if (size > 1024) {
             return "%.1f KB".printf((double)size / 1024);
         } else {
-            return "%lld B".printf(size);
+            return size.to_string() + " B";
         }
     }
 
@@ -1385,15 +1412,6 @@ public class IsoMaster : Adw.Application {
         about.website = "http://littlesvr.ca/isomaster/";
         about.license_type = Gtk.License.GPL_2_0;
 
-        // Set custom icon for about dialog
-        string icon_path = ICONPATH ?? "/usr/local/share/isomaster/icons";
-        try {
-            var icon_pixbuf = new Gdk.Pixbuf.from_file(icon_path + "/isomaster.png");
-            about.application_icon = "isomaster";
-        } catch (Error e) {
-            // Fallback: use default icon
-        }
-
         about.present(main_window);
     }
 
@@ -1415,8 +1433,7 @@ public class IsoMaster : Adw.Application {
         settings.show_hidden_files = Ini.get_boolean(dict, "browser:showHidden", 0) != 0;
         settings.sort_dirs_first = Ini.get_boolean(dict, "browser:sortDirsFirst", 1) != 0;
         settings.case_sensitive_sort = Ini.get_boolean(dict, "browser:caseSensitiveSort", 0) != 0;
-
-        
+        settings.dark_mode = Ini.get_boolean(dict, "ui:darkMode", 0) != 0;
     }
 
     private void save_settings() {
@@ -1441,6 +1458,8 @@ public class IsoMaster : Adw.Application {
                 file.printf("showHidden = %d\n", settings.show_hidden_files ? 1 : 0);
                 file.printf("sortDirsFirst = %d\n", settings.sort_dirs_first ? 1 : 0);
                 file.printf("caseSensitiveSort = %d\n", settings.case_sensitive_sort ? 1 : 0);
+                file.printf("\n[ui]\n");
+                file.printf("darkMode = %d\n", settings.dark_mode ? 1 : 0);
             }
         } catch (Error e) {
             // Write error
