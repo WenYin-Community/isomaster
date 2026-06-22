@@ -83,12 +83,37 @@ namespace Bk {
     [CCode (cname = "bk_set_publisher")]
     public static int set_publisher(VolInfo* vol_info, string publisher);
 
+    [CCode (cname = "bk_add_boot_record")]
+    public static int add_boot_record(VolInfo* vol_info, string src_path, int boot_media_type);
+
+    [CCode (cname = "bk_delete_boot_record")]
+    public static void delete_boot_record(VolInfo* vol_info);
+
+    [CCode (cname = "bk_extract_boot_record")]
+    public static int extract_boot_record(VolInfo* vol_info, string dest_path, uint dest_file_perms);
+
+    [CCode (cname = "bk_set_boot_file")]
+    public static int set_boot_file(VolInfo* vol_info, string src_path);
+
     [CCode (cname = "FNTYPE_9660")]
     public const int FNTYPE_9660;
     [CCode (cname = "FNTYPE_ROCKRIDGE")]
     public const int FNTYPE_ROCKRIDGE;
     [CCode (cname = "FNTYPE_JOLIET")]
     public const int FNTYPE_JOLIET;
+
+    [CCode (cname = "BOOT_MEDIA_NONE")]
+    public const int BOOT_MEDIA_NONE;
+    [CCode (cname = "BOOT_MEDIA_NO_EMULATION")]
+    public const int BOOT_MEDIA_NO_EMULATION;
+    [CCode (cname = "BOOT_MEDIA_1_2_FLOPPY")]
+    public const int BOOT_MEDIA_1_2_FLOPPY;
+    [CCode (cname = "BOOT_MEDIA_1_44_FLOPPY")]
+    public const int BOOT_MEDIA_1_44_FLOPPY;
+    [CCode (cname = "BOOT_MEDIA_2_88_FLOPPY")]
+    public const int BOOT_MEDIA_2_88_FLOPPY;
+    [CCode (cname = "BOOT_MEDIA_HARD_DISK")]
+    public const int BOOT_MEDIA_HARD_DISK;
 
     // POSIX file mode helpers
     [CCode (cname = "S_ISDIR")]

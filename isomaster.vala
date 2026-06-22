@@ -116,8 +116,21 @@ public class IsoMaster : Adw.Application {
         file_menu.append("_Open", "app.open");
         file_menu.append("_Save", "app.save");
         file_menu.append("Create _Directory", "app.create-dir");
+        file_menu.append("_Rename", "app.rename");
         file_menu.append("_Quit", "app.quit");
         menubar.append_submenu("_File", file_menu);
+
+        // Edit menu
+        var edit_menu = new GLib.Menu();
+        edit_menu.append("Volume _Properties", "app.volume-properties");
+        menubar.append_submenu("_Edit", edit_menu);
+
+        // Tools menu
+        var tools_menu = new GLib.Menu();
+        tools_menu.append("Set _Boot File", "app.set-boot-file");
+        tools_menu.append("_Extract Boot Record", "app.extract-boot");
+        tools_menu.append("_Delete Boot Record", "app.delete-boot");
+        menubar.append_submenu("_Tools", tools_menu);
 
         // View menu
         var view_menu = new GLib.Menu();
@@ -166,6 +179,26 @@ public class IsoMaster : Adw.Application {
         create_dir_action.activate.connect(() => create_iso_dir());
         this.add_action(create_dir_action);
 
+        var rename_action = new GLib.SimpleAction("rename", null);
+        rename_action.activate.connect(() => rename_iso_item());
+        this.add_action(rename_action);
+
+        var volume_props_action = new GLib.SimpleAction("volume-properties", null);
+        volume_props_action.activate.connect(() => show_volume_properties());
+        this.add_action(volume_props_action);
+
+        var set_boot_action = new GLib.SimpleAction("set-boot-file", null);
+        set_boot_action.activate.connect(() => set_boot_file());
+        this.add_action(set_boot_action);
+
+        var extract_boot_action = new GLib.SimpleAction("extract-boot", null);
+        extract_boot_action.activate.connect(() => extract_boot_record());
+        this.add_action(extract_boot_action);
+
+        var delete_boot_action = new GLib.SimpleAction("delete-boot", null);
+        delete_boot_action.activate.connect(() => delete_boot_record());
+        this.add_action(delete_boot_action);
+
         var about_action = new GLib.SimpleAction("about", null);
         about_action.activate.connect(() => show_about());
         this.add_action(about_action);
@@ -175,6 +208,8 @@ public class IsoMaster : Adw.Application {
         this.set_accels_for_action("app.open", {"<Control>O"});
         this.set_accels_for_action("app.save", {"<Control>S"});
         this.set_accels_for_action("app.quit", {"<Control>Q"});
+        this.set_accels_for_action("app.rename", {"F2"});
+        this.set_accels_for_action("app.refresh", {"F5"});
     }
 
     private Gtk.Box build_toolbar() {
@@ -574,6 +609,200 @@ public class IsoMaster : Adw.Application {
                 } else {
                     refresh_iso_view();
                 }
+            }
+        });
+        dialog.present(main_window);
+    }
+
+    private void rename_iso_item() {
+        if (!iso_loaded) {
+            show_error("No ISO image loaded");
+            return;
+        }
+
+        // Get selected item
+        var selection = iso_list_view.model as Gtk.SingleSelection;
+        if (selection == null || selection.selected_item == null) {
+            show_error("No file selected");
+            return;
+        }
+
+        var item = selection.selected_item as FileItem;
+        if (item == null) {
+            show_error("No file selected");
+            return;
+        }
+
+        // Show input dialog for new name
+        var dialog = new Adw.AlertDialog("Rename", "Enter new name:");
+        dialog.add_response("cancel", "_Cancel");
+        dialog.add_response("rename", "_Rename");
+
+        var entry = new Gtk.Entry();
+        entry.text = item.name;
+        dialog.extra_child = entry;
+
+        dialog.response.connect((response) => {
+            if (response == "rename" && entry.text.length > 0) {
+                string old_path = item.path;
+                string new_path = Path.get_dirname(old_path) + "/" + entry.text;
+                int result = Bk.rename(vol_info, old_path, new_path);
+                if (result < 0) {
+                    show_error("Failed to rename: %s", Bk.get_error_string(result));
+                } else {
+                    refresh_iso_view();
+                }
+            }
+        });
+        dialog.present(main_window);
+    }
+
+    private void show_volume_properties() {
+        if (!iso_loaded) {
+            show_error("No ISO image loaded");
+            return;
+        }
+
+        string? vol_name = Bk.get_volume_name(vol_info);
+        string? publisher = Bk.get_publisher(vol_info);
+        int64 iso_size = Bk.estimate_iso_size(vol_info, Bk.FNTYPE_JOLIET);
+
+        var dialog = new Adw.AlertDialog("Volume Properties", null);
+        dialog.body = "Volume Name: %s\nPublisher: %s\nEstimated Size: %s".printf(
+            vol_name ?? "(none)",
+            publisher ?? "(none)",
+            format_size(iso_size)
+        );
+        dialog.add_response("ok", "_OK");
+
+        // Add entry fields for editing
+        var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 8);
+        box.margin_start = 12;
+        box.margin_end = 12;
+        box.margin_top = 12;
+        box.margin_bottom = 12;
+
+        var name_label = new Gtk.Label("Volume Name:");
+        name_label.xalign = 0;
+        box.append(name_label);
+
+        var name_entry = new Gtk.Entry();
+        name_entry.text = vol_name ?? "";
+        box.append(name_entry);
+
+        var pub_label = new Gtk.Label("Publisher:");
+        pub_label.xalign = 0;
+        box.append(pub_label);
+
+        var pub_entry = new Gtk.Entry();
+        pub_entry.text = publisher ?? "";
+        box.append(pub_entry);
+
+        dialog.extra_child = box;
+
+        dialog.response.connect((response) => {
+            if (response == "ok") {
+                // Update volume name
+                if (name_entry.text.length > 0) {
+                    int result = Bk.set_vol_name(vol_info, name_entry.text);
+                    if (result < 0) {
+                        show_error("Failed to set volume name: %s", Bk.get_error_string(result));
+                    }
+                }
+                // Update publisher
+                if (pub_entry.text.length > 0) {
+                    int result = Bk.set_publisher(vol_info, pub_entry.text);
+                    if (result < 0) {
+                        show_error("Failed to set publisher: %s", Bk.get_error_string(result));
+                    }
+                }
+                // Update window title
+                main_window.title = "ISO Master - %s".printf(name_entry.text);
+            }
+        });
+        dialog.present(main_window);
+    }
+
+    private void set_boot_file() {
+        if (!iso_loaded) {
+            show_error("No ISO image loaded");
+            return;
+        }
+
+        // Get selected item
+        var selection = iso_list_view.model as Gtk.SingleSelection;
+        if (selection == null || selection.selected_item == null) {
+            show_error("No file selected");
+            return;
+        }
+
+        var item = selection.selected_item as FileItem;
+        if (item == null || item.is_dir) {
+            show_error("Please select a file (not a directory)");
+            return;
+        }
+
+        var dialog = new Adw.AlertDialog(
+            "Set Boot File",
+            "Set '%s' as boot file?".printf(item.name)
+        );
+        dialog.add_response("cancel", "_Cancel");
+        dialog.add_response("set", "_Set");
+
+        dialog.response.connect((response) => {
+            if (response == "set") {
+                int result = Bk.set_boot_file(vol_info, item.path);
+                if (result < 0) {
+                    show_error("Failed to set boot file: %s", Bk.get_error_string(result));
+                } else {
+                    show_error("Boot file set successfully");
+                }
+            }
+        });
+        dialog.present(main_window);
+    }
+
+    private void extract_boot_record() {
+        if (!iso_loaded) {
+            show_error("No ISO image loaded");
+            return;
+        }
+
+        var dialog = new Gtk.FileDialog();
+        dialog.title = "Extract Boot Record to...";
+        dialog.initial_file = GLib.File.new_for_path("boot.img");
+
+        dialog.save.begin(main_window, null, (obj, res) => {
+            try {
+                var file = dialog.save.end(res);
+                if (file != null) {
+                    int result = Bk.extract_boot_record(vol_info, file.get_path(), 0644);
+                    if (result < 0) {
+                        show_error("Failed to extract boot record: %s", Bk.get_error_string(result));
+                    }
+                }
+            } catch (Error e) {
+                // User cancelled
+            }
+        });
+    }
+
+    private void delete_boot_record() {
+        if (!iso_loaded) {
+            show_error("No ISO image loaded");
+            return;
+        }
+
+        var dialog = new Adw.AlertDialog(
+            "Delete Boot Record",
+            "Are you sure you want to delete the boot record?"
+        );
+        dialog.add_response("cancel", "_Cancel");
+        dialog.add_response("delete", "_Delete");
+
+        dialog.response.connect((response) => {
+            if (response == "delete") {
+                Bk.delete_boot_record(vol_info);
             }
         });
         dialog.present(main_window);
