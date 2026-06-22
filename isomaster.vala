@@ -3,6 +3,14 @@
  * Main application and window
  */
 
+// Gettext support
+const string GETTEXT_PACKAGE = "isomaster";
+
+// Translation helper (use _t to avoid conflict with gi18n-lib.h)
+public static string _t(string str) {
+    return GLib.dgettext(GETTEXT_PACKAGE, str);
+}
+
 // Application settings
 public class AppSettings : Object {
     public int window_width { get; set; default = 800; }
@@ -69,7 +77,7 @@ public class IsoMaster : Adw.Application {
 
         // Create main window with Adwaita
         main_window = new Adw.ApplicationWindow(this);
-        main_window.title = "ISO Master";
+        main_window.title = _t("ISO Master");
         main_window.default_width = settings.window_width;
         main_window.default_height = settings.window_height;
 
@@ -78,7 +86,7 @@ public class IsoMaster : Adw.Application {
 
         // Add header bar for title and window controls
         var header_bar = new Adw.HeaderBar();
-        header_bar.title_widget = new Adw.WindowTitle("ISO Master", "");
+        header_bar.title_widget = new Adw.WindowTitle(_t("ISO Master"), "");
         main_box.append(header_bar);
 
         // Content area
@@ -127,35 +135,35 @@ public class IsoMaster : Adw.Application {
 
         // File menu
         var file_menu = new GLib.Menu();
-        file_menu.append("_New", "app.new");
-        file_menu.append("_Open", "app.open");
-        file_menu.append("_Save", "app.save");
-        file_menu.append("Create _Directory", "app.create-dir");
-        file_menu.append("_Rename", "app.rename");
-        file_menu.append("_Quit", "app.quit");
-        menubar.append_submenu("_File", file_menu);
+        file_menu.append(_t("_New"), "app.new");
+        file_menu.append(_t("_Open"), "app.open");
+        file_menu.append(_t("_Save"), "app.save");
+        file_menu.append(_t("Create _Directory"), "app.create-dir");
+        file_menu.append(_t("_Rename"), "app.rename");
+        file_menu.append(_t("_Quit"), "app.quit");
+        menubar.append_submenu(_t("_File"), file_menu);
 
         // Edit menu
         var edit_menu = new GLib.Menu();
-        edit_menu.append("Volume _Properties", "app.volume-properties");
-        menubar.append_submenu("_Edit", edit_menu);
+        edit_menu.append(_t("Volume _Properties"), "app.volume-properties");
+        menubar.append_submenu(_t("_Edit"), edit_menu);
 
         // Tools menu
         var tools_menu = new GLib.Menu();
-        tools_menu.append("Set _Boot File", "app.set-boot-file");
-        tools_menu.append("_Extract Boot Record", "app.extract-boot");
-        tools_menu.append("_Delete Boot Record", "app.delete-boot");
-        menubar.append_submenu("_Tools", tools_menu);
+        tools_menu.append(_t("Set _Boot File"), "app.set-boot-file");
+        tools_menu.append(_t("_Extract Boot Record"), "app.extract-boot");
+        tools_menu.append(_t("_Delete Boot Record"), "app.delete-boot");
+        menubar.append_submenu(_t("_Tools"), tools_menu);
 
         // View menu
         var view_menu = new GLib.Menu();
-        view_menu.append("_Refresh", "app.refresh");
-        menubar.append_submenu("_View", view_menu);
+        view_menu.append(_t("_Refresh"), "app.refresh");
+        menubar.append_submenu(_t("_View"), view_menu);
 
         // Help menu
         var help_menu = new GLib.Menu();
-        help_menu.append("_About", "app.about");
-        menubar.append_submenu("_Help", help_menu);
+        help_menu.append(_t("_About"), "app.about");
+        menubar.append_submenu(_t("_Help"), help_menu);
 
         // Setup actions
         setup_actions();
@@ -236,19 +244,19 @@ public class IsoMaster : Adw.Application {
 
         // New button
         var new_btn = new Gtk.Button.from_icon_name("document-new");
-        new_btn.tooltip_text = "New ISO";
+        new_btn.tooltip_text = _t("New ISO");
         new_btn.clicked.connect(() => new_iso());
         toolbar.append(new_btn);
 
         // Open button
         var open_btn = new Gtk.Button.from_icon_name("document-open");
-        open_btn.tooltip_text = "Open ISO";
+        open_btn.tooltip_text = _t("Open ISO");
         open_btn.clicked.connect(() => open_iso());
         toolbar.append(open_btn);
 
         // Save button
         var save_btn = new Gtk.Button.from_icon_name("document-save");
-        save_btn.tooltip_text = "Save ISO";
+        save_btn.tooltip_text = _t("Save ISO");
         save_btn.clicked.connect(() => save_iso());
         toolbar.append(save_btn);
 
@@ -256,19 +264,19 @@ public class IsoMaster : Adw.Application {
 
         // Add button
         var add_btn = new Gtk.Button.from_icon_name("list-add");
-        add_btn.tooltip_text = "Add to ISO";
+        add_btn.tooltip_text = _t("Add to ISO");
         add_btn.clicked.connect(() => add_to_iso());
         toolbar.append(add_btn);
 
         // Extract button
         var extract_btn = new Gtk.Button.from_icon_name("extract");
-        extract_btn.tooltip_text = "Extract from ISO";
+        extract_btn.tooltip_text = _t("Extract from ISO");
         extract_btn.clicked.connect(() => extract_from_iso());
         toolbar.append(extract_btn);
 
         // Delete button
         var delete_btn = new Gtk.Button.from_icon_name("edit-delete");
-        delete_btn.tooltip_text = "Delete from ISO";
+        delete_btn.tooltip_text = _t("Delete from ISO");
         delete_btn.clicked.connect(() => delete_from_iso());
         toolbar.append(delete_btn);
 
@@ -409,7 +417,7 @@ public class IsoMaster : Adw.Application {
 
     private void open_iso() {
         var dialog = new Gtk.FileDialog();
-        dialog.title = "Open ISO Image";
+        dialog.title = _t("Open ISO Image");
         var filter = new Gtk.FileFilter();
         filter.add_pattern("*.iso");
         filter.add_pattern("*.nrg");
@@ -434,20 +442,20 @@ public class IsoMaster : Adw.Application {
     private void open_iso_file(string path) {
         int result = Bk.open_image(vol_info, path);
         if (result < 0) {
-            show_error("Failed to open ISO: %s", Bk.get_error_string(result));
+            show_error(_t("Failed to open ISO: %s"), Bk.get_error_string(result));
             return;
         }
 
         result = Bk.read_vol_info(vol_info);
         if (result < 0) {
-            show_error("Failed to read volume info: %s", Bk.get_error_string(result));
+            show_error(_t("Failed to read volume info: %s"), Bk.get_error_string(result));
             return;
         }
 
         // Read directory tree
         result = Bk.read_dir_tree(vol_info, Bk.FNTYPE_JOLIET, false, null);
         if (result < 0) {
-            show_error("Failed to read directory tree: %s", Bk.get_error_string(result));
+            show_error(_t("Failed to read directory tree: %s"), Bk.get_error_string(result));
             return;
         }
 
@@ -475,7 +483,7 @@ public class IsoMaster : Adw.Application {
         }
 
         var dialog = new Gtk.FileDialog();
-        dialog.title = "Save ISO Image";
+        dialog.title = _t("Save ISO Image");
         var filter = new Gtk.FileFilter();
         filter.add_pattern("*.iso");
         filter.name = "ISO Images";
@@ -489,7 +497,7 @@ public class IsoMaster : Adw.Application {
                 if (file != null) {
                     int result = Bk.write_image(file.get_path(), vol_info, 0, Bk.FNTYPE_JOLIET, null);
                     if (result < 0) {
-                        show_error("Failed to save ISO: %s", Bk.get_error_string(result));
+                        show_error(_t("Failed to save ISO: %s"), Bk.get_error_string(result));
                     }
                 }
             } catch (Error e) {
@@ -500,12 +508,12 @@ public class IsoMaster : Adw.Application {
 
     private void add_to_iso() {
         if (!iso_loaded) {
-            show_error("No ISO image loaded");
+            show_error(_t("No ISO image loaded"));
             return;
         }
 
         var dialog = new Gtk.FileDialog();
-        dialog.title = "Add files to ISO";
+        dialog.title = _t("Add files to ISO");
 
         dialog.open.begin(main_window, null, (obj, res) => {
             try {
@@ -513,7 +521,7 @@ public class IsoMaster : Adw.Application {
                 if (file != null) {
                     int result = Bk.add(vol_info, file.get_path(), current_iso_path, null);
                     if (result < 0) {
-                        show_error("Failed to add file: %s", Bk.get_error_string(result));
+                        show_error(_t("Failed to add file: %s"), Bk.get_error_string(result));
                     } else {
                         refresh_iso_view();
                     }
@@ -526,25 +534,25 @@ public class IsoMaster : Adw.Application {
 
     private void extract_from_iso() {
         if (!iso_loaded) {
-            show_error("No ISO image loaded");
+            show_error(_t("No ISO image loaded"));
             return;
         }
 
         // Get selected item
         var selection = iso_list_view.model as Gtk.SingleSelection;
         if (selection == null || selection.selected_item == null) {
-            show_error("No file selected");
+            show_error(_t("No file selected"));
             return;
         }
 
         var item = selection.selected_item as FileItem;
         if (item == null) {
-            show_error("No file selected");
+            show_error(_t("No file selected"));
             return;
         }
 
         var dialog = new Gtk.FileDialog();
-        dialog.title = "Extract to...";
+        dialog.title = _t("Extract to...");
         dialog.initial_file = GLib.File.new_for_path(item.name);
 
         dialog.save.begin(main_window, null, (obj, res) => {
@@ -553,7 +561,7 @@ public class IsoMaster : Adw.Application {
                 if (file != null) {
                     int result = Bk.extract(vol_info, item.path, file.get_path(), false, null);
                     if (result < 0) {
-                        show_error("Failed to extract: %s", Bk.get_error_string(result));
+                        show_error(_t("Failed to extract: %s"), Bk.get_error_string(result));
                     }
                 }
             } catch (Error e) {
@@ -564,35 +572,35 @@ public class IsoMaster : Adw.Application {
 
     private void delete_from_iso() {
         if (!iso_loaded) {
-            show_error("No ISO image loaded");
+            show_error(_t("No ISO image loaded"));
             return;
         }
 
         // Get selected item
         var selection = iso_list_view.model as Gtk.SingleSelection;
         if (selection == null || selection.selected_item == null) {
-            show_error("No file selected");
+            show_error(_t("No file selected"));
             return;
         }
 
         var item = selection.selected_item as FileItem;
         if (item == null) {
-            show_error("No file selected");
+            show_error(_t("No file selected"));
             return;
         }
 
         // Confirm deletion
         var dialog = new Adw.AlertDialog(
-            "Confirm Delete",
-            "Are you sure you want to delete '%s' from the ISO?".printf(item.name)
+            _t("Confirm Delete"),
+            _t("Are you sure you want to delete '%s' from the ISO?").printf(item.name)
         );
-        dialog.add_response("cancel", "_Cancel");
-        dialog.add_response("delete", "_Delete");
+        dialog.add_response("cancel", _t("_Cancel"));
+        dialog.add_response("delete", _t("_Delete"));
         dialog.response.connect((response) => {
             if (response == "delete") {
                 int result = Bk.delete(vol_info, item.path);
                 if (result < 0) {
-                    show_error("Failed to delete: %s", Bk.get_error_string(result));
+                    show_error(_t("Failed to delete: %s"), Bk.get_error_string(result));
                 } else {
                     refresh_iso_view();
                 }
@@ -603,24 +611,24 @@ public class IsoMaster : Adw.Application {
 
     private void create_iso_dir() {
         if (!iso_loaded) {
-            show_error("No ISO image loaded");
+            show_error(_t("No ISO image loaded"));
             return;
         }
 
         // Show input dialog for directory name
-        var dialog = new Adw.AlertDialog("Create Directory", "Enter directory name:");
-        dialog.add_response("cancel", "_Cancel");
-        dialog.add_response("create", "_Create");
+        var dialog = new Adw.AlertDialog(_t("Create Directory"), _t("Enter directory name:"));
+        dialog.add_response("cancel", _t("_Cancel"));
+        dialog.add_response("create", _t("_Create"));
 
         var entry = new Gtk.Entry();
-        entry.placeholder_text = "New directory";
+        entry.placeholder_text = _t("New directory");
         dialog.extra_child = entry;
 
         dialog.response.connect((response) => {
             if (response == "create" && entry.text.length > 0) {
                 int result = Bk.create_dir(vol_info, current_iso_path, entry.text);
                 if (result < 0) {
-                    show_error("Failed to create directory: %s", Bk.get_error_string(result));
+                    show_error(_t("Failed to create directory: %s"), Bk.get_error_string(result));
                 } else {
                     refresh_iso_view();
                 }
@@ -631,27 +639,27 @@ public class IsoMaster : Adw.Application {
 
     private void rename_iso_item() {
         if (!iso_loaded) {
-            show_error("No ISO image loaded");
+            show_error(_t("No ISO image loaded"));
             return;
         }
 
         // Get selected item
         var selection = iso_list_view.model as Gtk.SingleSelection;
         if (selection == null || selection.selected_item == null) {
-            show_error("No file selected");
+            show_error(_t("No file selected"));
             return;
         }
 
         var item = selection.selected_item as FileItem;
         if (item == null) {
-            show_error("No file selected");
+            show_error(_t("No file selected"));
             return;
         }
 
         // Show input dialog for new name
-        var dialog = new Adw.AlertDialog("Rename", "Enter new name:");
-        dialog.add_response("cancel", "_Cancel");
-        dialog.add_response("rename", "_Rename");
+        var dialog = new Adw.AlertDialog(_t("Rename"), _t("Enter new name:"));
+        dialog.add_response("cancel", _t("_Cancel"));
+        dialog.add_response("rename", _t("_Rename"));
 
         var entry = new Gtk.Entry();
         entry.text = item.name;
@@ -663,7 +671,7 @@ public class IsoMaster : Adw.Application {
                 string new_path = Path.get_dirname(old_path) + "/" + entry.text;
                 int result = Bk.rename(vol_info, old_path, new_path);
                 if (result < 0) {
-                    show_error("Failed to rename: %s", Bk.get_error_string(result));
+                    show_error(_t("Failed to rename: %s"), Bk.get_error_string(result));
                 } else {
                     refresh_iso_view();
                 }
@@ -674,7 +682,7 @@ public class IsoMaster : Adw.Application {
 
     private void show_volume_properties() {
         if (!iso_loaded) {
-            show_error("No ISO image loaded");
+            show_error(_t("No ISO image loaded"));
             return;
         }
 
@@ -682,13 +690,13 @@ public class IsoMaster : Adw.Application {
         string? publisher = Bk.get_publisher(vol_info);
         int64 iso_size = Bk.estimate_iso_size(vol_info, Bk.FNTYPE_JOLIET);
 
-        var dialog = new Adw.AlertDialog("Volume Properties", null);
-        dialog.body = "Volume Name: %s\nPublisher: %s\nEstimated Size: %s".printf(
-            vol_name ?? "(none)",
-            publisher ?? "(none)",
+        var dialog = new Adw.AlertDialog(_t("Volume Properties"), null);
+        dialog.body = _t("Volume Name: %s\nPublisher: %s\nEstimated Size: %s").printf(
+            vol_name ?? _t("(none)"),
+            publisher ?? _t("(none)"),
             format_size(iso_size)
         );
-        dialog.add_response("ok", "_OK");
+        dialog.add_response("ok", _t("_OK"));
 
         // Add entry fields for editing
         var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 8);
@@ -697,7 +705,7 @@ public class IsoMaster : Adw.Application {
         box.margin_top = 12;
         box.margin_bottom = 12;
 
-        var name_label = new Gtk.Label("Volume Name:");
+        var name_label = new Gtk.Label(_t("Volume Name:"));
         name_label.xalign = 0;
         box.append(name_label);
 
@@ -705,7 +713,7 @@ public class IsoMaster : Adw.Application {
         name_entry.text = vol_name ?? "";
         box.append(name_entry);
 
-        var pub_label = new Gtk.Label("Publisher:");
+        var pub_label = new Gtk.Label(_t("Publisher:"));
         pub_label.xalign = 0;
         box.append(pub_label);
 
@@ -721,14 +729,14 @@ public class IsoMaster : Adw.Application {
                 if (name_entry.text.length > 0) {
                     int result = Bk.set_vol_name(vol_info, name_entry.text);
                     if (result < 0) {
-                        show_error("Failed to set volume name: %s", Bk.get_error_string(result));
+                        show_error(_t("Failed to set volume name: %s"), Bk.get_error_string(result));
                     }
                 }
                 // Update publisher
                 if (pub_entry.text.length > 0) {
                     int result = Bk.set_publisher(vol_info, pub_entry.text);
                     if (result < 0) {
-                        show_error("Failed to set publisher: %s", Bk.get_error_string(result));
+                        show_error(_t("Failed to set publisher: %s"), Bk.get_error_string(result));
                     }
                 }
                 // Update window title
@@ -740,14 +748,14 @@ public class IsoMaster : Adw.Application {
 
     private void set_boot_file() {
         if (!iso_loaded) {
-            show_error("No ISO image loaded");
+            show_error(_t("No ISO image loaded"));
             return;
         }
 
         // Get selected item
         var selection = iso_list_view.model as Gtk.SingleSelection;
         if (selection == null || selection.selected_item == null) {
-            show_error("No file selected");
+            show_error(_t("No file selected"));
             return;
         }
 
@@ -758,19 +766,19 @@ public class IsoMaster : Adw.Application {
         }
 
         var dialog = new Adw.AlertDialog(
-            "Set Boot File",
-            "Set '%s' as boot file?".printf(item.name)
+            _t("Set Boot File"),
+            _t("Set '%s' as boot file?").printf(item.name)
         );
-        dialog.add_response("cancel", "_Cancel");
-        dialog.add_response("set", "_Set");
+        dialog.add_response("cancel", _t("_Cancel"));
+        dialog.add_response("set", _t("_Set"));
 
         dialog.response.connect((response) => {
             if (response == "set") {
                 int result = Bk.set_boot_file(vol_info, item.path);
                 if (result < 0) {
-                    show_error("Failed to set boot file: %s", Bk.get_error_string(result));
+                    show_error(_t("Failed to set boot file: %s"), Bk.get_error_string(result));
                 } else {
-                    show_error("Boot file set successfully");
+                    show_error(_t("Boot file set successfully"));
                 }
             }
         });
@@ -779,12 +787,12 @@ public class IsoMaster : Adw.Application {
 
     private void extract_boot_record() {
         if (!iso_loaded) {
-            show_error("No ISO image loaded");
+            show_error(_t("No ISO image loaded"));
             return;
         }
 
         var dialog = new Gtk.FileDialog();
-        dialog.title = "Extract Boot Record to...";
+        dialog.title = _t("Extract Boot Record to...");
         dialog.initial_file = GLib.File.new_for_path("boot.img");
 
         dialog.save.begin(main_window, null, (obj, res) => {
@@ -804,16 +812,16 @@ public class IsoMaster : Adw.Application {
 
     private void delete_boot_record() {
         if (!iso_loaded) {
-            show_error("No ISO image loaded");
+            show_error(_t("No ISO image loaded"));
             return;
         }
 
         var dialog = new Adw.AlertDialog(
-            "Delete Boot Record",
-            "Are you sure you want to delete the boot record?"
+            _t("Delete Boot Record"),
+            _t("Are you sure you want to delete the boot record?")
         );
-        dialog.add_response("cancel", "_Cancel");
-        dialog.add_response("delete", "_Delete");
+        dialog.add_response("cancel", _t("_Cancel"));
+        dialog.add_response("delete", _t("_Delete"));
 
         dialog.response.connect((response) => {
             if (response == "delete") {
@@ -933,14 +941,14 @@ public class IsoMaster : Adw.Application {
     private void show_error(string format, ...) {
         var va = va_list();
         var msg = format.vprintf(va);
-        var dialog = new Adw.AlertDialog("Error", msg);
-        dialog.add_response("ok", "_OK");
+        var dialog = new Adw.AlertDialog(_t("Error"), msg);
+        dialog.add_response("ok", _t("_OK"));
         dialog.present(main_window);
     }
 
     private void show_about() {
         var about = new Adw.AboutDialog();
-        about.application_name = "ISO Master";
+        about.application_name = _t("ISO Master");
         about.application_icon = "isomaster";
         about.version = "2.0.0";
         about.developer_name = "Andrew Smith";
@@ -1002,6 +1010,12 @@ public class IsoMaster : Adw.Application {
 
 // Entry point
 public static int main(string[] args) {
+    // Initialize gettext
+    GLib.Intl.setlocale(GLib.LocaleCategory.ALL, "");
+    GLib.Intl.bindtextdomain(GETTEXT_PACKAGE, null);
+    GLib.Intl.bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
+    GLib.Intl.textdomain(GETTEXT_PACKAGE);
+
     var app = new IsoMaster();
     return app.run(args);
 }
