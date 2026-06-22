@@ -73,8 +73,18 @@ public class IsoMaster : Adw.Application {
         main_window.default_width = settings.window_width;
         main_window.default_height = settings.window_height;
 
-        // Build UI
+        // Build UI with Adwaita header bar
         var main_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+
+        // Add header bar for title and window controls
+        var header_bar = new Adw.HeaderBar();
+        header_bar.title_widget = new Adw.WindowTitle("ISO Master", "");
+        main_box.append(header_bar);
+
+        // Content area
+        var content_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+        main_box.append(content_box);
+
         main_window.set_content(main_box);
 
         // Menu bar
@@ -83,7 +93,7 @@ public class IsoMaster : Adw.Application {
 
         // Toolbar
         var toolbar = build_toolbar();
-        main_box.append(toolbar);
+        content_box.append(toolbar);
 
         // Main content - horizontal paned
         var paned = new Gtk.Paned(Gtk.Orientation.HORIZONTAL);
@@ -101,7 +111,7 @@ public class IsoMaster : Adw.Application {
         paned.resize_end_child = true;
         paned.shrink_end_child = false;
 
-        main_box.append(paned);
+        content_box.append(paned);
 
         // Connect close signal
         main_window.close_request.connect(() => {
