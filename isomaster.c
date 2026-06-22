@@ -1371,6 +1371,12 @@ iso_master_new (void)
 	return iso_master_construct (TYPE_ISO_MASTER);
 }
 
+static gpointer
+_g_object_ref0 (gpointer self)
+{
+	return self ? g_object_ref (self) : NULL;
+}
+
 static gboolean
 __lambda43_ (IsoMaster* self)
 {
@@ -1395,89 +1401,97 @@ iso_master_real_activate (GApplication* base)
 	IsoMaster * self;
 	void* _tmp0_;
 	VolInfo* _tmp1_;
-	GtkApplicationWindow* _tmp2_;
-	GtkWindow* _tmp3_;
-	GtkWindow* _tmp4_;
-	AppSettings* _tmp5_;
-	gint _tmp6_;
-	gint _tmp7_;
-	GtkWindow* _tmp8_;
-	AppSettings* _tmp9_;
-	gint _tmp10_;
-	gint _tmp11_;
+	AdwStyleManager* style_manager = NULL;
+	AdwStyleManager* _tmp2_;
+	AdwStyleManager* _tmp3_;
+	GtkApplicationWindow* _tmp4_;
+	GtkWindow* _tmp5_;
+	GtkWindow* _tmp6_;
+	AppSettings* _tmp7_;
+	gint _tmp8_;
+	gint _tmp9_;
+	GtkWindow* _tmp10_;
+	AppSettings* _tmp11_;
+	gint _tmp12_;
+	gint _tmp13_;
 	GtkBox* main_box = NULL;
-	GtkBox* _tmp12_;
-	GtkWindow* _tmp13_;
+	GtkBox* _tmp14_;
+	GtkWindow* _tmp15_;
 	GMenu* menubar = NULL;
-	GMenu* _tmp14_;
+	GMenu* _tmp16_;
 	GtkBox* toolbar = NULL;
-	GtkBox* _tmp15_;
-	GtkPaned* paned = NULL;
-	GtkPaned* _tmp16_;
-	GtkBox* fs_box = NULL;
 	GtkBox* _tmp17_;
+	GtkPaned* paned = NULL;
+	GtkPaned* _tmp18_;
+	GtkBox* fs_box = NULL;
+	GtkBox* _tmp19_;
 	GtkBox* iso_box = NULL;
-	GtkBox* _tmp18_;
-	GtkWindow* _tmp19_;
-	GtkWindow* _tmp20_;
+	GtkBox* _tmp20_;
+	GtkWindow* _tmp21_;
+	GtkWindow* _tmp22_;
 	self = (IsoMaster*) base;
 	_tmp0_ = g_malloc ((gsize) sizeof (VolInfo));
 	self->priv->vol_info = (VolInfo*) _tmp0_;
 	_tmp1_ = self->priv->vol_info;
 	bk_init_vol_info (_tmp1_, FALSE);
 	iso_master_load_settings (self);
-	_tmp2_ = (GtkApplicationWindow*) gtk_application_window_new ((GtkApplication*) self);
-	g_object_ref_sink (_tmp2_);
+	_tmp2_ = adw_style_manager_get_default ();
+	_tmp3_ = _g_object_ref0 (_tmp2_);
+	style_manager = _tmp3_;
+	adw_style_manager_set_color_scheme (style_manager, ADW_COLOR_SCHEME_PREFER_LIGHT);
+	_tmp4_ = (GtkApplicationWindow*) gtk_application_window_new ((GtkApplication*) self);
+	g_object_ref_sink (_tmp4_);
 	_g_object_unref0 (self->priv->main_window);
-	self->priv->main_window = (GtkWindow*) _tmp2_;
-	_tmp3_ = self->priv->main_window;
-	gtk_window_set_title (_tmp3_, "ISO Master");
-	_tmp4_ = self->priv->main_window;
-	_tmp5_ = self->priv->settings;
-	_tmp6_ = app_settings_get_window_width (_tmp5_);
-	_tmp7_ = _tmp6_;
-	g_object_set (_tmp4_, "default-width", _tmp7_, NULL);
-	_tmp8_ = self->priv->main_window;
-	_tmp9_ = self->priv->settings;
-	_tmp10_ = app_settings_get_window_height (_tmp9_);
-	_tmp11_ = _tmp10_;
-	g_object_set (_tmp8_, "default-height", _tmp11_, NULL);
-	_tmp12_ = (GtkBox*) gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-	g_object_ref_sink (_tmp12_);
-	main_box = _tmp12_;
-	_tmp13_ = self->priv->main_window;
-	gtk_window_set_child (_tmp13_, (GtkWidget*) main_box);
-	_tmp14_ = iso_master_build_menubar (self);
-	menubar = _tmp14_;
+	self->priv->main_window = (GtkWindow*) _tmp4_;
+	_tmp5_ = self->priv->main_window;
+	gtk_window_set_title (_tmp5_, "ISO Master");
+	_tmp6_ = self->priv->main_window;
+	_tmp7_ = self->priv->settings;
+	_tmp8_ = app_settings_get_window_width (_tmp7_);
+	_tmp9_ = _tmp8_;
+	g_object_set (_tmp6_, "default-width", _tmp9_, NULL);
+	_tmp10_ = self->priv->main_window;
+	_tmp11_ = self->priv->settings;
+	_tmp12_ = app_settings_get_window_height (_tmp11_);
+	_tmp13_ = _tmp12_;
+	g_object_set (_tmp10_, "default-height", _tmp13_, NULL);
+	_tmp14_ = (GtkBox*) gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+	g_object_ref_sink (_tmp14_);
+	main_box = _tmp14_;
+	_tmp15_ = self->priv->main_window;
+	gtk_window_set_child (_tmp15_, (GtkWidget*) main_box);
+	_tmp16_ = iso_master_build_menubar (self);
+	menubar = _tmp16_;
 	gtk_application_set_menubar ((GtkApplication*) self, (GMenuModel*) menubar);
-	_tmp15_ = iso_master_build_toolbar (self);
-	toolbar = _tmp15_;
+	_tmp17_ = iso_master_build_toolbar (self);
+	toolbar = _tmp17_;
 	gtk_box_append (main_box, (GtkWidget*) toolbar);
-	_tmp16_ = (GtkPaned*) gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
-	g_object_ref_sink (_tmp16_);
-	paned = _tmp16_;
+	_tmp18_ = (GtkPaned*) gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
+	g_object_ref_sink (_tmp18_);
+	paned = _tmp18_;
 	gtk_widget_set_vexpand ((GtkWidget*) paned, TRUE);
-	_tmp17_ = iso_master_build_fs_browser (self);
-	fs_box = _tmp17_;
+	_tmp19_ = iso_master_build_fs_browser (self);
+	fs_box = _tmp19_;
 	gtk_paned_set_start_child (paned, (GtkWidget*) fs_box);
 	gtk_paned_set_resize_start_child (paned, TRUE);
 	gtk_paned_set_shrink_start_child (paned, FALSE);
-	_tmp18_ = iso_master_build_iso_browser (self);
-	iso_box = _tmp18_;
+	_tmp20_ = iso_master_build_iso_browser (self);
+	iso_box = _tmp20_;
 	gtk_paned_set_end_child (paned, (GtkWidget*) iso_box);
 	gtk_paned_set_resize_end_child (paned, TRUE);
 	gtk_paned_set_shrink_end_child (paned, FALSE);
 	gtk_box_append (main_box, (GtkWidget*) paned);
-	_tmp19_ = self->priv->main_window;
-	g_signal_connect_object (_tmp19_, "close-request", (GCallback) ___lambda43__gtk_window_close_request, self, 0);
-	_tmp20_ = self->priv->main_window;
-	gtk_window_present (_tmp20_);
+	_tmp21_ = self->priv->main_window;
+	g_signal_connect_object (_tmp21_, "close-request", (GCallback) ___lambda43__gtk_window_close_request, self, 0);
+	_tmp22_ = self->priv->main_window;
+	gtk_window_present (_tmp22_);
 	_g_object_unref0 (iso_box);
 	_g_object_unref0 (fs_box);
 	_g_object_unref0 (paned);
 	_g_object_unref0 (toolbar);
 	_g_object_unref0 (menubar);
 	_g_object_unref0 (main_box);
+	_g_object_unref0 (style_manager);
 }
 
 static GMenu*
@@ -2064,12 +2078,6 @@ ___lambda35__gtk_button_clicked (GtkButton* _sender,
                                  gpointer self)
 {
 	__lambda35_ ((IsoMaster*) self);
-}
-
-static gpointer
-_g_object_ref0 (gpointer self)
-{
-	return self ? g_object_ref (self) : NULL;
 }
 
 static void

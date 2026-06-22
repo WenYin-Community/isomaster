@@ -62,6 +62,10 @@ public class IsoMaster : Adw.Application {
         // Load settings
         load_settings();
 
+        // Set Adwaita style
+        var style_manager = Adw.StyleManager.get_default();
+        style_manager.color_scheme = Adw.ColorScheme.PREFER_LIGHT;
+
         // Create main window
         main_window = new Gtk.ApplicationWindow(this);
         main_window.title = "ISO Master";
