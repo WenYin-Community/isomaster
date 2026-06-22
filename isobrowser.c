@@ -135,19 +135,19 @@ void addToIsoCbk(GtkButton *button, gpointer data)
                              G_CALLBACK(cancelOperation), NULL);
     
     label = gtk_label_new(_("Please wait while I'm adding the selected items..."));
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(progressWindow)->vbox), label, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(progressWindow))), label, TRUE, TRUE, 0);
     gtk_widget_show(label);
     
     if(GBLappSettings.scanForDuplicateFiles)
     {
         label = gtk_label_new(_("(scanning for duplicate files)"));
-        gtk_box_pack_start(GTK_BOX(GTK_DIALOG(progressWindow)->vbox), label, TRUE, TRUE, 0);
+        gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(progressWindow))), label, TRUE, TRUE, 0);
         gtk_widget_show(label);
     }
     
     /* the progress bar */
     GBLactivityProgressBar = gtk_progress_bar_new();
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(progressWindow)->vbox), GBLactivityProgressBar, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(progressWindow))), GBLactivityProgressBar, TRUE, TRUE, 0);
     gtk_widget_show(GBLactivityProgressBar);
     
     /* button to cancel adding */
@@ -279,7 +279,7 @@ bool askForPermissions(const char* fullItemName, mode_t* permissions)
     table = gtk_table_new(3, 11, FALSE);
     //~ gtk_table_set_row_spacings(GTK_TABLE(table), 5);
     //~ gtk_table_set_col_spacings(GTK_TABLE(table), 5);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), table, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), table, TRUE, TRUE, 0);
     gtk_widget_show(table);
     
     label = gtk_label_new("User");
@@ -903,12 +903,12 @@ void extractFromIsoCbk(GtkButton *button, gpointer data)
         
         /* just some text */
         descriptionLabel = gtk_label_new(_("Please wait while I'm extracting the selected files..."));
-        gtk_box_pack_start(GTK_BOX(GTK_DIALOG(progressWindow)->vbox), descriptionLabel, TRUE, TRUE, 0);
+        gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(progressWindow))), descriptionLabel, TRUE, TRUE, 0);
         gtk_widget_show(descriptionLabel);
         
         /* the progress bar */
         GBLactivityProgressBar = gtk_progress_bar_new();
-        gtk_box_pack_start(GTK_BOX(GTK_DIALOG(progressWindow)->vbox), GBLactivityProgressBar, TRUE, TRUE, 0);
+        gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(progressWindow))), GBLactivityProgressBar, TRUE, TRUE, 0);
         gtk_widget_show(GBLactivityProgressBar);
         
         /* button to cancel extracting */
@@ -984,7 +984,7 @@ gboolean isoButtonPressedCbk(GtkWidget* isoView, GdkEventButton* event, gpointer
     /* no iso open */
         return FALSE;
     
-    if(event->type == GDK_BUTTON_PRESS  &&  event->button == 3)
+    if(gdk_event_get_event_type((GdkEvent*)event) == GDK_BUTTON_PRESS &&  gdk_button_event_get_button((GdkEvent*)event) == 3)
     {
         /* Stop event propagation */
         /*!! Would be nice if I could only stop event propagation if click was on
@@ -1004,7 +1004,7 @@ gboolean isoButtonReleasedCbk(GtkWidget* isoView, GdkEventButton* event, gpointe
     /* no iso open */
         return FALSE;
     
-    if(event->type == GDK_BUTTON_RELEASE &&  event->button == 3)
+    if(gdk_event_get_event_type((GdkEvent*)event) == GDK_BUTTON_RELEASE &&  gdk_button_event_get_button((GdkEvent*)event) == 3)
     {
         showIsoContextMenu(isoView, event);
     }
@@ -1066,7 +1066,7 @@ void isoGoUpDirTreeCbk(GtkButton *button, gpointer data)
 
 gboolean isoKeyPressedCbk(GtkWidget* widget, GdkEventKey* event, gpointer user_data)
 {
-    if(event->keyval == GDK_Delete)
+    if(gdk_key_event_get_keyval((GdkEvent*)event) == GDK_KEY_Delete)
     {
         deleteFromIsoCbk(NULL, NULL);
         
@@ -1304,19 +1304,19 @@ void openIso(char* filename)
                              G_CALLBACK(cancelOperation), NULL);
     
     label = gtk_label_new(_("Please wait while I'm reading the image..."));
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(progressWindow)->vbox), label, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(progressWindow))), label, TRUE, TRUE, 0);
     gtk_widget_show(label);
     
     if(GBLappSettings.scanForDuplicateFiles)
     {
         label = gtk_label_new(_("(scanning for duplicate files)"));
-        gtk_box_pack_start(GTK_BOX(GTK_DIALOG(progressWindow)->vbox), label, TRUE, TRUE, 0);
+        gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(progressWindow))), label, TRUE, TRUE, 0);
         gtk_widget_show(label);
     }
     
     /* the progress bar */
     GBLactivityProgressBar = gtk_progress_bar_new();
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(progressWindow)->vbox), GBLactivityProgressBar, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(progressWindow))), GBLactivityProgressBar, TRUE, TRUE, 0);
     gtk_widget_show(GBLactivityProgressBar);
     
     /* button to cancel adding */
@@ -1602,7 +1602,7 @@ void renameSelectedRowCbk(GtkTreeModel* model, GtkTreePath* path,
     gtk_entry_set_width_chars(GTK_ENTRY(nameField), 32);
     g_signal_connect(nameField, "activate", (GCallback)acceptDialogCbk, dialog);
     gtk_widget_show(nameField);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), nameField, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), nameField, TRUE, TRUE, 0);
     
     gtk_widget_show(dialog);
     
@@ -1662,12 +1662,12 @@ void saveIso(char* filename)
     
     /* just some text */
     descriptionLabel = gtk_label_new(_("Please wait while I'm saving the new image to disk..."));
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(GBLwritingProgressWindow)->vbox), descriptionLabel, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(GBLwritingProgressWindow))), descriptionLabel, TRUE, TRUE, 0);
     gtk_widget_show(descriptionLabel);
     
     /* the progress bar */
     GBLWritingProgressBar = gtk_progress_bar_new();
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(GBLwritingProgressWindow)->vbox), GBLWritingProgressBar, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(GBLwritingProgressWindow))), GBLWritingProgressBar, TRUE, TRUE, 0);
     gtk_widget_show(GBLWritingProgressBar);
     
     /* button to close the dialog (disabled until writing finished) */
@@ -1938,7 +1938,7 @@ void showIsoContextMenu(GtkWidget* isoView, GdkEventButton* event)
         //~ gtk_widget_set_sensitive(menuItem, FALSE);
     
     gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
-                   event->button, gdk_event_get_time((GdkEvent*)event));
+                   gdk_button_event_get_button((GdkEvent*)event), gdk_event_get_time((GdkEvent*)event));
 }
 
 /* this handles the ok and cancel buttons in the progress window */

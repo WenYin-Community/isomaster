@@ -57,7 +57,7 @@ export ECHO    = echo
 VERSION = 1.3.17
 
 # -DDEBUG and -g only used during development
-CFLAGS += ${OPTFLAGS} -pedantic -std=gnu99 -Wundef -Wcast-align -W -Wpointer-arith -Wwrite-strings -Wno-unused-parameter -Wno-deprecated-declarations `pkg-config --cflags gtk+-2.0`
+CFLAGS += ${OPTFLAGS} -pedantic -std=gnu99 -Wundef -Wcast-align -W -Wpointer-arith -Wwrite-strings -Wno-unused-parameter -Wno-deprecated-declarations `pkg-config --cflags gtk4`
 ifndef WITHOUT_NLS
 	CFLAGS += -DENABLE_NLS
 endif
@@ -81,9 +81,9 @@ all: translations isomaster.desktop isomaster
 isomaster: $(OBJECTS) lib iniparser
 	@echo 'Linking isomaster'
 ifndef USE_SYSTEM_INIPARSER
-	@$(CC) $(LDFLAGS) $(OBJECTS) bk/bk.a iniparser-4.1/libiniparser.a -o isomaster `pkg-config --libs gtk+-2.0`
+	@$(CC) $(LDFLAGS) $(OBJECTS) bk/bk.a iniparser-4.1/libiniparser.a -o isomaster `pkg-config --libs gtk4`
 else
-	@$(CC) $(LDFLAGS) $(OBJECTS) bk/bk.a -l$(LIB_INIPARSER) -o isomaster `pkg-config --libs gtk+-2.0`
+	@$(CC) $(LDFLAGS) $(OBJECTS) bk/bk.a -l$(LIB_INIPARSER) -o isomaster `pkg-config --libs gtk4`
 endif
 
 # static pattern rule

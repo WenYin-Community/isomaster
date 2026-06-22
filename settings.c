@@ -73,7 +73,7 @@ void buildImagePropertiesWindow(GtkWidget *widget, GdkEvent *event)
     table = gtk_table_new(1, 2, FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(table), 5);
     gtk_table_set_col_spacings(GTK_TABLE(table), 5);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), table, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), table, TRUE, TRUE, 0);
     gtk_widget_show(table);
     
     label = gtk_label_new(_("Creation time:"));
@@ -117,7 +117,7 @@ void buildImagePropertiesWindow(GtkWidget *widget, GdkEvent *event)
     gtk_widget_show(publisherField);
     
     hBox = gtk_hbox_new(FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hBox, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), hBox, TRUE, TRUE, 5);
     gtk_widget_show(hBox);
     
     label = gtk_label_new(_("Filename types (both recommended):"));
@@ -702,7 +702,7 @@ void showPreferencesWindowCbk(GtkButton* button, gpointer data)
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(prefWidgets.scanForDuplicateFiles), TRUE);
     else
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(prefWidgets.scanForDuplicateFiles), FALSE);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(prefWidgets.dialog)->vbox), 
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(prefWidgets.dialog))), 
                        prefWidgets.scanForDuplicateFiles, 
                        TRUE, TRUE, 0);
     gtk_widget_show(prefWidgets.scanForDuplicateFiles);
@@ -715,43 +715,43 @@ void showPreferencesWindowCbk(GtkButton* button, gpointer data)
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(prefWidgets.followSymlinks), TRUE);
     else
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(prefWidgets.followSymlinks), FALSE);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(prefWidgets.dialog)->vbox), 
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(prefWidgets.dialog))), 
                        prefWidgets.followSymlinks, 
                        TRUE, TRUE, 0);
     gtk_widget_show(prefWidgets.followSymlinks);
     
     label = gtk_label_new(_("Editor"));
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(prefWidgets.dialog)->vbox), 
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(prefWidgets.dialog))), 
                        label, TRUE, TRUE, 0);
     gtk_widget_show(label);
     
     prefWidgets.editor = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(prefWidgets.editor), GBLappSettings.editor);
     gtk_entry_set_width_chars(GTK_ENTRY(prefWidgets.editor), 30);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(prefWidgets.dialog)->vbox), 
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(prefWidgets.dialog))), 
                        prefWidgets.editor, TRUE, TRUE, 0);
     gtk_widget_show(prefWidgets.editor);
     
     label = gtk_label_new(_("Viewer"));
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(prefWidgets.dialog)->vbox), label, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(prefWidgets.dialog))), label, TRUE, TRUE, 0);
     gtk_widget_show(label);
     
     prefWidgets.viewer = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(prefWidgets.viewer), GBLappSettings.viewer);
     gtk_entry_set_width_chars(GTK_ENTRY(prefWidgets.viewer), 30);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(prefWidgets.dialog)->vbox), 
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(prefWidgets.dialog))), 
                        prefWidgets.viewer, TRUE, TRUE, 0);
     gtk_widget_show(prefWidgets.viewer);
     
     label = gtk_label_new(_("Temporary directory"));
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(prefWidgets.dialog)->vbox), label, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(prefWidgets.dialog))), label, TRUE, TRUE, 0);
     gtk_widget_show(label);
     
     prefWidgets.tempDir = gtk_file_chooser_button_new(_("Temporary directory"), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
     gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(prefWidgets.tempDir), GBLappSettings.tempDir);
     //!! add /tmp to quicklist or something
     gtk_file_chooser_add_shortcut_folder(GTK_FILE_CHOOSER(prefWidgets.tempDir), "/tmp", NULL);
-    gtk_box_pack_start (GTK_BOX(GTK_DIALOG(prefWidgets.dialog)->vbox), prefWidgets.tempDir, 
+    gtk_box_pack_start (GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(prefWidgets.dialog))), prefWidgets.tempDir, 
         TRUE, TRUE, 0);
     gtk_widget_show (prefWidgets.tempDir);
     

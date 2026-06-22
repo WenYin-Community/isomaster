@@ -79,7 +79,7 @@ void createDirCbk(GtkButton *button, gpointer onFs)
     
     textEntry = gtk_entry_new();
     gtk_entry_set_width_chars(GTK_ENTRY(textEntry), 40);
-    gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), textEntry);
+    gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), textEntry);
     gtk_widget_show(textEntry);
     g_signal_connect(textEntry, "activate", (GCallback)acceptDialogCbk, dialog);
     g_signal_connect(dialog, "close", G_CALLBACK(rejectDialogCbk), NULL);

@@ -341,7 +341,7 @@ void showBootInfoCbk(GtkButton *button, gpointer data)
     g_signal_connect(dialog, "close", G_CALLBACK(rejectDialogCbk), NULL);
     
     vBox = gtk_vbox_new(TRUE, 5);
-    gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), vBox);
+    gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), vBox);
     gtk_widget_show(vBox);
     
     if(GBLvolInfo.bootMediaType == BOOT_MEDIA_NO_EMULATION)

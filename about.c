@@ -369,7 +369,7 @@ N_(
 
 gboolean helpKeyPressCbk(GtkWidget* widget, GdkEventKey* event, gpointer user_data)
 {
-    if(event->keyval == GDK_Escape)
+    if(gdk_key_event_get_keyval((GdkEvent*)event) == GDK_KEY_Escape)
     {
         gtk_widget_destroy(widget);
         

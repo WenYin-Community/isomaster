@@ -2,6 +2,7 @@
 #define isomaster_h
 
 #include <gtk/gtk.h>
+#include "gtk4-compat.h"
 
 #include "bk/bk.h"
 #include "window.h"

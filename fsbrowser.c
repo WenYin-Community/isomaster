@@ -382,11 +382,9 @@ bool changeFsDirectory(const char* newDirStr)
 * I have a feeling someone did this shit in GTK just to piss on users */
 gboolean fsButtonPressedCbk(GtkWidget* fsView, GdkEventButton* event, gpointer user_data)
 {
-    if(event->type == GDK_BUTTON_PRESS  &&  event->button == 3)
+    if(gdk_event_get_event_type((GdkEvent*)event) == GDK_BUTTON_PRESS  &&  gdk_button_event_get_button((GdkEvent*)event) == 3)
     {
         /* Stop event propagation */
-        /*!! Would be nice if I could only stop event propagation if click was on
-        * the selection, I have to look into how that may be done, if at all */
         return TRUE;
     }
     
@@ -398,7 +396,7 @@ gboolean fsButtonPressedCbk(GtkWidget* fsView, GdkEventButton* event, gpointer u
 * Show context menu if releasing the right mouse button */
 gboolean fsButtonReleasedCbk(GtkWidget* fsView, GdkEventButton* event, gpointer user_data)
 {
-    if(event->type == GDK_BUTTON_RELEASE &&  event->button == 3)
+    if(gdk_event_get_event_type((GdkEvent*)event) == GDK_BUTTON_RELEASE &&  gdk_button_event_get_button((GdkEvent*)event) == 3)
     {
         showFsContextMenu(fsView, event);
     }

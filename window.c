@@ -18,6 +18,8 @@
 
 #include "isomaster.h"
 
+extern GtkApplication* GBLapp;
+
 /* the label that holds the value of the iso size */
 GtkWidget* GBLisoSizeLbl;
 /* icon for 'go back' for fs browser */
@@ -442,7 +444,7 @@ gboolean closeMainWindowCbk(GtkWidget *widget, GdkEvent *event)
     deleteTempFiles();
     
     printf("Quitting\n");
-    gtk_main_quit();
+    g_application_quit(G_APPLICATION(GBLapp));
     
     /* the accelerator callback must return true */
     return TRUE;
