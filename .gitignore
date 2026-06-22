@@ -1,0 +1,16 @@
+# Build artifacts
+*.o
+*.a
+*.so
+*.so.*
+*.mo
+
+# Binary
+isomaster
+isomaster.desktop
+bk/example
+
+# Editor files
+*~
+*.swp
+*.swo
