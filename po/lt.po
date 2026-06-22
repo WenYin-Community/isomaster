@@ -1,0 +1,544 @@
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Mindaugas Baranauskas <embar@users.berlios.de>, 2011.
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-02-11 16:41-0500\n"
+"PO-Revision-Date: 2011-08-31 13:12+0300\n"
+"Last-Translator: Mindaugas Baranauskas <embar@users.berlios.de>\n"
+"Language-Team: Lithuanian <kde-i18n-doc@kde.org>\n"
+"Language: lt\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Lokalize 1.2\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n"
+"%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: ../window.c:415
+msgid "      Estimated ISO Size: "
+msgstr "      ISO dydis tikriausiai bus: "
+
+#: ../isobrowser.c:1511
+#, c-format
+msgid ""
+"%s\n"
+"\n"
+"Do you wish to continue?"
+msgstr ""
+"%s\n"
+"\n"
+"Tęsti?"
+
+#: ../editfile.c:272 ../editfile.c:368 ../editfile.c:605 ../editfile.c:700
+#, c-format
+msgid "'%s' is not a regular file"
+msgstr "„%s“ nėra normali rinkmena"
+
+#: ../isobrowser.c:143 ../isobrowser.c:1312
+msgid "(scanning for duplicate files)"
+msgstr "(ieškoma besidubliuojančių rinkmenų)"
+
+#: ../window.c:401
+msgid "Add"
+msgstr "Pridėti"
+
+#: ../isobrowser.c:1749
+msgid "Add extension automatically"
+msgstr "Automatiškai pridėti prievardį"
+
+#: ../window.c:401
+msgid "Add to the ISO"
+msgstr "Įtraukti į ISO"
+
+#: ../isobrowser.c:1443 ../isobrowser.c:1746
+msgid "All files"
+msgstr "Visos rinkmenos"
+
+#: ../boot.c:334
+msgid "Boot Record Information"
+msgstr "Paleidimo įrašo informacija"
+
+#: ../boot.c:122
+msgid "Boot record deleted"
+msgstr "Paleidimo įrašas pašalintas"
+
+#: ../boot.c:350
+#, c-format
+msgid "Boot record type: 1200KiB Floppy"
+msgstr "Paleidimo įrašo tipas: 1200KiB diskelis"
+
+#: ../boot.c:352
+#, c-format
+msgid "Boot record type: 1440KiB Floppy"
+msgstr "Paleidimo įrašo tipas: 1440KiB diskelis"
+
+#: ../boot.c:354
+#, c-format
+msgid "Boot record type: 2880KiB Floppy"
+msgstr "Paleidimo įrašo tipas: 2880KiB diskelis"
+
+#: ../boot.c:348
+#, c-format
+msgid "Boot record type: No Emulation"
+msgstr "Paleidimo įrašo tipas: be emuliacijos"
+
+#: ../isobrowser.c:268 ../isobrowser.c:1932
+msgid "Change permissions"
+msgstr "Keisti leidimus"
+
+#: ../boot.c:40
+msgid "Choose Boot Record File"
+msgstr "Pasirinkite paleidimo įrašo rinkmeną"
+
+#: ../window.c:397
+msgid "Create new directory on the ISO"
+msgstr "ISO atvaizdyje sukurti naują katalogą"
+
+#: ../window.c:61
+msgid "Create new directory on the filesystem"
+msgstr "Rinkmenų sistemoje atvaizdyje sukurti naują katalogą"
+
+#: ../settings.c:79
+msgid "Creation time:"
+msgstr "Sukūrimo laikas:"
+
+#: ../window.c:411
+msgid "Delete from the ISO"
+msgstr "Pašalinti iš ISO"
+
+#: ../fsbrowser.c:590 ../isobrowser.c:1925
+msgid "Edit"
+msgstr "Redaguoti"
+
+#: ../editfile.c:82
+msgid "Edit failed, please check Options/Editor"
+msgstr "Redaguoti nepavyks, patikrinkite nuostatas ties Parinktys/Rengyklė"
+
+#: ../settings.c:723
+msgid "Editor"
+msgstr "Rengyklė"
+
+#: ../isobrowser.c:1590
+msgid "Enter a new name:"
+msgstr "Įveskite naują vardą:"
+
+#: ../browser.c:71
+msgid "Enter name for new directory"
+msgstr "Įveskite naujo katalogo vardą"
+
+#: ../window.c:406
+msgid "Extract"
+msgstr "Ištraukti"
+
+#: ../window.c:406
+msgid "Extract from the ISO"
+msgstr "Išpakuoti iš ISO"
+
+#: ../editfile.c:473 ../isobrowser.c:216
+#, c-format
+msgid "Failed to add '%s': '%s'"
+msgstr "Nepavyko pridėti „%s“: „%s“"
+
+#: ../boot.c:79
+#, c-format
+msgid "Failed to add boot record: '%s'"
+msgstr "Nepavyko pridėti paleidimo įrašo: „%s“"
+
+#: ../isobrowser.c:556
+#, c-format
+msgid "Failed to change directory: '%s'"
+msgstr "Nepavyko pakeisti katalogo: „%s“"
+
+#: ../browser.c:112
+#, c-format
+msgid "Failed to create directory %s"
+msgstr "Nepavyko sukurti katalogo %s"
+
+#: ../browser.c:135
+#, c-format
+msgid "Failed to create directory %s: '%s'"
+msgstr "Nepavyko sukurti katalogo %s: „%s“"
+
+#: ../editfile.c:447 ../isobrowser.c:851
+#, c-format
+msgid "Failed to delete '%s': '%s'"
+msgstr "Nepavyko pašalinti „%s“: „%s“"
+
+#: ../editfile.c:412 ../editfile.c:744 ../isobrowser.c:963
+#, c-format
+msgid "Failed to extract '%s': '%s'"
+msgstr "Nepavyko išpakuoti „%s“: „%s“"
+
+#: ../boot.c:202
+#, c-format
+msgid "Failed to extract boot record: '%s'"
+msgstr "Nepavyko ištraukti paleidimo įrašo: „%s“"
+
+#: ../isobrowser.c:1146 ../isobrowser.c:1248
+#, c-format
+msgid "Failed to initialise bkisofs: '%s'"
+msgstr "Nepavyko paleisti bkisofs: „%s“"
+
+#: ../fsbrowser.c:229
+#, c-format
+msgid "Failed to open directory '%s', error %d"
+msgstr "Nepavyko atverti katalogo „%s“, %d klaida"
+
+#: ../isobrowser.c:1267
+#, c-format
+msgid "Failed to open iso file for reading: '%s'"
+msgstr "Nepavyko atverti iso atvaizdžio skaitymui: „%s“"
+
+#: ../isobrowser.c:1342
+#, c-format
+msgid "Failed to read directory tree: '%s'"
+msgstr "Nepavyko nuskaityti katalogų medžio: „%s“"
+
+#: ../isobrowser.c:1282
+#, c-format
+msgid "Failed to read volume info: '%s'"
+msgstr "Nepavyko nuskaityti tomo informacijos: „%s“"
+
+#: ../isobrowser.c:1619
+#, c-format
+msgid "Failed to rename '%s': %s"
+msgstr "Nepavyko pervadinti „%s“: %s"
+
+#: ../boot.c:296
+#, c-format
+msgid "Failed to set %s as boot record: '%s'"
+msgstr "Nepavyko %s nustatyti kaip paleidimo įrašo: „%s“"
+
+#: ../isobrowser.c:1692
+#, c-format
+msgid "Failed to write image to '%s': '%s'"
+msgstr "Nepavyko įrašyti atvaizdžio į „%s“: „%s“"
+
+#: ../settings.c:123
+msgid "Filename types (both recommended):"
+msgstr "Rinkmenų vardų tipai (rekomenduojami abu):"
+
+#: ../settings.c:713
+msgid "Follow symbolic links"
+msgstr "Sekti simbolinėmis nuorodomis"
+
+#: ../window.c:325
+msgid "From file: 1200KiB floppy"
+msgstr "Iš rinkmenos: 1200KiB diskelis"
+
+#: ../window.c:331
+msgid "From file: 1440KiB floppy"
+msgstr "Iš rinkmenos: 1440KiB diskelis"
+
+#: ../window.c:337
+msgid "From file: 2880KiB floppy"
+msgstr "Iš rinkmenos: 2880KiB diskelis"
+
+#: ../window.c:319
+msgid "From file: no emulation"
+msgstr "Iš rinkmenos: be emuliacijos"
+
+#: ../isobrowser.c:869
+msgid ""
+"GUI error, deleting anything other than files and directories doesn't work"
+msgstr ""
+"Grafinės sąsajos klaida, be rinkmenų ir katalogų nieko nepavyks pašalinti"
+
+#: ../window.c:54 ../window.c:390
+msgid "Go back"
+msgstr "Aukštyn"
+
+#: ../window.c:391
+msgid "Go back up one directory on the ISO"
+msgstr "Eiti prie vienu katalogu aukščiau ISO atvaizdyje esančio katalogo"
+
+#: ../window.c:55
+msgid "Go back up one directory on the filesystem"
+msgstr "Eiti prie vienu katalogu aukščiau rinkmenų sistemoje esančio katalogo"
+
+#: ../isobrowser.c:1428 ../isobrowser.c:1741
+msgid "ISO Images"
+msgstr "ISO atvaizdžiai"
+
+#: ../about.c:404
+msgid "ISO Master Help"
+msgstr "ISO Master pagalba"
+
+#: ../settings.c:63
+msgid "Image Information"
+msgstr "Informacija apie atvaizdį"
+
+#: ../settings.c:158
+#, c-format
+msgid "Invalid publisher '%s': '%s'"
+msgstr "Netinkamas leidėjas „%s“: „%s“"
+
+#: ../settings.c:174
+#, c-format
+msgid "Invalid volume name '%s': '%s'"
+msgstr "Netinkamas tomo vardas „%s“: „%s“"
+
+#: ../boot.c:391
+#, c-format
+msgid "Is not visible on image"
+msgstr "Atvaizdyje nematomas"
+
+#: ../boot.c:389
+#, c-format
+msgid "Is visible on image as '%s'"
+msgstr "Atvaizdyje matomas kaip „%s“"
+
+#: ../isobrowser.c:771
+msgid ""
+"It seems that you have made changes to the ISO but haven't saved them. Are "
+"you sure you want to close it?"
+msgstr ""
+"Regis ISO atvaizdyje kažką keitėte, bet pakeitimų neišsaugojote. Tikrai "
+"užverti?"
+
+#: ../boot.c:271
+msgid "Item selected is not a regular file and cannot be used as a boot record"
+msgstr ""
+"Pasirinktas elementas nėra normali rinkmena, tad jos negalima naudoti kaip "
+"paleidimo įrašo"
+
+#: ../boot.c:373 ../boot.c:380
+#, c-format
+msgid "Location: on original image at 0x%llX"
+msgstr "Vieta: originaliame atvaizdyje ties 0x%llX"
+
+#: ../boot.c:375 ../boot.c:382
+#, c-format
+msgid "Location: to be added from '%s'"
+msgstr "Vieta: bus pridėta iš „%s“"
+
+#: ../isobrowser.c:1438
+msgid "MDF Images"
+msgstr "MDF atvaizdžiai"
+
+#: ../isobrowser.c:1433
+msgid "NRG Images"
+msgstr "NRG atvaizdžiai"
+
+#: ../fsbrowser.c:121 ../isobrowser.c:483
+msgid "Name"
+msgstr "Vardas"
+
+#: ../window.c:60 ../window.c:396
+msgid "New Directory"
+msgstr "Naujas katalogas"
+
+#: ../boot.c:149 ../boot.c:327
+msgid "No boot record read from original or set on image"
+msgstr ""
+"Paleidimo įrašas nebuvo nei nuskaitytas originale, nei atvaizdžiui priskirtas"
+
+#: ../boot.c:108
+msgid "No boot to delete"
+msgstr "Nėra pašalintino paleidimo įrašo"
+
+#: ../window.c:167
+msgid "Open Recent"
+msgstr "Atverti paskiausią"
+
+#: ../settings.c:688
+msgid "Options"
+msgstr "Parinktys"
+
+#: ../boot.c:229
+msgid "Please select a file in the ISO browser to use as the boot record"
+msgstr "ISO naršyklėje pasirinkite rinkmeną, naudotiną kaip paleidimo įrašą"
+
+#: ../boot.c:243
+msgid "Please select no more than one file in the ISO browser"
+msgstr "ISO naršyklėje galite rinktis tik vieną rinkmeną"
+
+#: ../isobrowser.c:137
+msgid "Please wait while I'm adding the selected items..."
+msgstr "Pridedami pasirinkti elementai, palaukite..."
+
+#: ../isobrowser.c:905
+msgid "Please wait while I'm extracting the selected files..."
+msgstr "Išpakuojamos pasirinktos rinkmenos, palaukite..."
+
+#: ../isobrowser.c:1306
+msgid "Please wait while I'm reading the image..."
+msgstr "Skaitomas atvaizdis, palaukite..."
+
+#: ../isobrowser.c:1664
+msgid "Please wait while I'm saving the new image to disk..."
+msgstr "Atvaizdis įrašomas į diską, palaukite..."
+
+#: ../isobrowser.c:130 ../isobrowser.c:897 ../isobrowser.c:1299
+#: ../isobrowser.c:1654
+msgid "Progress"
+msgstr "Eiga"
+
+#: ../settings.c:107
+msgid "Publisher:"
+msgstr "Išleido:"
+
+#: ../window.c:411
+msgid "Remove"
+msgstr "Naikinti"
+
+#: ../isobrowser.c:1909
+msgid "Rename"
+msgstr "Pervadinti"
+
+#: ../isobrowser.c:1730
+msgid "Save File"
+msgstr "Įrašyti rinkmeną"
+
+#: ../boot.c:156
+msgid "Save a copy of the boot record"
+msgstr "Išsaugoti paleidimo įrašo kopiją"
+
+#: ../settings.c:700
+msgid "Scan for duplicate files (slow)"
+msgstr "Ieškoti besidubliuojančių rinkmenų (lėtai)"
+
+#: ../window.c:241
+msgid "Show _hidden files"
+msgstr "Rodyti _slepiamąsias"
+
+#: ../fsbrowser.c:142 ../isobrowser.c:506
+msgid "Size"
+msgstr "Dydis"
+
+#: ../boot.c:363
+#, c-format
+msgid "Size: %d bytes"
+msgstr "Dydis, baitais: %d"
+
+#: ../fsbrowser.c:280
+msgid ""
+"Skipping directory entry because cannot handle filename longer than 256 chars"
+msgstr ""
+"Katalogo elementas praleidžiamas, nes negalima apdoroti vardų, ilgesnių kaip "
+"256 simboliai"
+
+#: ../fsbrowser.c:299
+#, c-format
+msgid "Skipping directory entry because stat(%s) failed with %d"
+msgstr "Katalogo elementas praleidžiamas, nes stat(%s) nepavyko su %d"
+
+#: ../window.c:261
+msgid "Sort is _case sensitive"
+msgstr "_Rikiuoti skiriant raidžių lygį"
+
+#: ../settings.c:746 ../settings.c:750
+msgid "Temporary directory"
+msgstr "Laikinasis katalogas"
+
+#: ../about.c:342
+msgid ""
+"The ISO Master window is split in 2 parts:\n"
+" - The top file browser shows files and directories on your machine.\n"
+" - The bottom file browser shows files and directories on the ISO image.\n"
+"\n"
+"To open an existing ISO file click on 'File' and 'Open'. To create a new\n"
+"ISO file click on 'File' and 'New'.\n"
+"\n"
+"To add one or more files or directories to the ISO select them in the top\n"
+"file browser and click the 'Add to the ISO' button in the middle toolbar.\n"
+"\n"
+"To extract one or more files or directories from the ISO select them in\n"
+"the bottom file browser and click the 'Extract from ISO' button in the\n"
+"middle toolbar.\n"
+"\n"
+"You can also delete files or directories from the ISO and create new\n"
+"directories both on the ISO and your local filesystem.\n"
+"\n"
+"If you select something in the bottom file browser and right-click on it,\n"
+"there are several more options available.\n"
+"\n"
+"Once you made all the changes to the new ISO image, click on 'File' and\n"
+"'Save As'. You cannot overwrite the original ISO.\n"
+msgstr ""
+"„ISO Master“ langas padalintas į dvi dalis:\n"
+" - viršutinėje naršyklėje matote savo kompiuterio rinkmenas ir katalogus.\n"
+" - apatinėje naršyklėje rodomi ISO atvaizdžio rinkmenos ir katalogai.\n"
+"\n"
+"Norėdami atverti esamą ISO rinkmeną, eikite „Rinkmena“ ir „Atverti“. \n"
+"Norėdami sukurti naują ISO rinkmeną, spauskite „Rinkmena“ ir „Nauja“.\n"
+"\n"
+"Norėdami į ISO atvaizdį įtraukti vieną ar kelias rinkmenas ar katalogus, \n"
+"pažymėkite juos viršutinėje viršutinėje naršyklėje ir spauskite „Įtraukti į "
+"ISO“ mygtuką įrankinės viduryje.\n"
+"\n"
+"Norėdami iš ISO atvaizdžio ištraukti rinkmenas ar katalogus, pažymėkite\n"
+"juos viršutinėje naršyklėje ir spauskite „išpakuoti iš ISO“ mygtuką\n"
+"įrankinės viduryje.\n"
+"\n"
+"Taip pat galite naikinti esančias rinkmenas ir katalogus ISO atvaizdyje, \n"
+"kurti naujus katalogus tiek ISO atvaizdyje, tiek vietinėje rinkmenų "
+"sistemoje.\n"
+"\n"
+"Ką nors pažymėję apatinėje naršyklėje ir ir spustelėję dešiniuoju pelės,\n"
+"klavišu, galėsite parinkti keletą kitų parinkčių.\n"
+"\n"
+"Atlikę visus norimus ISO atvaizdžio pakeitimus, eikite „Rinkmena“ ir \n"
+"„Įrašyti kaip“. Tačiau negalite perrašyti originalaus ISO atvaizdžio.\n"
+
+#: ../window.c:313
+msgid "Use selected file on image (no emulation)"
+msgstr "Naudoti pasirinktą atvaizdžio rinkmeną (be emuliacijos)"
+
+#: ../fsbrowser.c:583 ../isobrowser.c:1918
+msgid "View"
+msgstr "Rodymas"
+
+#: ../editfile.c:102
+msgid "View failed, please check Options/Viewer"
+msgstr "Nepavyko peržiūrėti, patikinkite nuostatas ties Parinktys/Žiūryklė"
+
+#: ../settings.c:735
+msgid "Viewer"
+msgstr "Žiūryklė"
+
+#: ../settings.c:95
+msgid "Volume name:"
+msgstr "Tomo vardas:"
+
+#: ../settings.c:674
+msgid ""
+"You will have to close and reopen the ISO for this change to take effect"
+msgstr ""
+"Šie pakeitimai įsigaliojus po to, kai užversite ir iš naujo atversite ISO"
+
+#: ../window.c:281
+msgid "_Boot Record"
+msgstr "Paleidimo į_rašas"
+
+#: ../window.c:142
+msgid "_File"
+msgstr "_Rinkmena"
+
+#: ../window.c:353
+msgid "_Help"
+msgstr "_Pagalba"
+
+#: ../window.c:345
+msgid "_Options"
+msgstr "_Parinktys"
+
+#: ../window.c:362
+msgid "_Overview"
+msgstr "_Apžvalga"
+
+#: ../window.c:251
+msgid "_Sort directories first"
+msgstr "Pirmiau _katalogai"
+
+#: ../window.c:273
+msgid "_Tools"
+msgstr "Įran_kiai"
+
+#: ../window.c:226
+msgid "_View"
+msgstr "Ro_dymas"

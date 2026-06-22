@@ -1,0 +1,11 @@
+--- isomaster-1.3.17/settings.h	2018-03-27 15:28:31.000000000 -0700
++++ isomaster-1.3.17/settings.h.new	2024-05-30 11:45:11.257580118 -0700
+@@ -7,7 +7,7 @@
+ #ifndef USE_SYSTEM_INIPARSER
+ #include "iniparser-4.1/src/iniparser.h"
+ #else
+-#include <iniparser.h>
++#include <iniparser/iniparser.h>
+ #endif
+ #define ISOMASTER_DEFAULT_WINDOW_WIDTH 500
+ #define ISOMASTER_DEFAULT_WINDOW_HEIGHT 550

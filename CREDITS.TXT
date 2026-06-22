@@ -1,0 +1,132 @@
+Many thanks to all the following people:
+
+Andrew Smith
+http://littlesvr.ca/misc/contactandrew.php
+2005 - 2018
+- author and maintainer
+
+Barb Czegel
+http://cs.senecac.on.ca/~barb.czegel/
+Summer-fall 2005
+- one of my teachers from Seneca College who has been kind enough to let me
+  work on ISO Master as my systems project for two semesters
+
+Nicolas Devillard
+http://ndevilla.free.fr/iniparser/
+August 2006
+- the excellent iniparser, for storing and reading config files
+
+The Samba Project
+http://samba.org/
+December 2005
+- most of the filename mangling code I copied from Samba
+
+Steffen Winterfeldt
+September 2006
+- helped me figure out how to work with isolinux boot records
+
+TJ
+January 2014
+- Patch to allow boot records larger than 4 sectors
+
+Roman Hubatsch (kearone)
+http://kearone.deviantart.com/
+December 2006 - January 2007
+- the excellent 'add', 'extract' icons and the new ISO Master icon
+- equally excellent 'go back', 'new folder' and 'delete' icons
+
+David Johnson
+http://www.david-web.co.uk/
+September 2006 - February 2007
+- a patch to allow associating ISO Master with ISO files in file managers
+- a patch to give ISO Master the --help command line parameter
+- gave me access to a 32bit ARM box running Debian for testing
+- gave me access to a big endian SuperSPARC II box running Debian for testing
+
+Sebastian Pipping
+https://blog.hartwork.org/
+- Patch to fix a crash when opening a file from the "Recently used" section of the file browser
+- Patch to use iniparser 4.1 instead of iniparser 2.17
+
+Ernst W. Winter
+December 2006
+- gave me access to an AMD64 box running OpenBSD for testing
+
+Tango Desktop Project
+http://tango.freedesktop.org/Tango_Icon_Gallery
+August 2006
+- the pretty 'new folder' icon (replaced with kearone's version in 0.8)
+
+Javier Navarro
+November 2023
+- fixed El Torito sector count
+
+Packages:
+
+David Johnson
+http://www.david-web.co.uk/
+- Debian packages of ISO Master, versions 0.1 - 1.2
+- Nexenta GNU/OpenSolaris package of ISO Master, version 1.0
+
+Marcin Zajaczkowski
+http://timeoff.wsisiz.edu.pl/rpms.html
+- Fedora packages of ISO Master, versions 0.3 - 1.2
+- Some fixes to the makefile
+
+Toni Graffy
+Maintainer of many SuSE packages at PackMan
+- SuSE packages of ISO Master, versions 0.4 - 1.2
+
+Maciej Libuda
+- Arch packages of ISO Master, versions 0.3 - 1.2
+
+GuestToo
+- Puppy packages of ISO Master, versions 0.1, 0.4 - 1.0
+
+vktgz
+http://www.vktgz.homelinux.net/
+- Gentoo ebuilds of ISO Master, versions 0.4 - 1.2
+
+Babak Farrokhi
+- FreeBSD ports package of ISO Master, versions 0.6 - 1.1
+
+James Bowling
+http://www.jamesbowling.com/
+- Slackware packages of ISO Master, versions 0.4 - 0.5
+
+Michael Shigorin
+- Alt packages of ISO Master, versions 0.5, 0.7, 1.2
+
+Rene Eric
+SLAX packages of versions 0.7 - 1.2
+
+Adam Williamson
+http://www.happyassassin.net/
+- Mandriva package of ISO Master, versions 0.8 - 1.2
+
+Matias A. Fonzo
+- Slackware package of ISO Master, versions 0.8 - 1.3.1
+
+Giovanni Bechis
+http://www.snb.it/
+- OpenBSD port of ISO Master, versions 1.0 - 1.2
+
+Pierrick Le Brun
+- Zenwalk package of ISO Master, versions 1.0 - 1.2
+
+Todd (muggins)
+- Puppy package of ISO Master, versions 1.1 - 1.2
+
+Kenan Pelit
+- Pardus package of ISO Master, version 1.2
+
+F. Lombardi
+SLAX package of ISO Master, version 0.7
+
+Bogdan Radulescu
+- NimbleX package of ISO Master, version 0.7
+
+Wolven
+http://wolvix.org/
+- Wolvix package of ISO Master, version 1.0
+

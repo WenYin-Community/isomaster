@@ -1,0 +1,15 @@
+--- isomaster.desktop.src.org	2009-09-18 19:40:31.000000000 +0200
++++ isomaster.desktop.src	2009-09-18 19:43:00.000000000 +0200
+@@ -6,9 +6,9 @@
+ Comment[ca]=Llegiu, escriviu i modifiqueu imatges ISO
+ Comment[es]=Leer, escribir i modificar imagenes ISO
+ Comment[ru]=Чтение, запись и изменение образов ISO
+-Exec=isomaster
++Exec=isomaster %f
+ Terminal=false
+ StartupNotify=true
+ Type=Application
+-Categories=AudioVideo;DiscBurning;
+-MimeType=application/x-iso;
++Categories=AudioVideo;DiscBurning;AudioVideoEditing;
++MimeType=application/x-iso;application/x-cd-image;
