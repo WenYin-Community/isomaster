@@ -42,6 +42,7 @@ static void activate(GtkApplication* app, gpointer user_data)
     GtkWidget* bottomPanedBox; /* to pack the bottom part of GBLbrowserPaned */
     GtkWidget* statusBar;
     
+    loadIcons();
     loadAppIcon(&appIcon);
     
     /* main window */
@@ -118,8 +119,6 @@ int main(int argc, char** argv)
     findHomeDir();
     
     loadSettings();
-    
-    loadIcons();
     
     /* set up the signal handler for exiting editors and viewers */
     signal(SIGUSR1, sigusr1);
