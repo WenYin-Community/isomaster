@@ -6,6 +6,9 @@
 // Gettext support
 const string GETTEXT_PACKAGE = "isomaster";
 
+// Icon path from build system
+const string ICONPATH = "/usr/local/share/isomaster/icons";
+
 // Translation helper (use _t to avoid conflict with gi18n-lib.h)
 public static string _t(string str) {
     return GLib.dgettext(GETTEXT_PACKAGE, str);
@@ -242,20 +245,29 @@ public class IsoMaster : Adw.Application {
         toolbar.margin_top = 4;
         toolbar.margin_bottom = 4;
 
+        // Load icons from ICONPATH
+        string icon_path = ICONPATH ?? "/usr/local/share/isomaster/icons";
+
         // New button
-        var new_btn = new Gtk.Button.from_icon_name("document-new");
+        var new_btn = new Gtk.Button();
+        var new_icon = load_icon(icon_path + "/add2-kearone.png", 24);
+        new_btn.child = new_icon;
         new_btn.tooltip_text = _t("New ISO");
         new_btn.clicked.connect(() => new_iso());
         toolbar.append(new_btn);
 
         // Open button
-        var open_btn = new Gtk.Button.from_icon_name("document-open");
+        var open_btn = new Gtk.Button();
+        var open_icon = load_icon(icon_path + "/go-back-kearone.png", 24);
+        open_btn.child = open_icon;
         open_btn.tooltip_text = _t("Open ISO");
         open_btn.clicked.connect(() => open_iso());
         toolbar.append(open_btn);
 
         // Save button
-        var save_btn = new Gtk.Button.from_icon_name("document-save");
+        var save_btn = new Gtk.Button();
+        var save_icon = load_icon(icon_path + "/add2-kearone.png", 24);
+        save_btn.child = save_icon;
         save_btn.tooltip_text = _t("Save ISO");
         save_btn.clicked.connect(() => save_iso());
         toolbar.append(save_btn);
@@ -263,19 +275,25 @@ public class IsoMaster : Adw.Application {
         toolbar.append(new Gtk.Separator(Gtk.Orientation.VERTICAL));
 
         // Add button
-        var add_btn = new Gtk.Button.from_icon_name("list-add");
+        var add_btn = new Gtk.Button();
+        var add_icon = load_icon(icon_path + "/add2-kearone.png", 24);
+        add_btn.child = add_icon;
         add_btn.tooltip_text = _t("Add to ISO");
         add_btn.clicked.connect(() => add_to_iso());
         toolbar.append(add_btn);
 
         // Extract button
-        var extract_btn = new Gtk.Button.from_icon_name("extract");
+        var extract_btn = new Gtk.Button();
+        var extract_icon = load_icon(icon_path + "/extract2-kearone.png", 24);
+        extract_btn.child = extract_icon;
         extract_btn.tooltip_text = _t("Extract from ISO");
         extract_btn.clicked.connect(() => extract_from_iso());
         toolbar.append(extract_btn);
 
         // Delete button
-        var delete_btn = new Gtk.Button.from_icon_name("edit-delete");
+        var delete_btn = new Gtk.Button();
+        var delete_icon = load_icon(icon_path + "/delete-kearone.png", 24);
+        delete_btn.child = delete_icon;
         delete_btn.tooltip_text = _t("Delete from ISO");
         delete_btn.clicked.connect(() => delete_from_iso());
         toolbar.append(delete_btn);
@@ -283,12 +301,25 @@ public class IsoMaster : Adw.Application {
         return toolbar;
     }
 
+    private Gtk.Image load_icon(string path, int size) {
+        try {
+            var pixbuf = new Gdk.Pixbuf.from_file_at_scale(path, size, size, true);
+            return new Gtk.Image.from_pixbuf(pixbuf);
+        } catch (Error e) {
+            // Fallback to missing image icon
+            return new Gtk.Image.from_icon_name("image-missing");
+        }
+    }
+
     private Gtk.Box build_fs_browser() {
         var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+        string icon_path = ICONPATH ?? "/usr/local/share/isomaster/icons";
 
         // Path entry with navigation
         var nav_box = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 4);
-        var up_btn = new Gtk.Button.from_icon_name("go-up");
+        var up_btn = new Gtk.Button();
+        up_btn.child = load_icon(icon_path + "/go-back-kearone.png", 16);
+        up_btn.tooltip_text = _t("Go up");
         up_btn.clicked.connect(() => fs_go_up());
         nav_box.append(up_btn);
 
@@ -298,6 +329,7 @@ public class IsoMaster : Adw.Application {
         nav_box.append(fs_path_entry);
 
         var refresh_btn = new Gtk.Button.from_icon_name("view-refresh");
+        refresh_btn.tooltip_text = _t("Refresh");
         refresh_btn.clicked.connect(() => refresh_fs_view());
         nav_box.append(refresh_btn);
 
@@ -351,10 +383,13 @@ public class IsoMaster : Adw.Application {
 
     private Gtk.Box build_iso_browser() {
         var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+        string icon_path = ICONPATH ?? "/usr/local/share/isomaster/icons";
 
         // Path entry with navigation
         var nav_box = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 4);
-        var up_btn = new Gtk.Button.from_icon_name("go-up");
+        var up_btn = new Gtk.Button();
+        up_btn.child = load_icon(icon_path + "/go-back-kearone.png", 16);
+        up_btn.tooltip_text = _t("Go up");
         up_btn.clicked.connect(() => iso_go_up());
         nav_box.append(up_btn);
 
