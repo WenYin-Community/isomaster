@@ -29,7 +29,8 @@ public class FileItem : Object {
 
 // Main application window
 public class IsoMaster : Adw.Application {
-    private Gtk.Window? main_window = null;
+    // Use Adw.ApplicationWindow for proper Adwaita theming
+    private Adw.ApplicationWindow? main_window = null;
     private AppSettings settings;
     private Bk.VolInfo* vol_info = null;
     private bool iso_loaded = false;
@@ -66,15 +67,15 @@ public class IsoMaster : Adw.Application {
         var style_manager = Adw.StyleManager.get_default();
         style_manager.color_scheme = Adw.ColorScheme.PREFER_LIGHT;
 
-        // Create main window
-        main_window = new Gtk.ApplicationWindow(this);
+        // Create main window with Adwaita
+        main_window = new Adw.ApplicationWindow(this);
         main_window.title = "ISO Master";
         main_window.default_width = settings.window_width;
         main_window.default_height = settings.window_height;
 
         // Build UI
         var main_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
-        main_window.child = main_box;
+        main_window.set_content(main_box);
 
         // Menu bar
         var menubar = build_menubar();

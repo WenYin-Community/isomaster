@@ -12,8 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <adwaita.h>
-#include <gtk/gtk.h>
 #include <bk.h>
+#include <gtk/gtk.h>
 #include <gio/gio.h>
 #include <float.h>
 #include <math.h>
@@ -171,7 +171,7 @@ struct _IsoMasterClass {
 };
 
 struct _IsoMasterPrivate {
-	GtkWindow* main_window;
+	AdwApplicationWindow* main_window;
 	AppSettings* settings;
 	VolInfo* vol_info;
 	gboolean iso_loaded;
@@ -1404,19 +1404,19 @@ iso_master_real_activate (GApplication* base)
 	AdwStyleManager* style_manager = NULL;
 	AdwStyleManager* _tmp2_;
 	AdwStyleManager* _tmp3_;
-	GtkApplicationWindow* _tmp4_;
-	GtkWindow* _tmp5_;
-	GtkWindow* _tmp6_;
+	AdwApplicationWindow* _tmp4_;
+	AdwApplicationWindow* _tmp5_;
+	AdwApplicationWindow* _tmp6_;
 	AppSettings* _tmp7_;
 	gint _tmp8_;
 	gint _tmp9_;
-	GtkWindow* _tmp10_;
+	AdwApplicationWindow* _tmp10_;
 	AppSettings* _tmp11_;
 	gint _tmp12_;
 	gint _tmp13_;
 	GtkBox* main_box = NULL;
 	GtkBox* _tmp14_;
-	GtkWindow* _tmp15_;
+	AdwApplicationWindow* _tmp15_;
 	GMenu* menubar = NULL;
 	GMenu* _tmp16_;
 	GtkBox* toolbar = NULL;
@@ -1427,8 +1427,8 @@ iso_master_real_activate (GApplication* base)
 	GtkBox* _tmp19_;
 	GtkBox* iso_box = NULL;
 	GtkBox* _tmp20_;
-	GtkWindow* _tmp21_;
-	GtkWindow* _tmp22_;
+	AdwApplicationWindow* _tmp21_;
+	AdwApplicationWindow* _tmp22_;
 	self = (IsoMaster*) base;
 	_tmp0_ = g_malloc ((gsize) sizeof (VolInfo));
 	self->priv->vol_info = (VolInfo*) _tmp0_;
@@ -1439,27 +1439,27 @@ iso_master_real_activate (GApplication* base)
 	_tmp3_ = _g_object_ref0 (_tmp2_);
 	style_manager = _tmp3_;
 	adw_style_manager_set_color_scheme (style_manager, ADW_COLOR_SCHEME_PREFER_LIGHT);
-	_tmp4_ = (GtkApplicationWindow*) gtk_application_window_new ((GtkApplication*) self);
+	_tmp4_ = (AdwApplicationWindow*) adw_application_window_new ((GtkApplication*) self);
 	g_object_ref_sink (_tmp4_);
 	_g_object_unref0 (self->priv->main_window);
-	self->priv->main_window = (GtkWindow*) _tmp4_;
+	self->priv->main_window = _tmp4_;
 	_tmp5_ = self->priv->main_window;
-	gtk_window_set_title (_tmp5_, "ISO Master");
+	gtk_window_set_title ((GtkWindow*) _tmp5_, "ISO Master");
 	_tmp6_ = self->priv->main_window;
 	_tmp7_ = self->priv->settings;
 	_tmp8_ = app_settings_get_window_width (_tmp7_);
 	_tmp9_ = _tmp8_;
-	g_object_set (_tmp6_, "default-width", _tmp9_, NULL);
+	g_object_set ((GtkWindow*) _tmp6_, "default-width", _tmp9_, NULL);
 	_tmp10_ = self->priv->main_window;
 	_tmp11_ = self->priv->settings;
 	_tmp12_ = app_settings_get_window_height (_tmp11_);
 	_tmp13_ = _tmp12_;
-	g_object_set (_tmp10_, "default-height", _tmp13_, NULL);
+	g_object_set ((GtkWindow*) _tmp10_, "default-height", _tmp13_, NULL);
 	_tmp14_ = (GtkBox*) gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	g_object_ref_sink (_tmp14_);
 	main_box = _tmp14_;
 	_tmp15_ = self->priv->main_window;
-	gtk_window_set_child (_tmp15_, (GtkWidget*) main_box);
+	adw_application_window_set_content (_tmp15_, (GtkWidget*) main_box);
 	_tmp16_ = iso_master_build_menubar (self);
 	menubar = _tmp16_;
 	gtk_application_set_menubar ((GtkApplication*) self, (GMenuModel*) menubar);
@@ -1482,9 +1482,9 @@ iso_master_real_activate (GApplication* base)
 	gtk_paned_set_shrink_end_child (paned, FALSE);
 	gtk_box_append (main_box, (GtkWidget*) paned);
 	_tmp21_ = self->priv->main_window;
-	g_signal_connect_object (_tmp21_, "close-request", (GCallback) ___lambda43__gtk_window_close_request, self, 0);
+	g_signal_connect_object ((GtkWindow*) _tmp21_, "close-request", (GCallback) ___lambda43__gtk_window_close_request, self, 0);
 	_tmp22_ = self->priv->main_window;
-	gtk_window_present (_tmp22_);
+	gtk_window_present ((GtkWindow*) _tmp22_);
 	_g_object_unref0 (iso_box);
 	_g_object_unref0 (fs_box);
 	_g_object_unref0 (paned);
@@ -2682,7 +2682,7 @@ iso_master_open_iso (IsoMaster* self)
 	GtkFileFilter* _tmp1_;
 	GListStore* filters = NULL;
 	GListStore* _tmp2_;
-	GtkWindow* _tmp3_;
+	AdwApplicationWindow* _tmp3_;
 	g_return_if_fail (self != NULL);
 	_data1_ = g_slice_new0 (Block1Data);
 	_data1_->_ref_count_ = 1;
@@ -2701,7 +2701,7 @@ iso_master_open_iso (IsoMaster* self)
 	g_list_store_append (filters, (GObject*) filter);
 	gtk_file_dialog_set_filters (_data1_->dialog, (GListModel*) filters);
 	_tmp3_ = self->priv->main_window;
-	gtk_file_dialog_open (_data1_->dialog, _tmp3_, NULL, ___lambda6__gasync_ready_callback, block1_data_ref (_data1_));
+	gtk_file_dialog_open (_data1_->dialog, (GtkWindow*) _tmp3_, NULL, ___lambda6__gasync_ready_callback, block1_data_ref (_data1_));
 	_g_object_unref0 (filters);
 	_g_object_unref0 (filter);
 	block1_data_unref (_data1_);
@@ -2779,7 +2779,7 @@ iso_master_open_iso_file (IsoMaster* self,
 		_tmp11_ = FALSE;
 	}
 	if (_tmp11_) {
-		GtkWindow* _tmp16_;
+		AdwApplicationWindow* _tmp16_;
 		const gchar* _tmp17_;
 		gchar* _tmp18_;
 		gchar* _tmp19_;
@@ -2787,10 +2787,10 @@ iso_master_open_iso_file (IsoMaster* self,
 		_tmp17_ = vol_name;
 		_tmp18_ = g_strdup_printf ("ISO Master - %s", _tmp17_);
 		_tmp19_ = _tmp18_;
-		gtk_window_set_title (_tmp16_, _tmp19_);
+		gtk_window_set_title ((GtkWindow*) _tmp16_, _tmp19_);
 		_g_free0 (_tmp19_);
 	} else {
-		GtkWindow* _tmp20_;
+		AdwApplicationWindow* _tmp20_;
 		gchar* _tmp21_;
 		gchar* _tmp22_;
 		gchar* _tmp23_;
@@ -2800,7 +2800,7 @@ iso_master_open_iso_file (IsoMaster* self,
 		_tmp22_ = _tmp21_;
 		_tmp23_ = g_strdup_printf ("ISO Master - %s", _tmp22_);
 		_tmp24_ = _tmp23_;
-		gtk_window_set_title (_tmp20_, _tmp24_);
+		gtk_window_set_title ((GtkWindow*) _tmp20_, _tmp24_);
 		_g_free0 (_tmp24_);
 		_g_free0 (_tmp22_);
 	}
@@ -2913,7 +2913,7 @@ iso_master_save_iso (IsoMaster* self)
 	GtkFileDialog* _tmp8_;
 	GListStore* _tmp9_;
 	GtkFileDialog* _tmp10_;
-	GtkWindow* _tmp11_;
+	AdwApplicationWindow* _tmp11_;
 	g_return_if_fail (self != NULL);
 	_data2_ = g_slice_new0 (Block2Data);
 	_data2_->_ref_count_ = 1;
@@ -2943,7 +2943,7 @@ iso_master_save_iso (IsoMaster* self)
 	gtk_file_dialog_set_filters (_tmp8_, (GListModel*) _tmp9_);
 	_tmp10_ = _data2_->dialog;
 	_tmp11_ = self->priv->main_window;
-	gtk_file_dialog_save (_tmp10_, _tmp11_, NULL, ___lambda8__gasync_ready_callback, block2_data_ref (_data2_));
+	gtk_file_dialog_save (_tmp10_, (GtkWindow*) _tmp11_, NULL, ___lambda8__gasync_ready_callback, block2_data_ref (_data2_));
 	_g_object_unref0 (filters);
 	_g_object_unref0 (filter);
 	block2_data_unref (_data2_);
@@ -3043,7 +3043,7 @@ iso_master_add_to_iso (IsoMaster* self)
 	GtkFileDialog* _tmp0_;
 	GtkFileDialog* _tmp1_;
 	GtkFileDialog* _tmp2_;
-	GtkWindow* _tmp3_;
+	AdwApplicationWindow* _tmp3_;
 	g_return_if_fail (self != NULL);
 	_data3_ = g_slice_new0 (Block3Data);
 	_data3_->_ref_count_ = 1;
@@ -3060,7 +3060,7 @@ iso_master_add_to_iso (IsoMaster* self)
 	gtk_file_dialog_set_title (_tmp1_, "Add files to ISO");
 	_tmp2_ = _data3_->dialog;
 	_tmp3_ = self->priv->main_window;
-	gtk_file_dialog_open (_tmp2_, _tmp3_, NULL, ___lambda28__gasync_ready_callback, block3_data_ref (_data3_));
+	gtk_file_dialog_open (_tmp2_, (GtkWindow*) _tmp3_, NULL, ___lambda28__gasync_ready_callback, block3_data_ref (_data3_));
 	block3_data_unref (_data3_);
 	_data3_ = NULL;
 }
@@ -3179,7 +3179,7 @@ iso_master_extract_from_iso (IsoMaster* self)
 	GFile* _tmp20_;
 	GFile* _tmp21_;
 	GtkFileDialog* _tmp22_;
-	GtkWindow* _tmp23_;
+	AdwApplicationWindow* _tmp23_;
 	g_return_if_fail (self != NULL);
 	_data4_ = g_slice_new0 (Block4Data);
 	_data4_->_ref_count_ = 1;
@@ -3241,7 +3241,7 @@ iso_master_extract_from_iso (IsoMaster* self)
 	_g_object_unref0 (_tmp21_);
 	_tmp22_ = _data4_->dialog;
 	_tmp23_ = self->priv->main_window;
-	gtk_file_dialog_save (_tmp22_, _tmp23_, NULL, ___lambda30__gasync_ready_callback, block4_data_ref (_data4_));
+	gtk_file_dialog_save (_tmp22_, (GtkWindow*) _tmp23_, NULL, ___lambda30__gasync_ready_callback, block4_data_ref (_data4_));
 	_g_object_unref0 (selection);
 	block4_data_unref (_data4_);
 	_data4_ = NULL;
@@ -3332,7 +3332,7 @@ iso_master_delete_from_iso (IsoMaster* self)
 	AdwAlertDialog* _tmp22_;
 	AdwAlertDialog* _tmp23_;
 	AdwAlertDialog* _tmp24_;
-	GtkWindow* _tmp25_;
+	AdwApplicationWindow* _tmp25_;
 	g_return_if_fail (self != NULL);
 	_data5_ = g_slice_new0 (Block5Data);
 	_data5_->_ref_count_ = 1;
@@ -3494,7 +3494,7 @@ iso_master_create_iso_dir (IsoMaster* self)
 	GtkEntry* _tmp6_;
 	AdwAlertDialog* _tmp7_;
 	AdwAlertDialog* _tmp8_;
-	GtkWindow* _tmp9_;
+	AdwApplicationWindow* _tmp9_;
 	g_return_if_fail (self != NULL);
 	_data6_ = g_slice_new0 (Block6Data);
 	_data6_->_ref_count_ = 1;
@@ -3667,7 +3667,7 @@ iso_master_rename_iso_item (IsoMaster* self)
 	GtkEntry* _tmp23_;
 	AdwAlertDialog* _tmp24_;
 	AdwAlertDialog* _tmp25_;
-	GtkWindow* _tmp26_;
+	AdwApplicationWindow* _tmp26_;
 	g_return_if_fail (self != NULL);
 	_data7_ = g_slice_new0 (Block7Data);
 	_data7_->_ref_count_ = 1;
@@ -3784,7 +3784,7 @@ __lambda16_ (Block8Data* _data8_,
 		const gchar* _tmp12_;
 		gint _tmp13_;
 		gint _tmp14_;
-		GtkWindow* _tmp20_;
+		AdwApplicationWindow* _tmp20_;
 		GtkEntry* _tmp21_;
 		const gchar* _tmp22_;
 		const gchar* _tmp23_;
@@ -3840,7 +3840,7 @@ __lambda16_ (Block8Data* _data8_,
 		_tmp23_ = _tmp22_;
 		_tmp24_ = g_strdup_printf ("ISO Master - %s", _tmp23_);
 		_tmp25_ = _tmp24_;
-		gtk_window_set_title (_tmp20_, _tmp25_);
+		gtk_window_set_title ((GtkWindow*) _tmp20_, _tmp25_);
 		_g_free0 (_tmp25_);
 	}
 }
@@ -3911,7 +3911,7 @@ iso_master_show_volume_properties (IsoMaster* self)
 	GtkBox* _tmp44_;
 	AdwAlertDialog* _tmp45_;
 	AdwAlertDialog* _tmp46_;
-	GtkWindow* _tmp47_;
+	AdwApplicationWindow* _tmp47_;
 	g_return_if_fail (self != NULL);
 	_data8_ = g_slice_new0 (Block8Data);
 	_data8_->_ref_count_ = 1;
@@ -4112,7 +4112,7 @@ iso_master_set_boot_file (IsoMaster* self)
 	AdwAlertDialog* _tmp26_;
 	AdwAlertDialog* _tmp27_;
 	AdwAlertDialog* _tmp28_;
-	GtkWindow* _tmp29_;
+	AdwApplicationWindow* _tmp29_;
 	g_return_if_fail (self != NULL);
 	_data9_ = g_slice_new0 (Block9Data);
 	_data9_->_ref_count_ = 1;
@@ -4288,7 +4288,7 @@ iso_master_extract_boot_record (IsoMaster* self)
 	GFile* _tmp3_;
 	GFile* _tmp4_;
 	GtkFileDialog* _tmp5_;
-	GtkWindow* _tmp6_;
+	AdwApplicationWindow* _tmp6_;
 	g_return_if_fail (self != NULL);
 	_data10_ = g_slice_new0 (Block10Data);
 	_data10_->_ref_count_ = 1;
@@ -4310,7 +4310,7 @@ iso_master_extract_boot_record (IsoMaster* self)
 	_g_object_unref0 (_tmp4_);
 	_tmp5_ = _data10_->dialog;
 	_tmp6_ = self->priv->main_window;
-	gtk_file_dialog_save (_tmp5_, _tmp6_, NULL, ___lambda20__gasync_ready_callback, block10_data_ref (_data10_));
+	gtk_file_dialog_save (_tmp5_, (GtkWindow*) _tmp6_, NULL, ___lambda20__gasync_ready_callback, block10_data_ref (_data10_));
 	block10_data_unref (_data10_);
 	_data10_ = NULL;
 }
@@ -4344,7 +4344,7 @@ iso_master_delete_boot_record (IsoMaster* self)
 	AdwAlertDialog* _tmp2_;
 	AdwAlertDialog* _tmp3_;
 	AdwAlertDialog* _tmp4_;
-	GtkWindow* _tmp5_;
+	AdwApplicationWindow* _tmp5_;
 	g_return_if_fail (self != NULL);
 	if (!self->priv->iso_loaded) {
 		iso_master_show_error (self, "No ISO image loaded", NULL);
@@ -4798,7 +4798,7 @@ iso_master_show_error (IsoMaster* self,
 	gchar* _tmp0_;
 	AdwAlertDialog* dialog = NULL;
 	AdwAlertDialog* _tmp1_;
-	GtkWindow* _tmp2_;
+	AdwApplicationWindow* _tmp2_;
 	g_return_if_fail (self != NULL);
 	g_return_if_fail (format != NULL);
 	va_start (va, format);
@@ -4820,7 +4820,7 @@ iso_master_show_about (IsoMaster* self)
 {
 	AdwAboutDialog* about = NULL;
 	AdwAboutDialog* _tmp0_;
-	GtkWindow* _tmp1_;
+	AdwApplicationWindow* _tmp1_;
 	g_return_if_fail (self != NULL);
 	_tmp0_ = (AdwAboutDialog*) adw_about_dialog_new ();
 	g_object_ref_sink (_tmp0_);
@@ -4913,7 +4913,7 @@ iso_master_save_settings (IsoMaster* self)
 	gchar* _tmp2_;
 	gchar* _tmp3_;
 	const gchar* _tmp4_;
-	GtkWindow* _tmp5_;
+	AdwApplicationWindow* _tmp5_;
 	GError* _inner_error0_ = NULL;
 	g_return_if_fail (self != NULL);
 	_tmp0_ = iso_master_get_settings_path (self);
@@ -4927,9 +4927,9 @@ iso_master_save_settings (IsoMaster* self)
 	_tmp5_ = self->priv->main_window;
 	if (_tmp5_ != NULL) {
 		AppSettings* _tmp6_;
-		GtkWindow* _tmp7_;
+		AdwApplicationWindow* _tmp7_;
 		AppSettings* _tmp8_;
-		GtkWindow* _tmp9_;
+		AdwApplicationWindow* _tmp9_;
 		_tmp6_ = self->priv->settings;
 		_tmp7_ = self->priv->main_window;
 		app_settings_set_window_width (_tmp6_, gtk_widget_get_width ((GtkWidget*) _tmp7_));
