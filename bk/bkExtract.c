@@ -444,13 +444,13 @@ int extractFile(VolInfo* volInfo, BkFile* srcFileInTree, const char* destDir,
         return rc;
     }
     
-    bkClose(destFile);
     if(destFile == -1)
     {
         if(srcFileWasOpened)
             bkClose(srcFile);
         return BKERROR_EXOTIC;
     }
+    bkClose(destFile);
     /* END WRITE file */
     
     if(srcFileWasOpened)

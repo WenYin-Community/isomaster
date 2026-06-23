@@ -204,7 +204,9 @@ int getDirFromString(const BkDir* tree, const char* pathStr, BkDir** dirFoundPtr
         if(pathStr[count] == '/')
         /* found it */
         {
-            /* make a copy of the string to use with strcmp */
+            /* count is the index of '/' delimiter
+             * directory name is pathStr[1..count-1], length = count-1
+             * need count bytes: (count-1) for name + 1 for '\0' */
             currentDirName = (char*)malloc(count);
             if(currentDirName == NULL)
                 return BKERROR_OUT_OF_MEMORY;

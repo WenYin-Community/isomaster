@@ -35,6 +35,9 @@ namespace Bk {
     [CCode (cname = "bk_init_vol_info")]
     public static int init_vol_info(VolInfo* vol_info, bool scan_duplicates);
 
+    [CCode (cname = "bk_cancel_operation")]
+    public static void cancel_operation(VolInfo* vol_info);
+
     [CCode (cname = "bk_destroy_vol_info")]
     public static void destroy_vol_info(VolInfo* vol_info);
 
@@ -44,14 +47,23 @@ namespace Bk {
     [CCode (cname = "bk_read_vol_info")]
     public static int read_vol_info(VolInfo* vol_info);
 
+    [CCode (cname = "ProgressFunc", has_target = false)]
+    public delegate void ProgressFunc(VolInfo* vol_info);
+
+    [CCode (cname = "WriteProgressFunc", has_target = false)]
+    public delegate void WriteProgressFunc(VolInfo* vol_info, double progress);
+
     [CCode (cname = "bk_read_dir_tree")]
-    public static int read_dir_tree(VolInfo* vol_info, int filename_type, bool keep_posix_permissions, void* progress_function);
+    public static int read_dir_tree(VolInfo* vol_info, int filename_type, bool keep_posix_permissions, ProgressFunc? progress_function);
 
     [CCode (cname = "bk_get_dir_from_string")]
     public static int get_dir_from_string(VolInfo* vol_info, string path_str, out BkDir* dir_found);
 
     [CCode (cname = "bk_get_error_string")]
     public static unowned string get_error_string(int error_id);
+
+    [CCode (cname = "bk_get_error_string_id")]
+    public static unowned string get_error_string_id(int error_id);
 
     [CCode (cname = "bk_get_volume_name")]
     public static unowned string? get_volume_name(VolInfo* vol_info);
@@ -60,13 +72,13 @@ namespace Bk {
     public static unowned string? get_publisher(VolInfo* vol_info);
 
     [CCode (cname = "bk_write_image")]
-    public static int write_image(string path, VolInfo* vol_info, int64 creation_time, int filename_types, void* progress_function);
+    public static int write_image(string path, VolInfo* vol_info, int64 creation_time, int filename_types, WriteProgressFunc? progress_function);
 
     [CCode (cname = "bk_add")]
-    public static int add(VolInfo* vol_info, string src_path, string dest_path, void* progress_function);
+    public static int add(VolInfo* vol_info, string src_path, string dest_path, ProgressFunc? progress_function);
 
     [CCode (cname = "bk_extract")]
-    public static int extract(VolInfo* vol_info, string src_path, string dest_path, bool keep_permissions, void* progress_function);
+    public static int extract(VolInfo* vol_info, string src_path, string dest_path, bool keep_permissions, ProgressFunc? progress_function);
 
     [CCode (cname = "bk_delete")]
     public static int delete(VolInfo* vol_info, string path_and_name);

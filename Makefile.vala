@@ -36,20 +36,23 @@ $(BK_LIB):
 $(INIPARSER_LIB):
 	$(MAKE) -C iniparser-4.1
 
+iconpath.h:
+	@printf 'extern const char *_isomaster_iconpath;\n' > $@
+
+iconpath.c: iconpath.h
+	@printf 'const char *_isomaster_iconpath = ICONPATH;\n' > $@
+
 $(VALA_C): $(VALA_SRC) bk.vapi iniparser.vapi
-	@sed 's|ICONS_PATH_PLACEHOLDER|$(ICONPATH)|g' $(VALA_SRC) > isomaster_build.vala
 	$(VALAC) --cc $(CC) $(VALA_PKGS) \
 		--vapidir=. --pkg bk --pkg iniparser \
-		-C isomaster_build.vala
-	mv isomaster_build.c $(VALA_C)
-	@rm -f isomaster_build.vala
+		-C $(VALA_SRC)
 
-$(VALA_OUT): $(VALA_C) $(BK_LIB) $(INIPARSER_LIB)
-	$(CC) $(CFLAGS) -o $@ $(VALA_C) $(BK_LIB) $(INIPARSER_LIB) $(GTK_LIBS)
+$(VALA_OUT): $(VALA_C) iconpath.c $(BK_LIB) $(INIPARSER_LIB)
+	$(CC) $(CFLAGS) -o $@ $(VALA_C) iconpath.c $(BK_LIB) $(INIPARSER_LIB) $(GTK_LIBS)
 
 clean:
 	$(MAKE) -C bk clean
-	rm -f $(VALA_OUT) $(VALA_C) isomaster.h
+	rm -f $(VALA_OUT) $(VALA_C) isomaster.h iconpath.h iconpath.c
 
 install: all
 	install -d $(DESTDIR)$(BINPATH)

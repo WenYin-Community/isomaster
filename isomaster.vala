@@ -6,8 +6,9 @@
 // Gettext support
 const string GETTEXT_PACKAGE = "isomaster";
 
-// Icon path - replaced at build time by Makefile
-const string ICONPATH = "ICONS_PATH_PLACEHOLDER";
+// Icon path - provided by C compiler via -DICONPATH
+[CCode (cname = "_isomaster_iconpath", cheader_filename = "iconpath.h")]
+private extern unowned string ICONPATH;
 
 // Translation helper (use _t to avoid conflict with gi18n-lib.h)
 public static string _t(string str) {
@@ -59,6 +60,9 @@ public class IsoMaster : Adw.Application {
     private GLib.ListStore iso_store;
     private Gtk.Entry iso_path_entry;
     private Gtk.Label iso_size_label;
+
+    // Progress bar for long operations
+    private Gtk.ProgressBar progress_bar;
 
     public IsoMaster() {
         Object (
@@ -159,6 +163,14 @@ public class IsoMaster : Adw.Application {
         paned.shrink_end_child = false;
 
         content_box.append(paned);
+
+        // Progress bar for long operations
+        progress_bar = new Gtk.ProgressBar();
+        progress_bar.visible = false;
+        progress_bar.margin_start = 4;
+        progress_bar.margin_end = 4;
+        progress_bar.margin_bottom = 2;
+        content_box.append(progress_bar);
 
         // Connect close signal
         main_window.close_request.connect(() => {
@@ -345,6 +357,11 @@ public class IsoMaster : Adw.Application {
         about_action.activate.connect(() => show_about());
         this.add_action(about_action);
 
+        // Delete selected item from ISO
+        var delete_action = new GLib.SimpleAction("delete-selected", null);
+        delete_action.activate.connect(() => delete_from_iso());
+        this.add_action(delete_action);
+
         // Set accelerators
         this.set_accels_for_action("app.new", {"<Control>N"});
         this.set_accels_for_action("app.open", {"<Control>O"});
@@ -355,6 +372,7 @@ public class IsoMaster : Adw.Application {
         this.set_accels_for_action("app.edit-file", {"F4"});
         this.set_accels_for_action("app.view-file", {"F3"});
         this.set_accels_for_action("app.help", {"F1"});
+        this.set_accels_for_action("app.delete-selected", {"Delete"});
     }
 
     private Gtk.Box build_toolbar() {
@@ -489,6 +507,36 @@ public class IsoMaster : Adw.Application {
             }
         });
 
+        // Drag source: drag files from fs browser
+        var fs_drag = new Gtk.DragSource();
+        fs_drag.prepare.connect((x, y) => {
+            var sel = fs_list_view.model as Gtk.SingleSelection;
+            if (sel == null || sel.selected_item == null) return null;
+            var item = sel.selected_item as FileItem;
+            if (item == null) return null;
+            var val = GLib.Value(typeof(string));
+            val.set_string(item.path);
+            return new Gdk.ContentProvider.for_value(val);
+        });
+        fs_list_view.add_controller(fs_drag);
+
+        // Drop target: drop ISO files to extract to fs
+        var fs_drop = new Gtk.DropTarget(typeof(string), Gdk.DragAction.COPY);
+        fs_drop.drop.connect((value, x, y) => {
+            if (!iso_loaded) return false;
+            string iso_path = value.get_string();
+            if (!iso_path.has_prefix("/")) return false;
+            var dest_dir = fs_path_entry.text;
+            int result = Bk.extract(vol_info, iso_path, dest_dir, false, null);
+            if (result < 0) {
+                show_error(_t("Failed to extract: %s"), Bk.get_error_string(result));
+            } else {
+                refresh_fs_view();
+            }
+            return true;
+        });
+        fs_list_view.add_controller(fs_drop);
+
         var scrolled = new Gtk.ScrolledWindow();
         scrolled.child = fs_list_view;
         box.append(scrolled);
@@ -515,6 +563,7 @@ public class IsoMaster : Adw.Application {
         iso_path_entry = new Gtk.Entry();
         iso_path_entry.hexpand = true;
         iso_path_entry.text = "/";
+        iso_path_entry.activate.connect(() => iso_navigate_to(iso_path_entry.text));
         nav_box.append(iso_path_entry);
 
         iso_size_label = new Gtk.Label("");
@@ -556,6 +605,40 @@ public class IsoMaster : Adw.Application {
                 iso_navigate_to(item.path);
             }
         });
+
+        // Drag source: drag files from ISO browser
+        var iso_drag = new Gtk.DragSource();
+        iso_drag.prepare.connect((x, y) => {
+            var sel = iso_list_view.model as Gtk.SingleSelection;
+            if (sel == null || sel.selected_item == null) return null;
+            var item = sel.selected_item as FileItem;
+            if (item == null) return null;
+            var val = GLib.Value(typeof(string));
+            val.set_string(item.path);
+            return new Gdk.ContentProvider.for_value(val);
+        });
+        iso_list_view.add_controller(iso_drag);
+
+        // Drop target: drop fs files to add to ISO
+        var iso_drop = new Gtk.DropTarget(typeof(string), Gdk.DragAction.COPY);
+        iso_drop.drop.connect((value, x, y) => {
+            if (!iso_loaded) {
+                show_error(_t("No ISO image loaded"));
+                return false;
+            }
+            string fs_path = value.get_string();
+            if (fs_path.has_prefix("/")) {
+                int result = Bk.add(vol_info, fs_path, current_iso_path, null);
+                if (result < 0) {
+                    show_error(_t("Failed to add file: %s"), Bk.get_error_string(result));
+                } else {
+                    refresh_iso_view();
+                }
+                return true;
+            }
+            return false;
+        });
+        iso_list_view.add_controller(iso_drop);
 
         var scrolled = new Gtk.ScrolledWindow();
         scrolled.child = iso_list_view;
@@ -617,7 +700,9 @@ public class IsoMaster : Adw.Application {
         }
 
         // Read directory tree
+        show_progress(_t("Reading directory tree..."));
         result = Bk.read_dir_tree(vol_info, Bk.FNTYPE_JOLIET, false, null);
+        hide_progress();
         if (result < 0) {
             show_error(_t("Failed to read directory tree: %s"), Bk.get_error_string(result));
             return;
@@ -1063,6 +1148,34 @@ public class IsoMaster : Adw.Application {
         refresh_iso_view();
     }
 
+    // Progress bar helpers
+    private void show_progress(string text) {
+        progress_bar.text = text;
+        progress_bar.fraction = 0.0;
+        progress_bar.visible = true;
+    }
+
+    private void update_progress(double fraction) {
+        progress_bar.fraction = fraction;
+    }
+
+    private void hide_progress() {
+        progress_bar.visible = false;
+        progress_bar.fraction = 0.0;
+    }
+
+    // Write progress callback (called from Bk library)
+    private static void write_progress_cb(Bk.VolInfo* vol, double progress) {
+        // Update UI in main loop
+        Idle.add(() => {
+            var app = (IsoMaster) GLib.Application.get_default();
+            if (app != null) {
+                app.update_progress(progress);
+            }
+            return Source.REMOVE;
+        });
+    }
+
     private string format_size(int64 size) {
         if (size > 1073741824) {
             return "%.1f GB".printf((double)size / 1073741824);
@@ -1116,7 +1229,9 @@ public class IsoMaster : Adw.Application {
             try {
                 var file = dialog.save.end(res);
                 if (file != null) {
-                    int result = Bk.write_image(file.get_path(), vol_info, 0, Bk.FNTYPE_JOLIET, null);
+                    show_progress(_t("Writing ISO image..."));
+                    int result = Bk.write_image(file.get_path(), vol_info, 0, Bk.FNTYPE_JOLIET, write_progress_cb);
+                    hide_progress();
                     if (result < 0) {
                         show_error(_t("Failed to save ISO: %s"), Bk.get_error_string(result));
                     }
@@ -1154,10 +1269,24 @@ public class IsoMaster : Adw.Application {
             return;
         }
 
-        // Open in external editor
+        // Open in external editor and clean up temp file when done
         string editor = settings.editor ?? "xdg-open";
         try {
-            Process.spawn_command_line_async("%s %s".printf(editor, temp_path));
+            string[] cmd = { editor, temp_path };
+            var subprocess = new Subprocess.newv(cmd, SubprocessFlags.NONE);
+            subprocess.wait_async.begin(null, (obj, res) => {
+                try {
+                    subprocess.wait_async.end(res);
+                } catch (Error e) {
+                    // Process wait error
+                }
+                // Clean up temp file
+                try {
+                    File.new_for_path(temp_path).delete();
+                } catch (Error e) {
+                    // Temp file already gone
+                }
+            });
         } catch (Error e) {
             show_error(_t("Failed to open editor: %s"), e.message);
         }
@@ -1190,10 +1319,24 @@ public class IsoMaster : Adw.Application {
             return;
         }
 
-        // Open in external viewer
+        // Open in external viewer and clean up temp file when done
         string viewer = settings.viewer ?? "xdg-open";
         try {
-            Process.spawn_command_line_async("%s %s".printf(viewer, temp_path));
+            string[] cmd = { viewer, temp_path };
+            var subprocess = new Subprocess.newv(cmd, SubprocessFlags.NONE);
+            subprocess.wait_async.begin(null, (obj, res) => {
+                try {
+                    subprocess.wait_async.end(res);
+                } catch (Error e) {
+                    // Process wait error
+                }
+                // Clean up temp file
+                try {
+                    File.new_for_path(temp_path).delete();
+                } catch (Error e) {
+                    // Temp file already gone
+                }
+            });
         } catch (Error e) {
             show_error(_t("Failed to open viewer: %s"), e.message);
         }
