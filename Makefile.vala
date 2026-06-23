@@ -5,7 +5,7 @@ BINPATH ?= $(PREFIX)/bin
 LOCALEDIR ?= $(PREFIX)/share/locale
 ICONPATH ?= $(PREFIX)/share/pixmaps
 
-VERSION = 1.4.0
+VERSION = 1.5.0
 
 VALAC = valac
 VALA_PKGS = --pkg gtk4 --pkg libadwaita-1 --pkg gio-2.0 --pkg glib-2.0

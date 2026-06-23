@@ -1,6 +1,6 @@
 Name:		isomaster-gtk4
 Summary:	An easy to use GUI CD image editor (GTK4 version)
-Version:	1.4.0
+Version:	1.5.0
 Release:	1%{?dist}
 License:	GPL-2.0-only
 URL:		http://littlesvr.ca/isomaster/
@@ -82,6 +82,12 @@ install -m 644 isomaster.1 %{buildroot}%{_mandir}/man1/isomaster-gtk4.1
 %{_mandir}/man1/isomaster-gtk4.1*
 
 %changelog
+* Mon Jun 23 2025 ISO Master Team <info@littlesvr.ca> - 1.5.0-1
+- Fixed critical bugs: readSeekSet/wcSeekSet return value checking, memory leaks
+- Added drag-and-drop, progress bar, Delete keybinding, ISO path navigation
+- Improved translations and error message i18n support
+- Added unit test suite (24 tests)
+
 * Mon Jun 23 2025 ISO Master Team <info@littlesvr.ca> - 1.4.0-1
 - Initial GTK4 release with libadwaita support
 - Modern UI with GTK4 and libadwaita

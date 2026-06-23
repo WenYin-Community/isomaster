@@ -1581,7 +1581,7 @@ public class IsoMaster : Adw.Application {
         var about = new Adw.AboutDialog();
         about.application_name = _t("ISO Master");
         about.application_icon = "isomaster";
-        about.version = "1.4.0";
+        about.version = "1.5.0";
         about.developer_name = "Andrew Smith";
         about.website = "https://github.com/WenYin-Community/isomaster";
         about.license_type = Gtk.License.GPL_2_0;

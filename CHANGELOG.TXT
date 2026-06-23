@@ -1,3 +1,15 @@
+23 Jun 2025 - 1.5.0
+====================
+- Fixed critical bugs: readSeekSet/wcSeekSet return value checking, memory leaks
+- Fixed medium issues: new_iso, change_permissions, show_boot_info implementations
+- Added drag-and-drop support between browsers
+- Added progress bar for ISO operations
+- Added Delete keybinding
+- Added ISO path bar navigation
+- Improved .desktop file translations (13 languages)
+- Added unit test suite (24 tests)
+- Improved error message internationalization support
+
 23 Jun 2025 - 1.4.0
 ====================
 - GTK4/libadwaita port with modern UI.
