@@ -18,7 +18,7 @@ CFLAGS = -std=gnu99 -Wall -Wno-unused-variable -D_FILE_OFFSET_BITS=64 \
 	-DVERSION=\"$(VERSION)\" \
 	-DGETTEXT_PACKAGE=\"isomaster\" \
 	$(GTK_CFLAGS) \
-	-Ibk -Iiniparser-4.1/src
+	-I. -Ibk -Iiniparser-4.1/src
 
 BK_LIB = bk/bk.a
 INIPARSER_LIB = iniparser-4.1/libiniparser.a
@@ -28,7 +28,7 @@ VALA_SRC = isomaster.vala
 VALA_C = isomaster.c
 VALA_OUT = isomaster
 
-all: $(VALA_OUT)
+all: iconpath.h iconpath.c $(VALA_OUT)
 
 $(BK_LIB):
 	$(MAKE) -C bk
@@ -42,12 +42,12 @@ iconpath.h:
 iconpath.c: iconpath.h
 	@printf 'const char *_isomaster_iconpath = ICONPATH;\n' > $@
 
-$(VALA_C): $(VALA_SRC) bk.vapi iniparser.vapi
+$(VALA_C): $(VALA_SRC) bk.vapi iniparser.vapi iconpath.h
 	$(VALAC) --cc $(CC) $(VALA_PKGS) \
 		--vapidir=. --pkg bk --pkg iniparser \
 		-C $(VALA_SRC)
 
-$(VALA_OUT): $(VALA_C) iconpath.c $(BK_LIB) $(INIPARSER_LIB)
+$(VALA_OUT): $(VALA_C) iconpath.c iconpath.h $(BK_LIB) $(INIPARSER_LIB)
 	$(CC) $(CFLAGS) -o $@ $(VALA_C) iconpath.c $(BK_LIB) $(INIPARSER_LIB) $(GTK_LIBS)
 
 clean:
