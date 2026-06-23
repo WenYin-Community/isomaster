@@ -1,0 +1,117 @@
+name: Build RPM Packages
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-rpm:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Fedora 44 x86_64
+            container: fedora:44
+            arch: x86_64
+          - name: Fedora 43 x86_64
+            container: fedora:43
+            arch: x86_64
+          - name: EL10 x86_64
+            container: almalinux:10
+            arch: x86_64
+          - name: Fedora 44 aarch64
+            container: fedora:44
+            arch: aarch64
+          - name: Fedora 43 aarch64
+            container: fedora:43
+            arch: aarch64
+          - name: EL10 aarch64
+            container: almalinux:10
+            arch: aarch64
+
+    name: Build on ${{ matrix.name }}
+    runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+            gcc \
+            make \
+            vala \
+            gtk4-devel \
+            libadwaita-devel \
+            gettext \
+            pkg-config \
+            rpm-build \
+            rpmdevtools
+
+      - name: Create source tarball
+        run: |
+          # 获取版本号
+          VERSION=$(grep '^Version:' scripts/gtk4/isomaster-gtk4.spec | awk '{print $2}')
+          PKG_NAME="isomaster-gtk4-${VERSION}"
+
+          # 创建临时目录并复制源码
+          mkdir -p /tmp/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          tar cjf "/tmp/rpmbuild/SOURCES/${PKG_NAME}.tar.bz2" \
+            --transform "s,^\.,${PKG_NAME}," \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='*.o' \
+            --exclude='isomaster.c' \
+            --exclude='isomaster' \
+            .
+
+      - name: Build RPM packages
+        run: |
+          rpmbuild -ba \
+            --define "_topdir /tmp/rpmbuild" \
+            scripts/gtk4/isomaster-gtk4.spec
+
+      - name: List built packages
+        run: |
+          echo "=== Built RPMs ==="
+          find /tmp/rpmbuild/RPMS -name "*.rpm" -type f
+          echo ""
+          echo "=== Built SRPMs ==="
+          find /tmp/rpmbuild/SRPMS -name "*.rpm" -type f
+
+      - name: Upload RPM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpms-${{ matrix.name }}
+          path: |
+            /tmp/rpmbuild/RPMS/**/*.rpm
+            /tmp/rpmbuild/SRPMS/**/*.rpm
+          retention-days: 7
+
+  release:
+    needs: build-rpm
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: |
+          find artifacts -type f -name "*.rpm" | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/**/*.rpm

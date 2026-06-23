@@ -6,8 +6,8 @@
 // Gettext support
 const string GETTEXT_PACKAGE = "isomaster";
 
-// Icon path - use local icons directory for development
-const string ICONPATH = "icons";
+// Icon path - replaced at build time by Makefile
+const string ICONPATH = "ICONS_PATH_PLACEHOLDER";
 
 // Translation helper (use _t to avoid conflict with gi18n-lib.h)
 public static string _t(string str) {
@@ -1407,10 +1407,17 @@ public class IsoMaster : Adw.Application {
         var about = new Adw.AboutDialog();
         about.application_name = _t("ISO Master");
         about.application_icon = "isomaster";
-        about.version = "2.0.0";
+        about.version = "1.4.0";
         about.developer_name = "Andrew Smith";
-        about.website = "http://littlesvr.ca/isomaster/";
+        about.website = "https://github.com/WenYin-Community/isomaster";
         about.license_type = Gtk.License.GPL_2_0;
+        about.copyright = "© 2005-2018 Andrew Smith\n© 2025 WenYin-Community";
+        about.comments = _t("An easy to use graphical CD image editor") + "\n" +
+                        "GTK4/libadwaita port";
+        about.developers = {
+            "Andrew Smith <http://littlesvr.ca/misc/contactandrew.php> (2005-2018)",
+            "WenYin-Community <https://github.com/WenYin-Community/isomaster>"
+        };
 
         about.present(main_window);
     }
