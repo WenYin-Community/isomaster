@@ -34,6 +34,8 @@ jobs:
 
     name: Build on ${{ matrix.name }}
     runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    container:
+      image: ${{ matrix.container }}
 
     steps:
       - name: Checkout repository
@@ -54,11 +56,8 @@ jobs:
 
       - name: Create source tarball
         run: |
-          # 获取版本号
           VERSION=$(grep '^Version:' scripts/gtk4/isomaster-gtk4.spec | awk '{print $2}')
           PKG_NAME="isomaster-gtk4-${VERSION}"
-
-          # 创建临时目录并复制源码
           mkdir -p /tmp/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           tar cjf "/tmp/rpmbuild/SOURCES/${PKG_NAME}.tar.bz2" \
             --transform "s,^\.,${PKG_NAME}," \
@@ -74,14 +73,6 @@ jobs:
           rpmbuild -ba \
             --define "_topdir /tmp/rpmbuild" \
             scripts/gtk4/isomaster-gtk4.spec
-
-      - name: List built packages
-        run: |
-          echo "=== Built RPMs ==="
-          find /tmp/rpmbuild/RPMS -name "*.rpm" -type f
-          echo ""
-          echo "=== Built SRPMs ==="
-          find /tmp/rpmbuild/SRPMS -name "*.rpm" -type f
 
       - name: Upload RPM artifacts
         uses: actions/upload-artifact@v4
@@ -105,10 +96,6 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
-
-      - name: List downloaded artifacts
-        run: |
-          find artifacts -type f -name "*.rpm" | sort
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
