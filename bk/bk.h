@@ -254,6 +254,8 @@ int bk_get_permissions(VolInfo* volInfo, const char* pathAndName,
 const char* bk_get_publisher(const VolInfo* volInfo);
 const char* bk_get_volume_name(const VolInfo* volInfo);
 const char* bk_get_error_string(int errorId);
+unsigned char bk_get_boot_media_type(const VolInfo* volInfo);
+unsigned bk_get_boot_record_size(const VolInfo* volInfo);
 
 /* setters */
 void bk_cancel_operation(VolInfo* volInfo);

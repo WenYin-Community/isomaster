@@ -163,6 +163,11 @@ public class IsoMaster : Adw.Application {
         // Connect close signal
         main_window.close_request.connect(() => {
             save_settings();
+            if (vol_info != null) {
+                Bk.destroy_vol_info(vol_info);
+                GLib.free(vol_info);
+                vol_info = null;
+            }
             return false;
         });
 
@@ -252,24 +257,33 @@ public class IsoMaster : Adw.Application {
         });
         this.add_action(refresh_action);
 
-        var show_hidden_action = new GLib.SimpleAction("show-hidden", null);
+        var show_hidden_action = new GLib.SimpleAction.stateful("show-hidden", null,
+            new GLib.Variant.boolean(settings.show_hidden_files));
         show_hidden_action.activate.connect(() => {
-            settings.show_hidden_files = !settings.show_hidden_files;
+            bool val = !show_hidden_action.state.get_boolean();
+            show_hidden_action.set_state(new GLib.Variant.boolean(val));
+            settings.show_hidden_files = val;
             refresh_fs_view();
         });
         this.add_action(show_hidden_action);
 
-        var sort_dirs_action = new GLib.SimpleAction("sort-dirs-first", null);
+        var sort_dirs_action = new GLib.SimpleAction.stateful("sort-dirs-first", null,
+            new GLib.Variant.boolean(settings.sort_dirs_first));
         sort_dirs_action.activate.connect(() => {
-            settings.sort_dirs_first = !settings.sort_dirs_first;
+            bool val = !sort_dirs_action.state.get_boolean();
+            sort_dirs_action.set_state(new GLib.Variant.boolean(val));
+            settings.sort_dirs_first = val;
             refresh_fs_view();
             if (iso_loaded) refresh_iso_view();
         });
         this.add_action(sort_dirs_action);
 
-        var case_sensitive_action = new GLib.SimpleAction("case-sensitive", null);
+        var case_sensitive_action = new GLib.SimpleAction.stateful("case-sensitive", null,
+            new GLib.Variant.boolean(settings.case_sensitive_sort));
         case_sensitive_action.activate.connect(() => {
-            settings.case_sensitive_sort = !settings.case_sensitive_sort;
+            bool val = !case_sensitive_action.state.get_boolean();
+            case_sensitive_action.set_state(new GLib.Variant.boolean(val));
+            settings.case_sensitive_sort = val;
             refresh_fs_view();
             if (iso_loaded) refresh_iso_view();
         });
@@ -552,7 +566,17 @@ public class IsoMaster : Adw.Application {
 
     // File operations
     private void new_iso() {
-        // TODO: Create new ISO
+        if (iso_loaded) {
+            Bk.destroy_vol_info(vol_info);
+        }
+        Bk.init_vol_info(vol_info, false);
+
+        iso_loaded = true;
+        current_iso_path = "/";
+        iso_path_entry.text = "/";
+        iso_store.remove_all();
+        iso_size_label.label = "";
+        main_window.title = "ISO Master - " + _t("New ISO");
     }
 
     private void open_iso() {
@@ -621,29 +645,7 @@ public class IsoMaster : Adw.Application {
         if (!iso_loaded) {
             return;
         }
-
-        var dialog = new Gtk.FileDialog();
-        dialog.title = _t("Save ISO Image");
-        var filter = new Gtk.FileFilter();
-        filter.add_pattern("*.iso");
-        filter.name = "ISO Images";
-        var filters = new GLib.ListStore(typeof(Gtk.FileFilter));
-        filters.append(filter);
-        dialog.filters = filters;
-
-        dialog.save.begin(main_window, null, (obj, res) => {
-            try {
-                var file = dialog.save.end(res);
-                if (file != null) {
-                    int result = Bk.write_image(file.get_path(), vol_info, 0, Bk.FNTYPE_JOLIET, null);
-                    if (result < 0) {
-                        show_error(_t("Failed to save ISO: %s"), Bk.get_error_string(result));
-                    }
-                }
-            } catch (Error e) {
-                // User cancelled
-            }
-        });
+        save_iso_as();
     }
 
     private void add_to_iso() {
@@ -918,7 +920,7 @@ public class IsoMaster : Adw.Application {
                 if (result < 0) {
                     show_error(_t("Failed to set boot file: %s"), Bk.get_error_string(result));
                 } else {
-                    show_error(_t("Boot file set successfully"));
+                    show_info(_t("Boot file set successfully"));
                 }
             }
         });
@@ -1082,6 +1084,14 @@ public class IsoMaster : Adw.Application {
         var va = va_list();
         var msg = format.vprintf(va);
         var dialog = new Adw.AlertDialog(_t("Error"), msg);
+        dialog.add_response("ok", _t("_OK"));
+        dialog.present(main_window);
+    }
+
+    private void show_info(string format, ...) {
+        var va = va_list();
+        var msg = format.vprintf(va);
+        var dialog = new Adw.AlertDialog(_t("Information"), msg);
         dialog.add_response("ok", _t("_OK"));
         dialog.present(main_window);
     }
@@ -1286,8 +1296,12 @@ public class IsoMaster : Adw.Application {
                 if (other_write.active) perms |= 0002;
                 if (other_exec.active) perms |= 0001;
 
-                // TODO: Call bk_set_permissions when available
-                show_error(_t("Permissions set to %o"), perms);
+                int result = Bk.set_permissions(vol_info, item.path, perms);
+                if (result < 0) {
+                    show_error(_t("Failed to set permissions: %s"), Bk.get_error_string(result));
+                } else {
+                    show_info(_t("Permissions set to %o"), perms);
+                }
             }
         });
         dialog.present(main_window);
@@ -1350,9 +1364,26 @@ public class IsoMaster : Adw.Application {
             return;
         }
 
-        // TODO: Get actual boot info from bk library
+        uint8 bmt = Bk.get_boot_media_type(vol_info);
+        if (bmt == Bk.BOOT_MEDIA_NONE) {
+            var nodialog = new Adw.AlertDialog(_t("Boot Information"),
+                _t("No boot record present."));
+            nodialog.add_response("ok", _t("_OK"));
+            nodialog.present(main_window);
+            return;
+        }
+
+        string mtype;
+        if (bmt == Bk.BOOT_MEDIA_NO_EMULATION) mtype = _t("No Emulation");
+        else if (bmt == Bk.BOOT_MEDIA_1_2_FLOPPY) mtype = _t("1.2 MB Floppy");
+        else if (bmt == Bk.BOOT_MEDIA_1_44_FLOPPY) mtype = _t("1.44 MB Floppy");
+        else if (bmt == Bk.BOOT_MEDIA_2_88_FLOPPY) mtype = _t("2.88 MB Floppy");
+        else if (bmt == Bk.BOOT_MEDIA_HARD_DISK) mtype = _t("Hard Disk");
+        else mtype = _t("Unknown");
+
         var dialog = new Adw.AlertDialog(_t("Boot Information"), null);
-        dialog.body = _t("Boot record information will be displayed here.");
+        dialog.body = _t("Boot Media Type: %s\nBoot Record Size: %s").printf(
+            mtype, format_size(Bk.get_boot_record_size(vol_info)));
         dialog.add_response("ok", _t("_OK"));
         dialog.present(main_window);
     }
@@ -1375,7 +1406,7 @@ public class IsoMaster : Adw.Application {
                     if (result < 0) {
                         show_error(_t("Failed to add boot record: %s"), Bk.get_error_string(result));
                     } else {
-                        show_error(_t("Boot record added successfully"));
+                        show_info(_t("Boot record added successfully"));
                     }
                 }
             } catch (Error e) {
@@ -1478,7 +1509,6 @@ public class IsoMaster : Adw.Application {
 public static int main(string[] args) {
     // Initialize gettext
     GLib.Intl.setlocale(GLib.LocaleCategory.ALL, "");
-    GLib.Intl.bindtextdomain(GETTEXT_PACKAGE, GLib.Environment.get_user_data_dir() + "/locale");
     GLib.Intl.bindtextdomain(GETTEXT_PACKAGE, "/usr/share/locale");
     GLib.Intl.bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
     GLib.Intl.textdomain(GETTEXT_PACKAGE);

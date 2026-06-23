@@ -79,7 +79,9 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
     memset(&newTree, 0, sizeof(DirToWrite));
     newTree.base.posixFileMode = volInfo->dirTree.base.posixFileMode;
     
+#ifdef DEBUG
     printf("mangling\n");fflush(NULL);
+#endif
     /* create tree to write */
     rc = mangleDir(&(volInfo->dirTree), &newTree, filenameTypes);
     if(rc <= 0)
@@ -88,7 +90,9 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
         return rc;
     }
     
+#ifdef DEBUG
     printf("opening '%s' for writing\n", newImagePathAndName);fflush(NULL);
+#endif
     volInfo->imageForWriting = open(newImagePathAndName, 
                                     O_RDWR | O_CREAT | O_TRUNC, 
                                     S_IRUSR | S_IWUSR);
@@ -98,7 +102,9 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
         return BKERROR_OPEN_WRITE_FAILED;
     }
     
+#ifdef DEBUG
     printf("writing blank at %X\n", (int)wcSeekTell(volInfo));fflush(NULL);
+#endif
     /* system area, always zeroes */
     rc = writeByteBlock(volInfo, 0, NBYTES_LOGICAL_BLOCK * NLS_SYSTEM_AREA);
     if(rc <= 0)
@@ -132,7 +138,9 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
         wcSeekForward(volInfo, NBYTES_LOGICAL_BLOCK);
     }
     
+#ifdef DEBUG
     printf("writing terminator at %X\n", (int)wcSeekTell(volInfo));fflush(NULL);
+#endif
     /* volume descriptor set terminator */
     rc = writeVdsetTerminator(volInfo);
     if(rc <= 0)
@@ -147,7 +155,14 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
     {
         /* write boot catalog sector number */
         currPos = wcSeekTell(volInfo);
-        wcSeekSet(volInfo, bootCatalogSectorNumberOffset);
+        rc = wcSeekSetChecked(volInfo, bootCatalogSectorNumberOffset);
+        if(rc <= 0)
+        {
+            freeDirToWriteContents(&newTree);
+            bkClose(volInfo->imageForWriting);
+            unlink(newImagePathAndName);
+            return rc;
+        }
         rc = write731(volInfo, currPos / NBYTES_LOGICAL_BLOCK);
         if(rc <= 0)
         {
@@ -156,7 +171,14 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
             unlink(newImagePathAndName);
             return rc;
         }
-        wcSeekSet(volInfo, currPos);
+        rc = wcSeekSetChecked(volInfo, currPos);
+        if(rc <= 0)
+        {
+            freeDirToWriteContents(&newTree);
+            bkClose(volInfo->imageForWriting);
+            unlink(newImagePathAndName);
+            return rc;
+        }
         
         /* write el torito booting catalog */
         rc = writeElToritoBootCatalog(volInfo, &(volInfo->bootRecordSectorNumberOffset));
@@ -200,7 +222,16 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
         
         /* write boot record sector number */
         currPos = wcSeekTell(volInfo);
-        wcSeekSet(volInfo, volInfo->bootRecordSectorNumberOffset);
+        rc = wcSeekSetChecked(volInfo, volInfo->bootRecordSectorNumberOffset);
+        if(rc <= 0)
+        {
+            freeDirToWriteContents(&newTree);
+            if(srcFileOpened)
+                bkClose(srcFile);
+            bkClose(volInfo->imageForWriting);
+            unlink(newImagePathAndName);
+            return rc;
+        }
         
         rc = write731(volInfo, currPos / NBYTES_LOGICAL_BLOCK);
         if(rc <= 0)
@@ -212,7 +243,16 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
             unlink(newImagePathAndName);
             return rc;
         }
-        wcSeekSet(volInfo, currPos);
+        rc = wcSeekSetChecked(volInfo, currPos);
+        if(rc <= 0)
+        {
+            freeDirToWriteContents(&newTree);
+            if(srcFileOpened)
+                bkClose(srcFile);
+            bkClose(volInfo->imageForWriting);
+            unlink(newImagePathAndName);
+            return rc;
+        }
         
         /* file contents */
         rc = writeByteBlockFromFile(srcFile, volInfo, volInfo->bootRecordSize);
@@ -246,12 +286,16 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
     }
     /* END MAYBE write boot record file now */
     
+#ifdef DEBUG
     printf("sorting 9660\n");
+#endif
     sortDir(&newTree, FNTYPE_9660);
     
     pRealRootDrOffset = wcSeekTell(volInfo);
     
+#ifdef DEBUG
     printf("writing primary directory tree at %X\n", (int)wcSeekTell(volInfo));fflush(NULL);
+#endif
     /* 9660 and maybe rockridge dir tree */
     rc = writeDir(volInfo, &newTree, 0, 0, 0, creationTime, 
                   filenameTypes & (FNTYPE_9660 | FNTYPE_ROCKRIDGE), true);
@@ -268,10 +312,14 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
     /* joliet dir tree */
     if(filenameTypes & FNTYPE_JOLIET)
     {
+#ifdef DEBUG
         printf("sorting joliet\n");
+#endif
         sortDir(&newTree, FNTYPE_JOLIET);
         
+#ifdef DEBUG
         printf("writing supplementary directory tree at %X\n", (int)wcSeekTell(volInfo));fflush(NULL);
+#endif
         sRealRootDrOffset = wcSeekTell(volInfo);
         
         rc = writeDir(volInfo, &newTree, 0, 0, 0, creationTime, 
@@ -287,7 +335,9 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
         sRootDirSize = rc;
     }
     
+#ifdef DEBUG
     printf("writing 9660 path tables at %X\n", (int)wcSeekTell(volInfo));fflush(NULL);
+#endif
     
     lPathTable9660Loc = wcSeekTell(volInfo);
     rc = writePathTable(volInfo, &newTree, true, FNTYPE_9660);
@@ -312,7 +362,9 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
     
     if(filenameTypes & FNTYPE_JOLIET)
     {
+#ifdef DEBUG
         printf("writing joliet path tables at %X\n", (int)wcSeekTell(volInfo));fflush(NULL);
+#endif
         lPathTableJolietLoc = wcSeekTell(volInfo);
         rc = writePathTable(volInfo, &newTree, true, FNTYPE_JOLIET);
         if(rc <= 0)
@@ -335,7 +387,9 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
         }
     }
     
+#ifdef DEBUG
     printf("writing files at %X\n", (int)wcSeekTell(volInfo));fflush(NULL);
+#endif
     resetWriteStatus(volInfo->fileLocations);
     /* all files and offsets/sizes */
     rc = writeFileContents(volInfo, &newTree, filenameTypes);
@@ -349,7 +403,9 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
     
     if(filenameTypes & FNTYPE_ROCKRIDGE)
     {
+#ifdef DEBUG
         printf("writing long NMs at %X\n", (int)wcSeekTell(volInfo));fflush(NULL);
+#endif
         rc = writeLongNMsInDir(volInfo, &newTree);
         if(rc <= 0)
         {
@@ -360,9 +416,18 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
         }
     }
     
-    wcSeekSet(volInfo, NBYTES_LOGICAL_BLOCK * NLS_SYSTEM_AREA);
+    rc = wcSeekSetChecked(volInfo, NBYTES_LOGICAL_BLOCK * NLS_SYSTEM_AREA);
+    if(rc <= 0)
+    {
+        freeDirToWriteContents(&newTree);
+        bkClose(volInfo->imageForWriting);
+        unlink(newImagePathAndName);
+        return rc;
+    }
     
+#ifdef DEBUG
     printf("writing pvd at %X\n", (int)wcSeekTell(volInfo));fflush(NULL);
+#endif
     rc = writeVolDescriptor(volInfo, pRealRootDrOffset, 
                             pRootDirSize, lPathTable9660Loc, mPathTable9660Loc, 
                             pathTable9660Size, creationTime, true);
@@ -376,9 +441,18 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
     
     if(filenameTypes & FNTYPE_JOLIET)
     {
-        wcSeekSet(volInfo, svdOffset);
+        rc = wcSeekSetChecked(volInfo, svdOffset);
+        if(rc <= 0)
+        {
+            freeDirToWriteContents(&newTree);
+            bkClose(volInfo->imageForWriting);
+            unlink(newImagePathAndName);
+            return rc;
+        }
         
+#ifdef DEBUG
         printf("writing svd at %X\n", (int)wcSeekTell(volInfo));fflush(NULL);
+#endif
         rc = writeVolDescriptor(volInfo, sRealRootDrOffset, 
                                 sRootDirSize, lPathTableJolietLoc, mPathTableJolietLoc, 
                                 pathTableJolietSize, creationTime, false);
@@ -391,7 +465,9 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
         }
     }
     
+#ifdef DEBUG
     printf("freeing memory\n");fflush(NULL);
+#endif
     freeDirToWriteContents(&newTree);
     bkClose(volInfo->imageForWriting);
     
@@ -1088,14 +1164,18 @@ int writeDr(VolInfo* volInfo, BaseToWrite* node, time_t recordingTime, bool isAD
     /* RECORD length */
     endPos = wcSeekTell(volInfo);
     
-    wcSeekSet(volInfo, startPos);
+    rc = wcSeekSetChecked(volInfo, startPos);
+    if(rc <= 0)
+        return rc;
     
     recordLen = endPos - startPos;
     rc = write711(volInfo, recordLen);
     if(rc <= 0)
         return rc;
     
-    wcSeekSet(volInfo, endPos);
+    rc = wcSeekSetChecked(volInfo, endPos);
+    if(rc <= 0)
+        return rc;
     /* END RECORD length */
     
     /* the goto is good! really!
@@ -1109,7 +1189,9 @@ int writeDr(VolInfo* volInfo, BaseToWrite* node, time_t recordingTime, bool isAD
     if(endPos / NBYTES_LOGICAL_BLOCK > startPos / NBYTES_LOGICAL_BLOCK)
     /* crossed a logical sector boundary while writing the record */
     {
-        wcSeekSet(volInfo, startPos);
+        rc = wcSeekSetChecked(volInfo, startPos);
+        if(rc <= 0)
+            return rc;
         
         /* overwrite a piece of the record written in this function
         * (the piece that's in the first sector) with zeroes */
@@ -1322,12 +1404,16 @@ int writeFileContents(VolInfo* volInfo, DirToWrite* dir, int filenameTypes)
                 
                 currPos = wcSeekTell(volInfo);
                 
-                wcSeekSet(volInfo, volInfo->bootRecordSectorNumberOffset);
+                rc = wcSeekSetChecked(volInfo, volInfo->bootRecordSectorNumberOffset);
+                if(rc <= 0)
+                    return rc;
                 rc = write731(volInfo, child->extentNumber);
                 if(rc <= 0)
                     return rc;
                 
-                wcSeekSet(volInfo, currPos);
+                rc = wcSeekSetChecked(volInfo, currPos);
+                if(rc <= 0)
+                    return rc;
             }
             
             if(needToCopy)

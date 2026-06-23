@@ -43,6 +43,13 @@ int wcSeekSet(VolInfo* volInfo, bk_off_t position)
     return 1;
 }
 
+int wcSeekSetChecked(VolInfo* volInfo, bk_off_t position)
+{
+    if(bkSeekSet(volInfo->imageForWriting, position, SEEK_SET) == (bk_off_t)-1)
+        return BKERROR_WRITE_GENERIC;
+    return 1;
+}
+
 bk_off_t wcSeekTell(VolInfo* volInfo)
 {
     return bkSeekTell(volInfo->imageForWriting);

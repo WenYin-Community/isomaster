@@ -89,7 +89,9 @@ int bk_open_image(VolInfo* volInfo, const char* filename)
         (filename[len - 2] == 'R' || filename[len - 2] == 'r') &&
         (filename[len - 1] == 'G' || filename[len - 1] == 'g') )
     {
-        readSeekSet(volInfo, NBYTES_LOGICAL_BLOCK * 16, SEEK_SET);
+        rc = readSeekSetChecked(volInfo, NBYTES_LOGICAL_BLOCK * 16, SEEK_SET);
+        if(rc < 0)
+            return rc;
     }
     
     return 1;
@@ -103,12 +105,16 @@ int bk_read_dir_tree(VolInfo* volInfo, int filenameType,
                      bool keepPosixPermissions, 
                      void(*progressFunction)(VolInfo*))
 {
+    int rc;
+    
     volInfo->progressFunction = progressFunction;
     
     if(filenameType == FNTYPE_ROCKRIDGE || filenameType == FNTYPE_9660)
-        readSeekSet(volInfo, volInfo->pRootDrOffset, SEEK_SET);
+        rc = readSeekSetChecked(volInfo, volInfo->pRootDrOffset, SEEK_SET);
     else /* if(filenameType == FNTYPE_JOLIET) */
-        readSeekSet(volInfo, volInfo->sRootDrOffset, SEEK_SET);
+        rc = readSeekSetChecked(volInfo, volInfo->sRootDrOffset, SEEK_SET);
+    if(rc < 0)
+        return rc;
     
     return readDir(volInfo, &(volInfo->dirTree), 
                    filenameType, keepPosixPermissions);
@@ -145,7 +151,9 @@ int bk_read_vol_info(VolInfo* volInfo)
     volInfo->sRootDrOffset = 0;
     
     /* skip system area */
-    readSeekSet(volInfo, NLS_SYSTEM_AREA * NBYTES_LOGICAL_BLOCK, SEEK_SET);
+    rc = readSeekSetChecked(volInfo, NLS_SYSTEM_AREA * NBYTES_LOGICAL_BLOCK, SEEK_SET);
+    if(rc < 0)
+        return rc;
     
     /* READ PVD */
     /* make sure pvd exists */
@@ -157,7 +165,9 @@ int bk_read_vol_info(VolInfo* volInfo)
     if(vdType != VDTYPE_PRIMARY)
         return BKERROR_VD_NOT_PRIMARY;
     
-    readSeekSet(volInfo, 39, SEEK_CUR);
+    rc = readSeekSetChecked(volInfo, 39, SEEK_CUR);
+    if(rc < 0)
+        return rc;
     
     rc = readRead(volInfo, volInfo->volId, 32);
     if(rc != 32)
@@ -165,20 +175,26 @@ int bk_read_vol_info(VolInfo* volInfo)
     volInfo->volId[32] = '\0';
     stripSpacesFromEndOfString(volInfo->volId);
     
-    readSeekSet(volInfo, 84, SEEK_CUR);
+    rc = readSeekSetChecked(volInfo, 84, SEEK_CUR);
+    if(rc < 0)
+        return rc;
     
     /* am now at root dr */
     volInfo->pRootDrOffset = readSeekTell(volInfo);
     
     /* SEE if rockridge exists */
-    readSeekSet(volInfo, 2, SEEK_CUR);
+    rc = readSeekSetChecked(volInfo, 2, SEEK_CUR);
+    if(rc < 0)
+        return rc;
     
     rc = read733(volInfo, &realRootLoc);
     if(rc != 8)
         return BKERROR_READ_GENERIC;
     realRootLoc *= NBYTES_LOGICAL_BLOCK;
     
-    readSeekSet(volInfo, realRootLoc, SEEK_SET);
+    rc = readSeekSetChecked(volInfo, realRootLoc, SEEK_SET);
+    if(rc < 0)
+        return rc;
     
     rc = read711(volInfo, &recordLen);
     if(rc != 1)
@@ -188,7 +204,9 @@ int bk_read_vol_info(VolInfo* volInfo)
     /* a minimum root with SP su field */
     {
         /* root dr has filename length of 1 */
-        readSeekSet(volInfo, 33, SEEK_CUR);
+        rc = readSeekSetChecked(volInfo, 33, SEEK_CUR);
+        if(rc < 0)
+            return rc;
         
         /* a rockridge root dr has an SP su entry here */
         
@@ -206,10 +224,14 @@ int bk_read_vol_info(VolInfo* volInfo)
     }
     
     /* go back to where it was before trying rockridge */
-    readSeekSet(volInfo, volInfo->pRootDrOffset, SEEK_SET);
+    rc = readSeekSetChecked(volInfo, volInfo->pRootDrOffset, SEEK_SET);
+    if(rc < 0)
+        return rc;
     /* END SEE if rockridge exists */
     
-    readSeekSet(volInfo, 162, SEEK_CUR);
+    rc = readSeekSetChecked(volInfo, 162, SEEK_CUR);
+    if(rc < 0)
+        return rc;
     
     rc = readRead(volInfo, volInfo->publisher, 128);
     if(rc != 128)
@@ -223,7 +245,9 @@ int bk_read_vol_info(VolInfo* volInfo)
     volInfo->dataPreparer[128] = '\0';
     stripSpacesFromEndOfString(volInfo->dataPreparer);
     
-    readSeekSet(volInfo, 239, SEEK_CUR);
+    rc = readSeekSetChecked(volInfo, 239, SEEK_CUR);
+    if(rc < 0)
+        return rc;
     
     rc = readRead(volInfo, timeString, 17);
     if(rc != 17)
@@ -232,7 +256,9 @@ int bk_read_vol_info(VolInfo* volInfo)
     longStringToEpoch(timeString, &(volInfo->creationTime));
     
     /* skip the rest of the extent */
-    readSeekSet(volInfo, 1218, SEEK_CUR);
+    rc = readSeekSetChecked(volInfo, 1218, SEEK_CUR);
+    if(rc < 0)
+        return rc;
     /* END READ PVD */
     
     /* SKIP all extra copies of pvd */
@@ -245,11 +271,15 @@ int bk_read_vol_info(VolInfo* volInfo)
         
         if(vdType == VDTYPE_PRIMARY)
         {
-            readSeekSet(volInfo, 2047, SEEK_CUR);
+            rc = readSeekSetChecked(volInfo, 2047, SEEK_CUR);
+            if(rc < 0)
+                return rc;
         }
         else
         {
-            readSeekSet(volInfo, -1, SEEK_CUR);
+            rc = readSeekSetChecked(volInfo, -1, SEEK_CUR);
+            if(rc < 0)
+                return rc;
             haveMorePvd = false;
         }
     }
@@ -266,7 +296,9 @@ int bk_read_vol_info(VolInfo* volInfo)
     if(vdType == VDTYPE_BOOT)
     {
         
-        readSeekSet(volInfo, 6, SEEK_CUR);
+        rc = readSeekSetChecked(volInfo, 6, SEEK_CUR);
+        if(rc < 0)
+            return rc;
         
         rc = readRead(volInfo, elToritoSig, 24);
         if(rc != 24)
@@ -276,19 +308,27 @@ int bk_read_vol_info(VolInfo* volInfo)
         if(strcmp(elToritoSig, "EL TORITO SPECIFICATION") == 0)
         /* el torito confirmed */
         {
-            readSeekSet(volInfo, 40, SEEK_CUR);
+            rc = readSeekSetChecked(volInfo, 40, SEEK_CUR);
+            if(rc < 0)
+                return rc;
             
             rc = read731(volInfo, &bootCatalogLocation);
             if(rc != 4)
                 return BKERROR_READ_GENERIC;
             
-            readSeekSet(volInfo, bootCatalogLocation * NBYTES_LOGICAL_BLOCK, SEEK_SET);
+            rc = readSeekSetChecked(volInfo, bootCatalogLocation * NBYTES_LOGICAL_BLOCK, SEEK_SET);
+            if(rc < 0)
+                return rc;
             
             /* skip validation entry */
-            readSeekSet(volInfo, 32, SEEK_CUR);
+            rc = readSeekSetChecked(volInfo, 32, SEEK_CUR);
+            if(rc < 0)
+                return rc;
             
             /* skip boot indicator */
-            readSeekSet(volInfo, 1, SEEK_CUR);
+            rc = readSeekSetChecked(volInfo, 1, SEEK_CUR);
+            if(rc < 0)
+                return rc;
             
             rc = readRead(volInfo, &bootMediaType, 1);
             if(rc != 1)
@@ -303,19 +343,21 @@ int bk_read_vol_info(VolInfo* volInfo)
                 volInfo->bootMediaType = BOOT_MEDIA_2_88_FLOPPY;
             else if(bootMediaType == 4)
             {
-                /* !! print warning */
-                printf("hard disk boot emulation not supported\n");
+                if(volInfo->warningCbk)
+                    volInfo->warningCbk("hard disk boot emulation not supported");
                 volInfo->bootMediaType = BOOT_MEDIA_NONE;
             }
             else
             {
-                /* !! print warning */
-                printf("unknown boot media type on iso\n");
+                if(volInfo->warningCbk)
+                    volInfo->warningCbk("unknown boot media type on iso");
                 volInfo->bootMediaType = BOOT_MEDIA_NONE;
             }
             
             /* skip load segment, system type and unused byte */
-            readSeekSet(volInfo, 4, SEEK_CUR);
+            rc = readSeekSetChecked(volInfo, 4, SEEK_CUR);
+            if(rc < 0)
+                return rc;
             
             rc = read721(volInfo, &bootRecordSize);
             if(rc != 2)
@@ -340,17 +382,23 @@ int bk_read_vol_info(VolInfo* volInfo)
                                         NBYTES_LOGICAL_BLOCK;
         }
         else
-            /* !! print warning */
-            printf("err, boot record not el torito\n");
+        {
+            if(volInfo->warningCbk)
+                volInfo->warningCbk("boot record not el torito");
+        }
         
         /* go to the sector after the boot record */
-        readSeekSet(volInfo, locationOfNextDescriptor, SEEK_SET);
+        rc = readSeekSetChecked(volInfo, locationOfNextDescriptor, SEEK_SET);
+        if(rc < 0)
+            return rc;
     }
     else
     /* not boot record */
     {
         /* go back */
-        readSeekSet(volInfo, -1, SEEK_CUR);
+        rc = readSeekSetChecked(volInfo, -1, SEEK_CUR);
+        if(rc < 0)
+            return rc;
     }
     /* END TRY read boot record */
     
@@ -362,7 +410,9 @@ int bk_read_vol_info(VolInfo* volInfo)
     if(vdType == VDTYPE_SUPPLEMENTARY)
     /* make sure it's joliet (by escape sequence) */
     {
-        readSeekSet(volInfo, 87, SEEK_CUR);
+        rc = readSeekSetChecked(volInfo, 87, SEEK_CUR);
+        if(rc < 0)
+            return rc;
         
         rc = readRead(volInfo, escapeSequence, 3);
         if(rc != 3)
@@ -376,7 +426,9 @@ int bk_read_vol_info(VolInfo* volInfo)
              escapeSequence[2] == 0x45) )
         /* is indeed joliet */
         {
-            readSeekSet(volInfo, 65, SEEK_CUR);
+            rc = readSeekSetChecked(volInfo, 65, SEEK_CUR);
+            if(rc < 0)
+                return rc;
             
             volInfo->sRootDrOffset = readSeekTell(volInfo);
             
@@ -947,7 +999,10 @@ int readPosixFileMode(VolInfo* volInfo, unsigned* posixFileMode, int lenSU)
     rc = readRead(volInfo, suFields, lenSU);
     
     if(rc != lenSU)
+    {
+        free(suFields);
         return BKERROR_READ_GENERIC;
+    }
     count = 0;
     foundPosix = false;
     foundCE = false;

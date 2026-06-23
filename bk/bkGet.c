@@ -255,3 +255,23 @@ int getDirFromString(const BkDir* tree, const char* pathStr, BkDir** dirFoundPtr
     /* can't see how i could get here but to keep the compiler happy */
     return 1;
 }
+
+/*******************************************************************************
+* bk_get_boot_media_type()
+* Public function
+* Returns the boot media type from VolInfo.
+* */
+unsigned char bk_get_boot_media_type(const VolInfo* volInfo)
+{
+    return volInfo->bootMediaType;
+}
+
+/*******************************************************************************
+* bk_get_boot_record_size()
+* Public function
+* Returns the boot record size in bytes from VolInfo.
+* */
+unsigned bk_get_boot_record_size(const VolInfo* volInfo)
+{
+    return volInfo->bootRecordSize;
+}

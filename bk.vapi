@@ -35,6 +35,9 @@ namespace Bk {
     [CCode (cname = "bk_init_vol_info")]
     public static int init_vol_info(VolInfo* vol_info, bool scan_duplicates);
 
+    [CCode (cname = "bk_destroy_vol_info")]
+    public static void destroy_vol_info(VolInfo* vol_info);
+
     [CCode (cname = "bk_open_image")]
     public static int open_image(VolInfo* vol_info, string filename);
 
@@ -82,6 +85,12 @@ namespace Bk {
 
     [CCode (cname = "bk_set_publisher")]
     public static int set_publisher(VolInfo* vol_info, string publisher);
+
+    [CCode (cname = "bk_get_boot_media_type")]
+    public static uint8 get_boot_media_type(VolInfo* vol_info);
+
+    [CCode (cname = "bk_get_boot_record_size")]
+    public static uint get_boot_record_size(VolInfo* vol_info);
 
     [CCode (cname = "bk_set_permissions")]
     public static int set_permissions(VolInfo* vol_info, string path_and_name, uint permissions);
