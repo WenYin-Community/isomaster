@@ -86,3 +86,5 @@ install -m 644 isomaster.1 %{buildroot}%{_mandir}/man1/isomaster-gtk4.1
 - Initial GTK4 release with libadwaita support
 - Modern UI with GTK4 and libadwaita
 - Built with Vala language
+- Added Chinese (Simplified/Traditional) translations
+- Fixed icon installation path
