@@ -2,10 +2,10 @@ name: Build RPM Packages
 
 on:
   push:
-    branches: [main]
+    branches: [main, gtk4]
     tags: ['v*']
   pull_request:
-    branches: [main]
+    branches: [main, gtk4]
 
 jobs:
   build-rpm:
