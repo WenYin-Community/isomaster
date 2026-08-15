@@ -85,6 +85,9 @@ jobs:
 
       - name: Run tests with AddressSanitizer
         run: |
+          # libasan is only a weak dependency of gcc; the linker needs the
+          # actual runtime library to build with -fsanitize=address
+          dnf install -y libasan
           make -C bk clean
           make -C bk CFLAGS+="-fsanitize=address -g"
           cd tests
