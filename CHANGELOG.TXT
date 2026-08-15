@@ -1,3 +1,16 @@
+15 Aug 2026 - 1.6.1
+===================
+- Fixed a use-after-free crash (SIGSEGV) when loading an ISO image: the
+  background-operation framework released the worker/on-done closures
+  right after starting the thread because delegate ownership was not
+  transferred (valac warning: "copying delegates is not supported").
+  run_bk_operation now passes (owned) delegates to IsoOperations.run.
+- bk_write_image no longer crashes when called with a NULL progress
+  callback (it invoked the callback unconditionally).
+- Added regression coverage: a Vala worker-thread test and a static
+  check on the generated C code that verifies delegate ownership is
+  transferred to IsoOperations.run.
+
 15 Aug 2026 - 1.6.0
 ===================
 - Fixed memory safety issues in image parsing (bkRead.c): directory record

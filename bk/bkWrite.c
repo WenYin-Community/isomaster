@@ -67,7 +67,8 @@ int bk_write_image(const char* newImagePathAndName, VolInfo* volInfo,
     volInfo->stopOperation = false;
     
     volInfo->estimatedIsoSize = bk_estimate_iso_size(volInfo, filenameTypes);
-    progressFunction(volInfo, 0);
+    if(progressFunction != NULL)
+        progressFunction(volInfo, 0);
     
     BkStatStruct statStruct;
     rc = bkStat(newImagePathAndName, &statStruct);

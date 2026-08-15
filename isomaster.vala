@@ -1270,7 +1270,12 @@ public class IsoMaster : Adw.Application {
         }
         last_progress_fraction = -1.0;
         show_progress(progress_text);
-        ops.run(worker, on_done);
+        // (owned) is required: passing the owned delegates to run()
+        // without it makes valac release them right after the call,
+        // while the worker thread still holds the (now dangling)
+        // closures -> use-after-free crash (SIGSEGV) on the first
+        // background operation.
+        ops.run((owned) worker, (owned) on_done);
     }
 
     // Reject UI actions while a background operation is running: the

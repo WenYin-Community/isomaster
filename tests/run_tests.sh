@@ -45,6 +45,34 @@ echo ""
 TEST_RESULT=$?
 
 echo ""
+echo -e "${YELLOW}步骤 2b: Vala 后台线程回归测试...${NC}"
+echo ""
+
+VALA_RESULT=0
+if command -v valac >/dev/null 2>&1; then
+    valac --pkg glib-2.0 -o test_iso_ops test_iso_operations.vala ../iso-operations.vala 2>/dev/null
+    ./test_iso_ops
+    VALA_RESULT=$?
+    rm -f test_iso_ops test_iso_operations.vala.c ../iso-operations.vala.c
+    if [ $VALA_RESULT -ne 0 ]; then
+        echo -e "${RED}错误: Vala 后台线程回归测试失败${NC}"
+        exit 1
+    fi
+else
+    echo "SKIP: valac 不可用，跳过 Vala 回归测试"
+fi
+
+echo ""
+echo -e "${YELLOW}步骤 2c: owned-delegate 转移静态检查...${NC}"
+echo ""
+
+if [ -f ../isomaster.c ]; then
+    ./check_owned_transfer.sh
+else
+    echo "SKIP: isomaster.c 不存在（需先 make -f Makefile.vala）"
+fi
+
+echo ""
 
 # 清理临时文件
 echo -e "${YELLOW}步骤 3: 清理临时文件...${NC}"

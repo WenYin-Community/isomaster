@@ -1,6 +1,6 @@
 Name:		isomaster-gtk4
 Summary:	An easy to use GUI CD image editor (GTK4 version)
-Version:	1.6.0
+Version:	1.6.1
 Release:	1%{?dist}
 License:	GPL-2.0-only
 URL:		http://littlesvr.ca/isomaster/
@@ -95,6 +95,12 @@ gtk-update-icon-cache -f -t %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
 gtk-update-icon-cache -f -t %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
 
 %changelog
+* Sat Aug 15 2026 ISO Master Team <info@littlesvr.ca> - 1.6.1-1
+- Fix use-after-free crash (SIGSEGV) when loading an ISO image: delegate
+  ownership was not transferred to the background worker thread
+- bk_write_image tolerates a NULL progress callback
+- Add Vala thread regression test and generated-code ownership check
+
 * Mon Jun 23 2025 ISO Master Team <info@littlesvr.ca> - 1.6.0-1
 - Use system iniparser (4.2.6) instead of the bundled 4.1 (CVE-2025-0633, CVE-2023-33461)
 - Install desktop entry and man page from Makefile; fixed desktop icon lookup
