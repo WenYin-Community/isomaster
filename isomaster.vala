@@ -73,8 +73,8 @@ public class IsoMaster : Adw.Application {
         
         // Set Adwaita style based on settings
         style_manager.color_scheme = settings.dark_mode 
-            ? Adw.ColorScheme.PREFER_DARK 
-            : Adw.ColorScheme.PREFER_LIGHT;
+            ? Adw.ColorScheme.FORCE_DARK 
+            : Adw.ColorScheme.FORCE_LIGHT;
 
         // Create main window with Adwaita
         main_window = new Adw.ApplicationWindow(this);
@@ -94,24 +94,23 @@ public class IsoMaster : Adw.Application {
         var menubar = build_menubar();
         this.set_menubar(menubar);
 
-        // Theme toggle button
+        // Theme toggle button: state is driven by settings.dark_mode so
+        // the button can never drift from the applied scheme, and FORCE_*
+        // is used so the switch works even when the system prefers dark
+        // (PREFER_LIGHT can be overridden by the system preference).
         var theme_button = new Gtk.Button();
-        theme_button.icon_name = style_manager.color_scheme == Adw.ColorScheme.PREFER_DARK 
+        theme_button.icon_name = settings.dark_mode
             ? "weather-clear-symbolic" : "weather-clear-night-symbolic";
-        theme_button.tooltip_text = style_manager.color_scheme == Adw.ColorScheme.PREFER_DARK 
+        theme_button.tooltip_text = settings.dark_mode
             ? _t("Switch to Light Mode") : _t("Switch to Dark Mode");
         theme_button.clicked.connect(() => {
-            if (style_manager.color_scheme == Adw.ColorScheme.PREFER_DARK) {
-                style_manager.color_scheme = Adw.ColorScheme.PREFER_LIGHT;
-                theme_button.icon_name = "weather-clear-night-symbolic";
-                theme_button.tooltip_text = _t("Switch to Dark Mode");
-                settings.dark_mode = false;
-            } else {
-                style_manager.color_scheme = Adw.ColorScheme.PREFER_DARK;
-                theme_button.icon_name = "weather-clear-symbolic";
-                theme_button.tooltip_text = _t("Switch to Light Mode");
-                settings.dark_mode = true;
-            }
+            settings.dark_mode = !settings.dark_mode;
+            style_manager.color_scheme = settings.dark_mode
+                ? Adw.ColorScheme.FORCE_DARK : Adw.ColorScheme.FORCE_LIGHT;
+            theme_button.icon_name = settings.dark_mode
+                ? "weather-clear-symbolic" : "weather-clear-night-symbolic";
+            theme_button.tooltip_text = settings.dark_mode
+                ? _t("Switch to Light Mode") : _t("Switch to Dark Mode");
         });
         header_bar.pack_start(theme_button);
 
@@ -1196,6 +1195,10 @@ public class IsoMaster : Adw.Application {
     private void iso_go_up() {
         if (current_iso_path.length > 1) {
             current_iso_path = Path.get_dirname(current_iso_path);
+            // bk_get_dir_from_string requires a trailing slash
+            if (!current_iso_path.has_suffix("/")) {
+                current_iso_path += "/";
+            }
             iso_path_entry.text = current_iso_path;
             refresh_iso_view();
         }
@@ -1203,7 +1206,12 @@ public class IsoMaster : Adw.Application {
 
     private void iso_navigate_to(string path) {
         current_iso_path = path;
-        iso_path_entry.text = path;
+        // bk_get_dir_from_string requires a trailing slash, otherwise it
+        // returns BKERROR_MISFORMED_PATH and the folder shows as empty
+        if (!current_iso_path.has_suffix("/")) {
+            current_iso_path += "/";
+        }
+        iso_path_entry.text = current_iso_path;
         refresh_iso_view();
     }
 

@@ -1,3 +1,12 @@
+15 Aug 2026 - 1.6.2
+===================
+- Fixed empty folder view when navigating into ISO directories: the path
+  was passed to bk_get_dir_from_string without a trailing slash, which it
+  requires (BKERROR_MISFORMED_PATH) - navigation now normalizes paths.
+- Fixed the dark-mode toggle button: it is now driven by the settings
+  state and uses FORCE_LIGHT/FORCE_DARK, so it works even when the
+  system prefers dark (PREFER_LIGHT was being overridden).
+
 15 Aug 2026 - 1.6.1
 ===================
 - Fixed a use-after-free crash (SIGSEGV) when loading an ISO image: the

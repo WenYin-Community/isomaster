@@ -1,6 +1,6 @@
 Name:		isomaster-gtk4
 Summary:	An easy to use GUI CD image editor (GTK4 version)
-Version:	1.6.1
+Version:	1.6.2
 Release:	1%{?dist}
 License:	GPL-2.0-only
 URL:		http://littlesvr.ca/isomaster/
@@ -95,6 +95,10 @@ gtk-update-icon-cache -f -t %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
 gtk-update-icon-cache -f -t %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
 
 %changelog
+* Sat Aug 15 2026 ISO Master Team <info@littlesvr.ca> - 1.6.2-1
+- Fix empty folder view when navigating ISO directories (trailing slash)
+- Fix dark-mode toggle: driven by settings state with FORCE_* schemes
+
 * Sat Aug 15 2026 ISO Master Team <info@littlesvr.ca> - 1.6.1-1
 - Fix use-after-free crash (SIGSEGV) when loading an ISO image: delegate
   ownership was not transferred to the background worker thread
