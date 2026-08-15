@@ -12,8 +12,10 @@ VALA_PKGS = --pkg gtk4 --pkg libadwaita-1 --pkg gio-2.0 --pkg glib-2.0
 
 CC = gcc
 GTK_CFLAGS = $(shell pkg-config --cflags gtk4 libadwaita-1)
-INIPARSER_CFLAGS = $(shell pkg-config --cflags iniparser)
-INIPARSER_LIBS = $(shell pkg-config --libs iniparser)
+# Fall back to the standard layout if pkg-config cannot find iniparser
+# (e.g. inside rpmbuild on some distros)
+INIPARSER_CFLAGS = $(shell pkg-config --cflags iniparser 2>/dev/null || echo "-I/usr/include/iniparser")
+INIPARSER_LIBS = $(shell pkg-config --libs iniparser 2>/dev/null || echo "-liniparser")
 CFLAGS = -std=gnu99 -Wall -Wno-unused-variable -D_FILE_OFFSET_BITS=64 \
 	-DLOCALEDIR=\"$(LOCALEDIR)\" \
 	-DICONPATH=\"$(ICONPATH)\" \
