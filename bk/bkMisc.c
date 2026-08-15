@@ -34,3 +34,10 @@ void maybeUpdateProgress(VolInfo* volInfo)
         volInfo->lastTimeCalledProgress = timeNow;
     }
 }
+
+/* Returns the size of the VolInfo structure so that language bindings
+* can allocate it without hardcoding a layout-dependent byte count. */
+size_t bk_vol_info_size(void)
+{
+    return sizeof(VolInfo);
+}

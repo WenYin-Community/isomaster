@@ -212,7 +212,9 @@ int addDirContents(VolInfo* volInfo, const char* srcPath, BkDir* destDir)
     
     strcpy(newSrcPathAndName, srcPath);
     
-    if(srcPath[srcPathLen - 1] != '/')
+    /* guard against an empty srcPath (strlen()-1 would underflow and
+    * read before the buffer) */
+    if(srcPathLen > 0 && srcPath[srcPathLen - 1] != '/')
     {
         strcat(newSrcPathAndName, "/");
         srcPathLen++;

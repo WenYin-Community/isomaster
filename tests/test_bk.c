@@ -20,6 +20,7 @@
 #include <errno.h>
 
 #include "../bk/bk.h"
+#include "../bk/bkRead.h" /* stripSpacesFromEndOfString 等内部函数（回归测试用） */
 
 /* 测试计数器 */
 static int tests_run = 0;
@@ -232,9 +233,14 @@ static void test_vol_name(void)
     ASSERT_NOT_NULL(name, "volume name should not be NULL");
     ASSERT_STR_EQUAL(name, "TEST_VOL", "volume name should match");
 
-    /* 测试长名称截断 */
+    /* 超长名称应被拒绝（不静默截断，避免卷名数据不一致） */
     rc = bk_set_vol_name(&volInfo, "A_VERY_LONG_VOLUME_NAME_THAT_EXCEEDS_32_CHARS");
-    ASSERT_EQUAL(rc, 1, "set_vol_name with long name should succeed");
+    ASSERT_EQUAL(rc, BKERROR_MAX_NAME_LENGTH_EXCEEDED,
+                 "overlong name should be rejected");
+
+    /* 拒绝后原卷名保持不变 */
+    ASSERT_STR_EQUAL(bk_get_volume_name(&volInfo), "TEST_VOL",
+                     "volume name unchanged after rejection");
 
     bk_destroy_vol_info(&volInfo);
     TEST_PASS();
@@ -1264,6 +1270,136 @@ static void test_save_overwrite_protection(void)
 }
 
 /* ============================================================================
+ * 测试 25: 短文件名打开
+ * 回归：bk_open_image 对长度 < 3 的文件名无条件读 filename[len-3]，
+ * 造成负下标越界读。修复后应先检查 len >= 3。
+ * ============================================================================ */
+static void test_short_filename_open(void)
+{
+    VolInfo volInfo;
+    int rc;
+    const char* shortPath = "/tmp/x"; /* 1 字符文件名 */
+
+    TEST_START("bk_open_image 短文件名不越界");
+
+    create_temp_file(shortPath, "x");
+
+    rc = bk_init_vol_info(&volInfo, false);
+    ASSERT_EQUAL(rc, 1, "init should succeed");
+
+    /* 只要求不崩溃且行为确定：能打开，且读取 1 字节文件的卷信息必然失败 */
+    rc = bk_open_image(&volInfo, shortPath);
+    ASSERT_TRUE(rc > 0, "open short-named file should succeed");
+
+    rc = bk_read_vol_info(&volInfo);
+    ASSERT_TRUE(rc < 0, "read vol info on 1-byte file should fail cleanly");
+
+    bk_destroy_vol_info(&volInfo);
+    unlink(shortPath);
+
+    TEST_PASS();
+}
+
+/* ============================================================================
+ * 测试 26: stripSpacesFromEndOfString 空串处理
+ * 回归：空串时 strlen()-1 下溢为 SIZE_MAX，越界读。修复后先判空。
+ * ============================================================================ */
+static void test_strip_spaces_empty(void)
+{
+    char buf1[1] = "";
+    char buf2[] = "hello   ";
+    char buf3[] = "   ";
+
+    TEST_START("stripSpacesFromEndOfString 空串/全空格");
+
+    stripSpacesFromEndOfString(buf1);
+    ASSERT_STR_EQUAL(buf1, "", "empty string stays empty");
+
+    stripSpacesFromEndOfString(buf2);
+    ASSERT_STR_EQUAL(buf2, "hello", "trailing spaces stripped");
+
+    stripSpacesFromEndOfString(buf3);
+    ASSERT_STR_EQUAL(buf3, "", "all-space string becomes empty");
+
+    TEST_PASS();
+}
+
+/* ============================================================================
+ * 测试 27: 恶意镜像目录记录
+ * 回归：recordLength 与 SU 字段长度直接取自镜像，未校验时会导致
+ * lenSU 下溢（malloc 巨量）或 SU 字段越界读。修复后应干净失败。
+ * ============================================================================ */
+static void test_malformed_image(void)
+{
+    VolInfo volInfo;
+    int rc;
+    const char* isoPath = "/tmp/test_bk_malformed.iso";
+    FILE* f;
+    unsigned char sector[2048];
+    int i;
+
+    TEST_START("恶意镜像目录记录边界校验");
+
+    /* 构造镜像：16 扇区系统区 + PVD(扇区16) + 终结符(扇区17) +
+     * 恶意 root dir(扇区18)：recordLength=255、SU 字段声称长度 255
+     * 但实际可用空间只有 220 字节 */
+    f = fopen(isoPath, "wb");
+    ASSERT_NOT_NULL(f, "create malformed image");
+
+    memset(sector, 0, sizeof(sector));
+    for (i = 0; i < 16; i++)
+        fwrite(sector, 1, sizeof(sector), f);
+
+    /* PVD：类型字节 + 全 0 卷名/publisher（触发 stripSpaces 空串路径）
+     * + root dir record（extent = 扇区 18，both-endian 733） */
+    memset(sector, 0, sizeof(sector));
+    sector[0] = 0x01;                    /* VDTYPE_PRIMARY */
+    sector[158] = 18;                    /* extent: little-endian */
+    sector[165] = 18;                    /* extent: big-endian */
+    fwrite(sector, 1, sizeof(sector), f);
+
+    /* 卷描述符终结符 */
+    memset(sector, 0, sizeof(sector));
+    sector[0] = 0xFF;
+    fwrite(sector, 1, sizeof(sector), f);
+
+    /* 恶意 root dir */
+    memset(sector, 0, sizeof(sector));
+    sector[0] = 255;                     /* recordLength（恶意超大） */
+    sector[25] = 2;                      /* flags: directory */
+    sector[32] = 1;                      /* lenFileId9660 */
+    sector[33] = 0;                      /* root name */
+    sector[34] = 'S';                    /* SU: SL 字段 */
+    sector[35] = 'L';
+    sector[36] = 255;                    /* 声称长度 255（越界） */
+    sector[37] = 0;
+    /* lenSU = 255-33-1=221，len_fi 为奇数无 padding → SU 从 34 到 253，
+     * [254] = 0 作为下一条记录的结束标记 */
+    fwrite(sector, 1, sizeof(sector), f);
+
+    fclose(f);
+
+    rc = bk_init_vol_info(&volInfo, false);
+    ASSERT_EQUAL(rc, 1, "init should succeed");
+
+    rc = bk_open_image(&volInfo, isoPath);
+    ASSERT_TRUE(rc > 0, "open malformed image should succeed");
+
+    rc = bk_read_vol_info(&volInfo);
+    ASSERT_TRUE(rc > 0, "read vol info should succeed (PVD is well-formed)");
+
+    /* keepPosixPermissions=true 会触发 SU 字段解析（readPosixFileMode），
+     * 恶意长度必须被干净拒绝而不是越界读/巨量分配 */
+    rc = bk_read_dir_tree(&volInfo, FNTYPE_9660, true, progress_cb);
+    ASSERT_TRUE(rc < 0, "dir tree with malformed record should fail cleanly");
+
+    bk_destroy_vol_info(&volInfo);
+    unlink(isoPath);
+
+    TEST_PASS();
+}
+
+/* ============================================================================
  * 主函数
  * ============================================================================ */
 int main(void)
@@ -1318,6 +1454,11 @@ int main(void)
 
     printf("\n[组 11] 完整工作流\n");
     test_full_workflow();
+
+    printf("\n[组 12] 健壮性/恶意输入\n");
+    test_short_filename_open();
+    test_strip_spaces_empty();
+    test_malformed_image();
 
     printf("\n========================================\n");
     printf("  测试结果汇总\n");

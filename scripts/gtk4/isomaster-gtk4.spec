@@ -1,6 +1,6 @@
 Name:		isomaster-gtk4
 Summary:	An easy to use GUI CD image editor (GTK4 version)
-Version:	1.5.0
+Version:	1.6.0
 Release:	1%{?dist}
 License:	GPL-2.0-only
 URL:		http://littlesvr.ca/isomaster/
@@ -12,6 +12,7 @@ BuildRequires:	make
 BuildRequires:	vala
 BuildRequires:	gtk4-devel
 BuildRequires:	libadwaita-devel
+BuildRequires:	iniparser-devel
 BuildRequires:	gettext
 BuildRequires:	pkg-config
 
@@ -35,6 +36,11 @@ make -f Makefile.vala install DESTDIR=%{buildroot} PREFIX=%{_prefix} VERSION=%{v
 
 # Rename binary to isomaster-gtk4 to avoid conflict with GTK2 version
 mv %{buildroot}%{_bindir}/isomaster %{buildroot}%{_bindir}/isomaster-gtk4
+
+# Remove the default-named desktop entry and man page installed by
+# Makefile.vala (this package ships its own isomaster-gtk4-named ones)
+rm -f %{buildroot}%{_datadir}/applications/isomaster.desktop
+rm -f %{buildroot}%{_mandir}/man1/isomaster.1
 
 # Rename translation files to avoid conflict with isomaster package
 for mo in %{buildroot}%{_datadir}/locale/*/LC_MESSAGES/isomaster.mo; do
@@ -79,9 +85,21 @@ install -m 644 isomaster.1 %{buildroot}%{_mandir}/man1/isomaster-gtk4.1
 %{_datadir}/pixmaps/extract2-kearone.png
 %{_datadir}/pixmaps/folder-new-kearone.png
 %{_datadir}/pixmaps/go-back-kearone.png
+%{_datadir}/icons/hicolor/64x64/apps/isomaster.png
 %{_mandir}/man1/isomaster-gtk4.1*
 
+%post
+gtk-update-icon-cache -f -t %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
+
+%postun
+gtk-update-icon-cache -f -t %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
+
 %changelog
+* Mon Jun 23 2025 ISO Master Team <info@littlesvr.ca> - 1.6.0-1
+- Use system iniparser (4.2.6) instead of the bundled 4.1 (CVE-2025-0633, CVE-2023-33461)
+- Install desktop entry and man page from Makefile; fixed desktop icon lookup
+- Run unit tests and AddressSanitizer in CI
+
 * Mon Jun 23 2025 ISO Master Team <info@littlesvr.ca> - 1.5.0-1
 - Fixed critical bugs: readSeekSet/wcSeekSet return value checking, memory leaks
 - Added drag-and-drop, progress bar, Delete keybinding, ISO path navigation

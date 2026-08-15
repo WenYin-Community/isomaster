@@ -2,7 +2,7 @@
 
 # ISO Master
 
-一款简单易用的开源图形化 CD 镜像编辑器，适用于 Linux 和 BSD。
+**版本 1.6.0** — 一款简单易用的开源图形化 CD 镜像编辑器，适用于 Linux 和 BSD。
 
 ## 功能
 
@@ -11,7 +11,9 @@
 - 从镜像中提取文件和目录
 - 从镜像中删除文件和目录
 - 创建可引导 ISO 镜像
-- 使用外部编辑器就地编辑镜像内的文件
+- 使用外部编辑器就地编辑镜像内的文件（修改后自动写回镜像）
+- 支持在文件浏览器与 ISO 浏览器之间拖拽添加/提取文件
+- 打开/添加/提取/保存等耗时操作在后台线程执行，带实时进度条——界面不冻结
 - 保存为 ISO 格式
 - 完整的国际化支持（gettext）
 - 现代化 GTK4 + Adwaita 用户界面
@@ -62,9 +64,13 @@ sudo make -f Makefile.vala uninstall
 ```
 isomaster/
 ├── isomaster.vala      # 主应用程序（Vala/GTK4/Adwaita）
-├── isomaster.c         # Vala 生成的 C 代码
+├── settings.vala       # AppSettings 模型 + SettingsStore（iniparser 持久化）
+├── file-item.vala      # FileItem 列表模型
+├── iso-operations.vala # 后台工作线程框架
+├── util.vala           # 无状态辅助函数
+├── isomaster.c         # Vala 生成的 C 代码（构建时生成）
 ├── bk.vapi             # bk 库的 Vala 绑定
-├── iniparser.vapi      # iniparser 库的 Vala 绑定
+├── iniparser.vapi      # iniparser 库的 Vala 绑定（系统库）
 ├── Makefile.vala       # Vala 版本构建系统
 ├── bk/                 # bkisofs 库（ISO 读写核心，纯 C）
 │   ├── bkRead.c        #   ISO 9660/Joliet 目录结构读取
@@ -77,8 +83,7 @@ isomaster/
 │   ├── bkCache.c       #   块缓存
 │   ├── example.c       #   独立使用示例
 │   └── ...
-├── iniparser-4.1/      # 内置 INI 文件解析库
-├── po/                 # gettext 翻译文件（8 种语言）
+├── po/                 # gettext 翻译文件（120 种语言）
 └── icons/              # 应用图标
 ```
 
@@ -105,9 +110,9 @@ isomaster/
 
 ## 许可证
 
-GNU 通用公共许可证 v2。详见 [LICENCE.TXT](LICENCE.TXT)。
+GNU 通用公共许可证 v2。详见 [LICENCE](LICENCE)。
 
 ## 链接
 
 - 主页：http://littlesvr.ca/isomaster/
-- 联系方式：http://littlesvr.ca/contact.php
+- 联系方式：http://littlesvr.ca/misc/contactandrew.php

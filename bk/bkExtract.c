@@ -301,14 +301,19 @@ int extractDir(VolInfo* volInfo, BkDir* srcDir, const char* destDir,
     if(newDestDir == NULL)
         return BKERROR_OUT_OF_MEMORY;
     
-    strcpy(newDestDir, destDir);
-    if(destDir[strlen(destDir) - 1] != '/')
-        strcat(newDestDir, "/");
-    
+    /* build the path with snprintf: destDir, a '/' separator if needed,
+    * then the name; guard against an empty destDir (strlen()-1 would
+    * underflow and read before the buffer) */
     if(nameToUse == NULL)
-        strcat(newDestDir, BK_BASE_PTR(srcDir)->name);
+        snprintf(newDestDir, strlen(destDir) + strlen(BK_BASE_PTR(srcDir)->name) + 2,
+                 "%s%s%s", destDir,
+                 (destDir[0] != '\0' && destDir[strlen(destDir) - 1] != '/') ? "/" : "",
+                 BK_BASE_PTR(srcDir)->name);
     else
-        strcat(newDestDir, nameToUse);
+        snprintf(newDestDir, strlen(destDir) + strlen(nameToUse) + 2,
+                 "%s%s%s", destDir,
+                 (destDir[0] != '\0' && destDir[strlen(destDir) - 1] != '/') ? "/" : "",
+                 nameToUse);
     
     if(keepPermissions)
         destDirPerms = BK_BASE_PTR(BK_BASE_PTR(srcDir))->posixFileMode;
@@ -380,11 +385,17 @@ int extractFile(VolInfo* volInfo, BkFile* srcFileInTree, const char* destDir,
         /* UPDATE the file's size, in case it's changed since we added it */
         rc = bkStat(srcFileInTree->pathAndName, &statStruct);
         if(rc != 0)
+        {
+            bkClose(srcFile);
             return BKERROR_STAT_FAILED;
+        }
         
         if(statStruct.st_size > 0xFFFFFFFF)
         /* size won't fit in a 32bit variable on the iso */
+        {
+            bkClose(srcFile);
             return BKERROR_EDITED_EXTRACT_TOO_BIG;
+        }
         
         srcFileInTree->size = statStruct.st_size;
         /* UPDATE the file's size, in case it's changed since we added it */
@@ -402,13 +413,19 @@ int extractFile(VolInfo* volInfo, BkFile* srcFileInTree, const char* destDir,
         return BKERROR_OUT_OF_MEMORY;
     }
     
-    strcpy(destPathAndName, destDir);
-    if(destDir[strlen(destDir) - 1] != '/')
-        strcat(destPathAndName, "/");
+    /* build the path with snprintf: destDir, a '/' separator if needed,
+    * then the name; guard against an empty destDir (strlen()-1 would
+    * underflow and read before the buffer) */
     if(nameToUse == NULL)
-        strcat(destPathAndName, BK_BASE_PTR(srcFileInTree)->name);
+        snprintf(destPathAndName, strlen(destDir) + strlen(BK_BASE_PTR(srcFileInTree)->name) + 2,
+                 "%s%s%s", destDir,
+                 (destDir[0] != '\0' && destDir[strlen(destDir) - 1] != '/') ? "/" : "",
+                 BK_BASE_PTR(srcFileInTree)->name);
     else
-        strcat(destPathAndName, nameToUse);
+        snprintf(destPathAndName, strlen(destDir) + strlen(nameToUse) + 2,
+                 "%s%s%s", destDir,
+                 (destDir[0] != '\0' && destDir[strlen(destDir) - 1] != '/') ? "/" : "",
+                 nameToUse);
     
     if(existsOnFs(destPathAndName))
     {
@@ -444,12 +461,6 @@ int extractFile(VolInfo* volInfo, BkFile* srcFileInTree, const char* destDir,
         return rc;
     }
     
-    if(destFile == -1)
-    {
-        if(srcFileWasOpened)
-            bkClose(srcFile);
-        return BKERROR_EXOTIC;
-    }
     bkClose(destFile);
     /* END WRITE file */
     
@@ -473,13 +484,19 @@ int extractSymlink(BkSymLink* srcLink, const char* destDir,
     if(destPathAndName == NULL)
         return BKERROR_OUT_OF_MEMORY;
     
-    strcpy(destPathAndName, destDir);
-    if(destDir[strlen(destDir) - 1] != '/')
-        strcat(destPathAndName, "/");
+    /* build the path with snprintf: destDir, a '/' separator if needed,
+    * then the name; guard against an empty destDir (strlen()-1 would
+    * underflow and read before the buffer) */
     if(nameToUse == NULL)
-        strcat(destPathAndName, BK_BASE_PTR(srcLink)->name);
+        snprintf(destPathAndName, strlen(destDir) + strlen(BK_BASE_PTR(srcLink)->name) + 2,
+                 "%s%s%s", destDir,
+                 (destDir[0] != '\0' && destDir[strlen(destDir) - 1] != '/') ? "/" : "",
+                 BK_BASE_PTR(srcLink)->name);
     else
-        strcat(destPathAndName, nameToUse);
+        snprintf(destPathAndName, strlen(destDir) + strlen(nameToUse) + 2,
+                 "%s%s%s", destDir,
+                 (destDir[0] != '\0' && destDir[strlen(destDir) - 1] != '/') ? "/" : "",
+                 nameToUse);
     
     if(existsOnFs(destPathAndName))
     {

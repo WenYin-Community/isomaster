@@ -1,54 +1,48 @@
 #!/bin/bash
+# Create a release source tarball from the current git tree.
+# Usage: release.sh VERSION
+# Output: ../releases/isomaster-VERSION.tar.bz2 (override dir with OUT_DIR)
+
+set -e
 
 VERSION=$1
 
-if [ "$VERSION asd" = " asd" ]
+if [ -z "$VERSION" ]
 then
-    echo Usage: release.sh VERSION
+    echo "Usage: release.sh VERSION"
     exit 1
 fi
 
-svn export . ../releases/isomaster-$VERSION
-if [ $? -ne 0 ]
+if [ -n "$(git status --porcelain)" ]
 then
+    echo "Error: working tree is not clean; commit or stash your changes first."
     exit 1
 fi
 
-rm ../releases/isomaster-$VERSION/bkisofs-manual
-if [ $? -ne 0 ]
-then
-    exit 1
-fi
+OUT_DIR=${OUT_DIR:-../releases}
+mkdir -p "$OUT_DIR"
 
-make bk-doc
-if [ $? -ne 0 ]
-then
-    exit 1
-fi
+# Export the committed tree, excluding build artifacts and generated files.
+# The source tarball must contain only files that are actually tracked.
+git archive HEAD \
+    --format=tar \
+    --prefix="isomaster-$VERSION/" \
+    --output="$OUT_DIR/isomaster-$VERSION.tar" \
+    . \
+    ':(exclude)*.o' \
+    ':(exclude)*.a' \
+    ':(exclude)*.mo' \
+    ':(exclude)isomaster.c' \
+    ':(exclude)settings.c' \
+    ':(exclude)file-item.c' \
+    ':(exclude)iso-operations.c' \
+    ':(exclude)util.c' \
+    ':(exclude)isomaster' \
+    ':(exclude)iconpath.c' \
+    ':(exclude)iconpath.h' \
+    ':(exclude)version.inc' \
+    ':(exclude)tests/test_bk'
 
-mkdir ../releases/isomaster-$VERSION/bkisofs-manual
-if [ $? -ne 0 ]
-then
-    exit 1
-fi
+bzip2 -f "$OUT_DIR/isomaster-$VERSION.tar"
 
-cp ../doc/byme/bkisofs-manual/* ../releases/isomaster-$VERSION/bkisofs-manual/
-if [ $? -ne 0 ]
-then
-    exit 1
-fi
-
-rm -r ../releases/isomaster-$VERSION/icons/originals
-if [ $? -ne 0 ]
-then
-    exit 1
-fi
-
-cd ../releases
-tar cvjf isomaster-$VERSION.tar.bz2 isomaster-$VERSION/
-if [ $? -ne 0 ]
-then
-    exit 1
-fi
-
-echo isomaster-$VERSION.tar.bz2 created
+echo "isomaster-$VERSION.tar.bz2 created in $OUT_DIR"

@@ -1,12 +1,16 @@
 [CCode (cheader_filename = "bk.h")]
 namespace Bk {
-    // Use pointers for large opaque C structs
+    // Opaque C struct: never accessed from Vala. Allocate with
+    // vol_info_size() — do NOT use sizeof(Bk.VolInfo), the hardcoded
+    // byte count below would go stale if the C struct ever grows.
     [CCode (cname = "VolInfo", has_type_id = false)]
     [SimpleType]
     public struct VolInfo {
-        // Large opaque struct - use raw memory
-        public uint8 _data[206080];
+        public uint8 _data[1];
     }
+
+    [CCode (cname = "bk_vol_info_size")]
+    public static size_t vol_info_size();
 
     [CCode (cname = "BkFileBase", has_type_id = false)]
     [SimpleType]

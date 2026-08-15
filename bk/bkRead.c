@@ -85,7 +85,8 @@ int bk_open_image(VolInfo* volInfo, const char* filename)
     
     /* skip the first 150 sectors if the image is an NRG */
     len = strlen(filename);
-    if( (filename[len - 3] == 'N' || filename[len - 3] == 'n') &&
+    if(len >= 3 &&
+       (filename[len - 3] == 'N' || filename[len - 3] == 'n') &&
         (filename[len - 2] == 'R' || filename[len - 2] == 'r') &&
         (filename[len - 1] == 'G' || filename[len - 1] == 'g') )
     {
@@ -541,9 +542,18 @@ int readDir(VolInfo* volInfo, BkDir* dir, int filenameType,
     if(rc != 1)
         return BKERROR_READ_GENERIC;
     
+    /* the record length and file id length come straight from the image:
+    * validate before using them so a corrupted/malicious image cannot make
+    * lenSU negative (which would be converted to a huge size_t by malloc) */
     lenSU = recordLength - 33 - lenFileId9660;
+    if(lenSU < 0)
+        return BKERROR_READ_GENERIC;
     if(lenFileId9660 % 2 == 0)
+    {
         lenSU -= 1;
+        if(lenSU < 0)
+            return BKERROR_READ_GENERIC;
+    }
     
     /* READ directory name */
     if(volInfo->rootRead)
@@ -844,9 +854,18 @@ int readFileInfo(VolInfo* volInfo, BkFile* file, int filenameType,
     if(rc != 1)
         return BKERROR_READ_GENERIC;
     
+    /* the record length and file id length come straight from the image:
+    * validate before using them so a corrupted/malicious image cannot make
+    * lenSU negative (which would be converted to a huge size_t by malloc) */
     lenSU = recordLength - 33 - lenFileId9660;
+    if(lenSU < 0)
+        return BKERROR_READ_GENERIC;
     if(lenFileId9660 % 2 == 0)
+    {
         lenSU -= 1;
+        if(lenSU < 0)
+            return BKERROR_READ_GENERIC;
+    }
     
     /* READ 9660 name */
     posBeforeName = readSeekTell(volInfo);
@@ -990,6 +1009,9 @@ int readPosixFileMode(VolInfo* volInfo, unsigned* posixFileMode, int lenSU)
     unsigned offsetInLogicalBlockOfCE;
     unsigned lengthOfCE; /* in bytes */
     
+    if(lenSU <= 0)
+        return BKERROR_NO_POSIX_PRESENT;
+    
     suFields = malloc(lenSU);
     if(suFields == NULL)
         return BKERROR_OUT_OF_MEMORY;
@@ -1008,30 +1030,53 @@ int readPosixFileMode(VolInfo* volInfo, unsigned* posixFileMode, int lenSU)
     foundCE = false;
     while(count < lenSU && !foundPosix)
     {
+        unsigned char suFieldLen;
+        
         if(suFields[count] == 0)
         /* not an SU field, mkisofs sometimes has a trailing 0 in the directory
         * record and this is the easiest way to ignore it */
             break;
         
+        /* every SU field has a 4-byte header (sig sig len version):
+        * validate the length field before trusting anything past the
+        * signature bytes, or a malicious image could make us read/walk
+        * past the end of the buffer */
+        if(count + 2 >= lenSU)
+            break;
+        suFieldLen = suFields[count + 2];
+        if(suFieldLen < 4 || count + suFieldLen > lenSU)
+            break;
+        
         if(suFields[count] == 'P' && suFields[count + 1] == 'X')
         {
-            //~ printf("%X %X %X %X\n", *(suFields + count + 4), *(suFields + count + 5), *(suFields + count + 6), *(suFields + count + 7));
-            read733FromCharArray(suFields + count + 4, posixFileMode);
-            
-            /* not interested in anything else from this field */
-            
-            foundPosix = true;
+            /* PX field carries 8 bytes of mode data at offset +4 */
+            if(suFieldLen >= 12)
+            {
+                read733FromCharArray(suFields + count + 4, posixFileMode);
+                
+                /* not interested in anything else from this field */
+                
+                foundPosix = true;
+            }
+            else
+                break;
         }
         else if(suFields[count] == 'C' && suFields[count + 1] == 'E')
         {
-            foundCE = true;
-            read733FromCharArray(suFields + count + 4, &logicalBlockOfCE);
-            read733FromCharArray(suFields + count + 12, &offsetInLogicalBlockOfCE);
-            read733FromCharArray(suFields + count + 20, &lengthOfCE);
+            /* CE field carries 24 bytes of location data at offset +4 */
+            if(suFieldLen >= 28)
+            {
+                foundCE = true;
+                read733FromCharArray(suFields + count + 4, &logicalBlockOfCE);
+                read733FromCharArray(suFields + count + 12, &offsetInLogicalBlockOfCE);
+                read733FromCharArray(suFields + count + 20, &lengthOfCE);
+            }
+            else
+                break;
         }
         
         /* skip su record */
-        count += suFields[count + 2];
+        count += suFieldLen;
     }
     
     free(suFields);
@@ -1043,6 +1088,9 @@ int readPosixFileMode(VolInfo* volInfo, unsigned* posixFileMode, int lenSU)
             return BKERROR_NO_POSIX_PRESENT;
         else
         {
+            /* the CE continuation area lives inside one logical block */
+            if(lengthOfCE == 0 || lengthOfCE > NBYTES_LOGICAL_BLOCK)
+                return BKERROR_NO_POSIX_PRESENT;
             readSeekSet(volInfo, logicalBlockOfCE * NBYTES_LOGICAL_BLOCK + 
                         offsetInLogicalBlockOfCE, SEEK_SET);
             rc = readPosixFileMode(volInfo, posixFileMode, lengthOfCE);
@@ -1080,6 +1128,9 @@ int readRockridgeFilename(VolInfo* volInfo, char* dest, int lenSU,
     unsigned offsetInLogicalBlockOfCE;
     unsigned lengthOfCE; /* in bytes */
     
+    if(lenSU <= 0)
+        return BKERROR_RR_FILENAME_MISSING;
+    
     suFields = malloc(lenSU);
     if(suFields == NULL)
         return BKERROR_OUT_OF_MEMORY;
@@ -1099,13 +1150,26 @@ int readRockridgeFilename(VolInfo* volInfo, char* dest, int lenSU,
     foundCE = false;
     while(count < lenSU)
     {
+        unsigned char suFieldLen;
+        
         if(suFields[count] == 0)
         /* not an SU field, mkisofs sometimes has a trailing 0 in the directory
         * record and this is the easiest way to ignore it */
             break;
         
+        /* every SU field has a 4-byte header (sig sig len version):
+        * validate before touching anything past the signature bytes */
+        if(count + 2 >= lenSU)
+            break;
+        suFieldLen = suFields[count + 2];
+        if(suFieldLen < 4 || count + suFieldLen > lenSU)
+            break;
+        
         if(suFields[count] == 'N' && suFields[count + 1] == 'M')
         {
+            /* NM field needs at least the 4-byte header + 1 flags byte */
+            if(suFieldLen < 5)
+                break;
             lengthThisNM = suFields[count + 2] - 5;
             
             /* the data structures cannot handle filenames longer than 
@@ -1115,6 +1179,8 @@ int readRockridgeFilename(VolInfo* volInfo, char* dest, int lenSU,
                 usableLenThisNM = NCHARS_FILE_ID_MAX_STORE - numCharsReadAlready - 1;
             else
                 usableLenThisNM = lengthThisNM;
+            if(usableLenThisNM < 0)
+                usableLenThisNM = 0;
             
             strncpy(dest + numCharsReadAlready, (char*)suFields + count + 5, usableLenThisNM);
             dest[usableLenThisNM + numCharsReadAlready] = '\0';
@@ -1126,14 +1192,20 @@ int readRockridgeFilename(VolInfo* volInfo, char* dest, int lenSU,
         }
         else if(suFields[count] == 'C' && suFields[count + 1] == 'E')
         {
-            foundCE = true;
-            read733FromCharArray(suFields + count + 4, &logicalBlockOfCE);
-            read733FromCharArray(suFields + count + 12, &offsetInLogicalBlockOfCE);
-            read733FromCharArray(suFields + count + 20, &lengthOfCE);
+            /* CE field carries 24 bytes of location data at offset +4 */
+            if(suFieldLen >= 28)
+            {
+                foundCE = true;
+                read733FromCharArray(suFields + count + 4, &logicalBlockOfCE);
+                read733FromCharArray(suFields + count + 12, &offsetInLogicalBlockOfCE);
+                read733FromCharArray(suFields + count + 20, &lengthOfCE);
+            }
+            else
+                break;
         }
         
         /* skip su record */
-        count += suFields[count + 2];
+        count += suFieldLen;
     }
     
     free(suFields);
@@ -1145,6 +1217,9 @@ int readRockridgeFilename(VolInfo* volInfo, char* dest, int lenSU,
             return BKERROR_RR_FILENAME_MISSING;
         else
         {
+            /* the CE continuation area lives inside one logical block */
+            if(lengthOfCE == 0 || lengthOfCE > NBYTES_LOGICAL_BLOCK)
+                return BKERROR_RR_FILENAME_MISSING;
             readSeekSet(volInfo, 
                         logicalBlockOfCE * NBYTES_LOGICAL_BLOCK + offsetInLogicalBlockOfCE, 
                         SEEK_SET);
@@ -1187,14 +1262,28 @@ int readRockridgeSymlink(VolInfo* volInfo, BkSymLink** dest, int lenSU)
     count = 0;
     while(count < lenSU)
     {
+        unsigned char suFieldLen;
+        
         if(suFields[count] == 0)
         /* not an SU field, mkisofs sometimes has a trailing 0 in the directory
         * record and this is the easiest way to ignore it */
             break;
         
+        /* every SU field has a 4-byte header (sig sig len version):
+        * validate before touching anything past the signature bytes */
+        if(count + 2 >= lenSU)
+            break;
+        suFieldLen = suFields[count + 2];
+        if(suFieldLen < 4 || count + suFieldLen > lenSU)
+            break;
+        
         if(suFields[count] == 'S' && suFields[count + 1] == 'L')
         {
             size_t numCharsUsed; /* in dest->target, not including '\0' */
+            
+            /* SL field needs at least the 4-byte header + 1 flags byte */
+            if(suFieldLen < 5)
+                break;
             
             *dest = malloc(sizeof(BkSymLink));
             if(*dest == NULL)
@@ -1207,8 +1296,17 @@ int readRockridgeSymlink(VolInfo* volInfo, BkSymLink** dest, int lenSU)
             /* read sym link component records and assemble (*dest)->target
             * right now component records cannot spawn multiple SL entries */
             count2 = count + 5;
-            while(count2 < count + suFields[count + 2])
+            /* count2+1 must be inside the SL field so we can read the
+            * component length; +2 also covers the 2-byte component header */
+            while(count2 + 2 <= count + suFieldLen)
             {
+                unsigned char compLen = suFields[count2 + 1];
+                
+                /* component content must stay inside the SL field,
+                * or a malicious image makes us read past the buffer */
+                if(compLen > 0 && count2 + 2 + compLen > count + suFieldLen)
+                    break;
+                
                 if(suFields[count2] & 0x02)
                 {
                     numCharsUsed += appendStringIfHaveRoom((*dest)->target, 
@@ -1233,13 +1331,13 @@ int readRockridgeSymlink(VolInfo* volInfo, BkSymLink** dest, int lenSU)
                     numCharsUsed += appendStringIfHaveRoom((*dest)->target, 
                                             (char*)(suFields + count2 + 2), 
                                             NCHARS_SYMLINK_TARGET_MAX - 1, 
-                                            numCharsUsed, suFields[count2 + 1]);
+                                            numCharsUsed, compLen);
                 }
                 
                 /* next component record */
-                count2 += suFields[count2 + 1] + 2;
+                count2 += compLen + 2;
                 
-                if(count2 < count + suFields[count + 2])
+                if(count2 < count + suFieldLen)
                 /* another component record follows, insert separator */
                 {
                     numCharsUsed += appendStringIfHaveRoom((*dest)->target, 
@@ -1253,7 +1351,7 @@ int readRockridgeSymlink(VolInfo* volInfo, BkSymLink** dest, int lenSU)
         }
         
         /* skip su field */
-        count += suFields[count + 2];
+        count += suFieldLen;
     }
     
     free(suFields);
@@ -1311,8 +1409,13 @@ int skipDR(VolInfo* volInfo)
 void stripSpacesFromEndOfString(char* str)
 {
     size_t count;
+    size_t len;
     
-    for(count = strlen(str) - 1; str[count] == ' '; count--)
+    len = strlen(str);
+    if(len == 0)
+        return;
+    
+    for(count = len - 1; str[count] == ' '; count--)
     {
         str[count] = '\0';
 

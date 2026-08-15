@@ -2,7 +2,7 @@
 
 # ISO Master
 
-An easy-to-use, open-source graphical CD image editor for Linux and BSD.
+**Version 1.6.0** — An easy-to-use, open-source graphical CD image editor for Linux and BSD.
 
 ## Features
 
@@ -11,7 +11,9 @@ An easy-to-use, open-source graphical CD image editor for Linux and BSD.
 - Extract files and directories from an image
 - Delete files and directories from an image
 - Create bootable ISO images
-- Edit files in-place using an external editor
+- Edit files in-place using an external editor (changes are written back into the image)
+- Add/extract files by drag-and-drop between the file browser and the ISO browser
+- Long operations (open/add/extract/save) run in the background with a live progress bar — the UI stays responsive
 - Save as ISO format
 - Full internationalization support (gettext)
 - Modern GTK4 + Adwaita user interface
@@ -62,9 +64,13 @@ You can also run `./isomaster` directly from the build directory (icons will not
 ```
 isomaster/
 ├── isomaster.vala      # Main application (Vala/GTK4/Adwaita)
-├── isomaster.c         # Generated C code from Vala
+├── settings.vala       # AppSettings model + SettingsStore (iniparser)
+├── file-item.vala      # FileItem list model
+├── iso-operations.vala # Background worker-thread framework
+├── util.vala           # Stateless helpers
+├── isomaster.c         # Generated C code from Vala (created by the build)
 ├── bk.vapi             # Vala bindings for bk library
-├── iniparser.vapi      # Vala bindings for iniparser
+├── iniparser.vapi      # Vala bindings for iniparser (system library)
 ├── Makefile.vala       # Build system for Vala version
 ├── bk/                 # bkisofs library (ISO read/write core, pure C)
 │   ├── bkRead.c        #   ISO 9660/Joliet directory reading
@@ -77,8 +83,7 @@ isomaster/
 │   ├── bkCache.c       #   Block cache
 │   ├── example.c       #   Standalone usage example
 │   └── ...
-├── iniparser-4.1/      # Bundled INI parser library
-├── po/                 # Gettext translation files (8 languages)
+├── po/                 # Gettext translation files (120 languages)
 └── icons/              # Application icons
 ```
 
@@ -105,9 +110,9 @@ Bug reports and patches are welcome. Please provide:
 
 ## License
 
-GNU General Public License v2. See [LICENCE.TXT](LICENCE.TXT).
+GNU General Public License v2. See [LICENCE](LICENCE).
 
 ## Links
 
 - Homepage: http://littlesvr.ca/isomaster/
-- Contact: http://littlesvr.ca/contact.php
+- Contact: http://littlesvr.ca/misc/contactandrew.php

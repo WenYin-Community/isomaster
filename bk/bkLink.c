@@ -39,7 +39,10 @@ int addToHardLinkTable(VolInfo* volInfo, bk_off_t position, char* pathAndName,
     {
         (*newLink)->pathAndName = malloc(strlen(pathAndName) + 1);
         if((*newLink)->pathAndName == NULL)
+        {
+            free(*newLink);
             return BKERROR_OUT_OF_MEMORY;
+        }
         strcpy((*newLink)->pathAndName, pathAndName);
     }
     (*newLink)->size = size;

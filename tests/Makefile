@@ -16,7 +16,7 @@ TEST_BIN = test_bk
 
 all: $(TEST_BIN)
 
-$(TEST_BIN): $(TEST_SRC) $(BK_LIB)
+$(TEST_BIN): $(TEST_SRC) $(BK_LIB) $(BK_DIR)/bk.h
 	@echo "编译测试程序..."
 	$(CC) $(CFLAGS) $(CPPFLAGS) -I$(BK_DIR) $(TEST_SRC) $(BK_LIB) -o $@
 	@echo "编译完成: $(TEST_BIN)"

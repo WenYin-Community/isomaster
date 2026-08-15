@@ -219,6 +219,9 @@ typedef struct VolInfo
 
 /* public bkisofs functions */
 
+/* allocation helpers */
+size_t bk_vol_info_size(void);
+
 /* adding */
 int bk_add_boot_record(VolInfo* volInfo, const char* srcPathAndName, 
                        int bootMediaType);

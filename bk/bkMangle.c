@@ -409,7 +409,9 @@ void mangleNameFor9660(const char* origName, char* newName, bool isADir)
         newName[8] = '\0';
     }
     
+#ifdef DEBUG
     printf("remangled '%s' -> '%s'\n", origName, newName);
+#endif
 }
 
 void mangleNameForJoliet(const char* origName, char* newName, bool appendHash)
@@ -518,8 +520,10 @@ void mangleNameForJoliet(const char* origName, char* newName, bool appendHash)
     }
     /* END ASSEMBLE name */
     
+#ifdef DEBUG
     if(appendHash)
         printf("joliet mangle '%s' -> '%s'\n", origName, newName);
+#endif
 }
 
 /******************************************************************************

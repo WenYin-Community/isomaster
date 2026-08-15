@@ -1,5 +1,45 @@
+15 Aug 2026 - 1.6.0
+===================
+- Fixed memory safety issues in image parsing (bkRead.c): directory record
+  length underflow (recordLength < 33), out-of-bounds reads in Rock Ridge
+  SU field parsing (PX/NM/SL/CE), negative index read for short file names
+  in bk_open_image, and empty-string underflow in stripSpacesFromEndOfString
+- Fixed path building in bkExtract.c/bkAdd.c: use snprintf with explicit
+  bounds and guard against empty destDir/srcPath (out-of-bounds read)
+- Fixed "edit file" feature: the edited file is now written back into the
+  ISO when the editor exits; temp files use a unique directory per edit
+- Long ISO operations (open/add/extract/save) now run on a background
+  thread: the UI no longer freezes and the progress bar updates for real
+  (previously the main thread was blocked and progress callbacks could
+  never reach the main loop)
+- Window close cancels and joins a running background operation before
+  freeing library state (prevents use-after-free on exit)
+- Replaced the bundled iniparser 4.1 (CVE-2025-0633, CVE-2023-33461) with
+  the system iniparser >= 4.2.4; removed the vendored copy
+- Fixed memory leaks: deleteRegFileContents freed the wrong struct field
+  (every added file leaked its path), the hard-link table never freed its
+  pathAndName entries, extractFile leaked a file descriptor on error paths
+- Fixed bk_set_vol_name/bk_set_publisher: always NUL-terminate and reject
+  overlong names instead of silently truncating
+- Fixed signed-overflow UB in the El Torito checksum; gmtime_r is now used
+  with failure checks in bkTime.c; removed unconditional debug printf
+  output from bkMangle.c
+- Added regression tests for short file names, empty-string stripping and
+  malformed directory records (24 -> 27 tests)
+- Packaging: Makefile install now ships the desktop entry, man page and
+  hicolor icon; added a working uninstall target; desktop entry uses
+  Icon=isomaster instead of a hardcoded path
+- CI now runs the unit tests and an AddressSanitizer test pass; adds a
+  cppcheck informational scan
+- release.sh rewritten for git (git archive) instead of svn export
+- Version is now a single source (Makefile.vala) propagated into the About
+  dialog and the generated iconpath.c
+- Split the single-file Vala application into modules: settings.vala
+  (AppSettings + SettingsStore), file-item.vala, iso-operations.vala
+  (background thread framework) and util.vala (stateless helpers)
+
 23 Jun 2025 - 1.5.0
-====================
+===================
 - Fixed critical bugs: readSeekSet/wcSeekSet return value checking, memory leaks
 - Fixed medium issues: new_iso, change_permissions, show_boot_info implementations
 - Added drag-and-drop support between browsers

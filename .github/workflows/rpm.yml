@@ -49,6 +49,7 @@ jobs:
             vala \
             gtk4-devel \
             libadwaita-devel \
+            iniparser-devel \
             gettext \
             pkg-config \
             rpm-build \
@@ -64,9 +65,42 @@ jobs:
             --exclude='.git' \
             --exclude='.github' \
             --exclude='*.o' \
+            --exclude='*.a' \
+            --exclude='*.mo' \
             --exclude='isomaster.c' \
+            --exclude='settings.c' \
+            --exclude='file-item.c' \
+            --exclude='iso-operations.c' \
+            --exclude='util.c' \
             --exclude='isomaster' \
+            --exclude='iconpath.c' \
+            --exclude='iconpath.h' \
+            --exclude='version.inc' \
+            --exclude='test_bk' \
             .
+
+      - name: Run bk unit tests
+        run: |
+          cd tests && ./run_tests.sh
+
+      - name: Run tests with AddressSanitizer
+        run: |
+          make -C bk clean
+          make -C bk CFLAGS+="-fsanitize=address -g"
+          cd tests
+          gcc -fsanitize=address -g -Wall -I../bk test_bk.c ../bk/bk.a -o test_bk_asan
+          ASAN_OPTIONS=detect_leaks=0 ./test_bk_asan
+          rm -f test_bk_asan
+          cd .. && make -C bk clean && make -C bk
+
+      - name: Static analysis (cppcheck, informational)
+        run: |
+          dnf install -y cppcheck || true
+          cppcheck --enable=warning,performance,portability \
+            --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            --suppress=unknownMacro \
+            --quiet bk/ || true
 
       - name: Build RPM packages
         run: |

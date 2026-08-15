@@ -133,7 +133,10 @@ void deleteDirContents(VolInfo* volInfo, BkDir* dir)
 /* delete the contents of the BkFile structure, not the actual file contents */
 void deleteRegFileContents(VolInfo* volInfo, BkFile* file)
 {
-    if( file->onImage )
+    /* files added from the local filesystem (onImage == false) have an
+    * allocated pathAndName; files read from the image do not. The
+    * condition used to be inverted, leaking every added file's path. */
+    if( !file->onImage && file->pathAndName != NULL )
         free( file->pathAndName );
     
     /* check whether file is being used as a boot record */

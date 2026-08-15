@@ -51,6 +51,8 @@ void bk_destroy_vol_info(VolInfo* volInfo)
     while(currentLink != NULL)
     {
         nextLink = currentLink->next;
+        if(currentLink->pathAndName != NULL)
+            free(currentLink->pathAndName);
         free(currentLink);
         currentLink = nextLink;
     }
@@ -266,11 +268,20 @@ int bk_set_permissions(VolInfo* volInfo, const char* pathAndName,
 * */
 int bk_set_publisher(VolInfo* volInfo, const char* publisher)
 {
+    size_t len;
+    
     /* unfortunately some disks (e.g. Fedora 7) don't follow this rule
     if( !nameIsValid9660(publisher) )
         return BKERROR_NAME_INVALID_CHAR;*/
     
-    strncpy(volInfo->publisher, publisher, 128);
+    len = strlen(publisher);
+    if(len > 128)
+        return BKERROR_MAX_NAME_LENGTH_EXCEEDED;
+    
+    /* strncpy() would leave the field unterminated for len >= 128:
+    * copy explicitly and always NUL-terminate */
+    memcpy(volInfo->publisher, publisher, len);
+    volInfo->publisher[len] = '\0';
     
     return 1;
 }
@@ -281,11 +292,20 @@ int bk_set_publisher(VolInfo* volInfo, const char* publisher)
 * */
 int bk_set_vol_name(VolInfo* volInfo, const char* volName)
 {
+    size_t len;
+    
     /* unfortunately some disks (e.g. Fedora 7) don't follow this rule
     if( !nameIsValid9660(volName) )
         return BKERROR_NAME_INVALID_CHAR;*/
     
-    strncpy(volInfo->volId, volName, 32);
+    len = strlen(volName);
+    if(len > 32)
+        return BKERROR_MAX_NAME_LENGTH_EXCEEDED;
+    
+    /* strncpy() would leave the field unterminated for len >= 32:
+    * copy explicitly and always NUL-terminate */
+    memcpy(volInfo->volId, volName, len);
+    volInfo->volId[len] = '\0';
     
     return 1;
 }

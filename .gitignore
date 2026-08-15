@@ -14,3 +14,16 @@ bk/example
 *~
 *.swp
 *.swo
+
+# Generated sources
+isomaster.c
+iconpath.c
+iconpath.h
+
+# Test binary
+tests/test_bk
+version.inc
+settings.c
+file-item.c
+iso-operations.c
+util.c

@@ -613,7 +613,10 @@ int countTreeHeight(const DirToWrite* dir, int heightSoFar)
 * */
 unsigned short elToritoChecksum(const unsigned char* record)
 {
-    short sum;
+    /* accumulate in unsigned int: a signed 16-bit sum overflows (UB)
+    * once the words exceed 0x7FFF; the low 16 bits of the result are
+    * what the spec requires */
+    unsigned int sum;
     int i;
     
     sum = 0;
@@ -622,7 +625,7 @@ unsigned short elToritoChecksum(const unsigned char* record)
         sum += *(record + i) | (*(record + i + 1) << 8);
     }
     
-    return 0xFFFF - sum + 1;
+    return (unsigned short)(0xFFFF - sum + 1);
 }
 
 /******************************************************************************

@@ -10,34 +10,13 @@ const string GETTEXT_PACKAGE = "isomaster";
 [CCode (cname = "_isomaster_iconpath", cheader_filename = "iconpath.h")]
 private extern unowned string ICONPATH;
 
+// Version - provided by C compiler via -DVERSION (single source: Makefile.vala)
+[CCode (cname = "_isomaster_version", cheader_filename = "iconpath.h")]
+private extern unowned string APP_VERSION;
+
 // Translation helper (use _t to avoid conflict with gi18n-lib.h)
 public static string _t(string str) {
     return GLib.dgettext(GETTEXT_PACKAGE, str);
-}
-
-// Application settings
-public class AppSettings : Object {
-    public int window_width { get; set; default = 800; }
-    public int window_height { get; set; default = 600; }
-    public int top_pane_height { get; set; default = 300; }
-    public bool show_hidden_files { get; set; default = false; }
-    public bool sort_dirs_first { get; set; default = true; }
-    public bool case_sensitive_sort { get; set; default = false; }
-    public bool dark_mode { get; set; default = false; }
-    public string? temp_dir { get; set; default = "/tmp"; }
-    public string? editor { get; set; default = "leafpad"; }
-    public string? viewer { get; set; default = "firefox"; }
-    public string?[] recently_open { get; set; default = new string?[5]; }
-    public string? last_iso_dir { get; set; }
-}
-
-// File item model
-public class FileItem : Object {
-    public string name { get; set; }
-    public string path { get; set; }
-    public bool is_dir { get; set; }
-    public string icon_name { get; set; }
-    public int64 size { get; set; }
 }
 
 // Main application window
@@ -45,6 +24,7 @@ public class IsoMaster : Adw.Application {
     // Use Adw.ApplicationWindow for proper Adwaita theming
     private Adw.ApplicationWindow? main_window = null;
     private AppSettings settings;
+    private SettingsStore settings_store;
     private Bk.VolInfo* vol_info = null;
     private bool iso_loaded = false;
     private string current_iso_path = "/";
@@ -64,21 +44,29 @@ public class IsoMaster : Adw.Application {
     // Progress bar for long operations
     private Gtk.ProgressBar progress_bar;
 
+    // Background operation management (thread lifecycle lives in
+    // IsoOperations; progress callbacks stay here)
+    private IsoOperations ops;
+    private static double last_progress_fraction = -1.0;
+
     public IsoMaster() {
         Object (
             application_id: "org.littlesvr.ISOMaster",
             flags: ApplicationFlags.DEFAULT_FLAGS
         );
         settings = new AppSettings();
+        settings_store = new SettingsStore();
+        ops = new IsoOperations();
     }
 
     protected override void activate() {
-        // Initialize bk library
-        vol_info = (Bk.VolInfo*) GLib.malloc(sizeof(Bk.VolInfo));
+        // Initialize bk library (size comes from the C library so the
+        // allocation cannot drift from the real struct layout)
+        vol_info = (Bk.VolInfo*) GLib.malloc(Bk.vol_info_size());
         Bk.init_vol_info(vol_info, false);
 
         // Load settings
-        load_settings();
+        settings_store.load(settings);
 
         // Initialize style manager (must be after gtk_init)
         style_manager = Adw.StyleManager.get_default();
@@ -174,7 +162,14 @@ public class IsoMaster : Adw.Application {
 
         // Connect close signal
         main_window.close_request.connect(() => {
-            save_settings();
+            settings_store.save(settings,
+                                main_window.get_width(), main_window.get_height());
+            if (ops.running) {
+                // Cancel the running bk operation and wait for the worker
+                // thread to finish before freeing the C state it uses.
+                Bk.cancel_operation(vol_info);
+                ops.cancel_and_join();
+            }
             if (vol_info != null) {
                 Bk.destroy_vol_info(vol_info);
                 GLib.free(vol_info);
@@ -257,7 +252,10 @@ public class IsoMaster : Adw.Application {
 
         var quit_action = new GLib.SimpleAction("quit", null);
         quit_action.activate.connect(() => {
-            save_settings();
+            if (main_window != null) {
+                settings_store.save(settings,
+                                    main_window.get_width(), main_window.get_height());
+            }
             this.quit();
         });
         this.add_action(quit_action);
@@ -526,13 +524,17 @@ public class IsoMaster : Adw.Application {
             if (!iso_loaded) return false;
             string iso_path = value.get_string();
             if (!iso_path.has_prefix("/")) return false;
-            var dest_dir = fs_path_entry.text;
-            int result = Bk.extract(vol_info, iso_path, dest_dir, false, null);
-            if (result < 0) {
-                show_error(_t("Failed to extract: %s"), Bk.get_error_string(result));
-            } else {
-                refresh_fs_view();
-            }
+            string dest_dir = fs_path_entry.text;
+            int extract_result = 0;
+            run_bk_operation(_t("Extracting..."), () => {
+                extract_result = Bk.extract(vol_info, iso_path, dest_dir, false, operation_progress_cb);
+            }, () => {
+                if (extract_result < 0) {
+                    show_error(_t("Failed to extract: %s"), Bk.get_error_string(extract_result));
+                } else {
+                    refresh_fs_view();
+                }
+            });
             return true;
         });
         fs_list_view.add_controller(fs_drop);
@@ -628,12 +630,17 @@ public class IsoMaster : Adw.Application {
             }
             string fs_path = value.get_string();
             if (fs_path.has_prefix("/")) {
-                int result = Bk.add(vol_info, fs_path, current_iso_path, null);
-                if (result < 0) {
-                    show_error(_t("Failed to add file: %s"), Bk.get_error_string(result));
-                } else {
-                    refresh_iso_view();
-                }
+                int add_result = 0;
+                string dest_path = current_iso_path;
+                run_bk_operation(_t("Adding files..."), () => {
+                    add_result = Bk.add(vol_info, fs_path, dest_path, operation_progress_cb);
+                }, () => {
+                    if (add_result < 0) {
+                        show_error(_t("Failed to add file: %s"), Bk.get_error_string(add_result));
+                    } else {
+                        refresh_iso_view();
+                    }
+                });
                 return true;
             }
             return false;
@@ -649,6 +656,9 @@ public class IsoMaster : Adw.Application {
 
     // File operations
     private void new_iso() {
+        if (busy()) {
+            return;
+        }
         if (iso_loaded) {
             Bk.destroy_vol_info(vol_info);
         }
@@ -687,43 +697,51 @@ public class IsoMaster : Adw.Application {
     }
 
     private void open_iso_file(string path) {
-        int result = Bk.open_image(vol_info, path);
-        if (result < 0) {
-            show_error(_t("Failed to open ISO: %s"), Bk.get_error_string(result));
-            return;
-        }
+        int open_result = 0;
+        int vol_result = 0;
+        int tree_result = 0;
 
-        result = Bk.read_vol_info(vol_info);
-        if (result < 0) {
-            show_error(_t("Failed to read volume info: %s"), Bk.get_error_string(result));
-            return;
-        }
+        run_bk_operation(_t("Opening ISO image..."), () => {
+            open_result = Bk.open_image(vol_info, path);
+            if (open_result < 0) {
+                return;
+            }
+            vol_result = Bk.read_vol_info(vol_info);
+            if (vol_result < 0) {
+                return;
+            }
+            tree_result = Bk.read_dir_tree(vol_info, Bk.FNTYPE_JOLIET, false, operation_progress_cb);
+        }, () => {
+            if (open_result < 0) {
+                show_error(_t("Failed to open ISO: %s"), Bk.get_error_string(open_result));
+                return;
+            }
+            if (vol_result < 0) {
+                show_error(_t("Failed to read volume info: %s"), Bk.get_error_string(vol_result));
+                return;
+            }
+            if (tree_result < 0) {
+                show_error(_t("Failed to read directory tree: %s"), Bk.get_error_string(tree_result));
+                return;
+            }
 
-        // Read directory tree
-        show_progress(_t("Reading directory tree..."));
-        result = Bk.read_dir_tree(vol_info, Bk.FNTYPE_JOLIET, false, null);
-        hide_progress();
-        if (result < 0) {
-            show_error(_t("Failed to read directory tree: %s"), Bk.get_error_string(result));
-            return;
-        }
+            iso_loaded = true;
+            current_iso_path = "/";
+            iso_path_entry.text = "/";
+            refresh_iso_view();
 
-        iso_loaded = true;
-        current_iso_path = "/";
-        iso_path_entry.text = "/";
-        refresh_iso_view();
+            // Update window title
+            string? vol_name = Bk.get_volume_name(vol_info);
+            if (vol_name != null && vol_name.length > 0) {
+                main_window.title = "ISO Master - %s".printf(vol_name);
+            } else {
+                main_window.title = "ISO Master - %s".printf(Path.get_basename(path));
+            }
 
-        // Update window title
-        string? vol_name = Bk.get_volume_name(vol_info);
-        if (vol_name != null && vol_name.length > 0) {
-            main_window.title = "ISO Master - %s".printf(vol_name);
-        } else {
-            main_window.title = "ISO Master - %s".printf(Path.get_basename(path));
-        }
-
-        // Update ISO size
-        int64 iso_size = Bk.estimate_iso_size(vol_info, Bk.FNTYPE_JOLIET);
-        iso_size_label.label = format_size(iso_size);
+            // Update ISO size
+            int64 iso_size = Bk.estimate_iso_size(vol_info, Bk.FNTYPE_JOLIET);
+            iso_size_label.label = format_size(iso_size);
+        });
     }
 
     private void save_iso() {
@@ -746,12 +764,18 @@ public class IsoMaster : Adw.Application {
             try {
                 var file = dialog.open.end(res);
                 if (file != null) {
-                    int result = Bk.add(vol_info, file.get_path(), current_iso_path, null);
-                    if (result < 0) {
-                        show_error(_t("Failed to add file: %s"), Bk.get_error_string(result));
-                    } else {
-                        refresh_iso_view();
-                    }
+                    int add_result = 0;
+                    string src_path = file.get_path();
+                    string dest_path = current_iso_path;
+                    run_bk_operation(_t("Adding files..."), () => {
+                        add_result = Bk.add(vol_info, src_path, dest_path, operation_progress_cb);
+                    }, () => {
+                        if (add_result < 0) {
+                            show_error(_t("Failed to add file: %s"), Bk.get_error_string(add_result));
+                        } else {
+                            refresh_iso_view();
+                        }
+                    });
                 }
             } catch (Error e) {
                 // User cancelled
@@ -786,10 +810,16 @@ public class IsoMaster : Adw.Application {
             try {
                 var file = dialog.save.end(res);
                 if (file != null) {
-                    int result = Bk.extract(vol_info, item.path, file.get_path(), false, null);
-                    if (result < 0) {
-                        show_error(_t("Failed to extract: %s"), Bk.get_error_string(result));
-                    }
+                    int extract_result = 0;
+                    string src_path = item.path;
+                    string dest_path = file.get_path();
+                    run_bk_operation(_t("Extracting..."), () => {
+                        extract_result = Bk.extract(vol_info, src_path, dest_path, false, operation_progress_cb);
+                    }, () => {
+                        if (extract_result < 0) {
+                            show_error(_t("Failed to extract: %s"), Bk.get_error_string(extract_result));
+                        }
+                    });
                 }
             } catch (Error e) {
                 // User cancelled
@@ -800,6 +830,9 @@ public class IsoMaster : Adw.Application {
     private void delete_from_iso() {
         if (!iso_loaded) {
             show_error(_t("No ISO image loaded"));
+            return;
+        }
+        if (busy()) {
             return;
         }
 
@@ -841,6 +874,9 @@ public class IsoMaster : Adw.Application {
             show_error(_t("No ISO image loaded"));
             return;
         }
+        if (busy()) {
+            return;
+        }
 
         // Show input dialog for directory name
         var dialog = new Adw.AlertDialog(_t("Create Directory"), _t("Enter directory name:"));
@@ -867,6 +903,9 @@ public class IsoMaster : Adw.Application {
     private void rename_iso_item() {
         if (!iso_loaded) {
             show_error(_t("No ISO image loaded"));
+            return;
+        }
+        if (busy()) {
             return;
         }
 
@@ -910,6 +949,9 @@ public class IsoMaster : Adw.Application {
     private void show_volume_properties() {
         if (!iso_loaded) {
             show_error(_t("No ISO image loaded"));
+            return;
+        }
+        if (busy()) {
             return;
         }
 
@@ -978,6 +1020,9 @@ public class IsoMaster : Adw.Application {
             show_error(_t("No ISO image loaded"));
             return;
         }
+        if (busy()) {
+            return;
+        }
 
         // Get selected item
         var selection = iso_list_view.model as Gtk.SingleSelection;
@@ -1017,6 +1062,9 @@ public class IsoMaster : Adw.Application {
             show_error(_t("No ISO image loaded"));
             return;
         }
+        if (busy()) {
+            return;
+        }
 
         var dialog = new Gtk.FileDialog();
         dialog.title = _t("Extract Boot Record to...");
@@ -1026,6 +1074,9 @@ public class IsoMaster : Adw.Application {
             try {
                 var file = dialog.save.end(res);
                 if (file != null) {
+                    if (busy()) {
+                        return;
+                    }
                     int result = Bk.extract_boot_record(vol_info, file.get_path(), 0644);
                     if (result < 0) {
                         show_error("Failed to extract boot record: %s", Bk.get_error_string(result));
@@ -1040,6 +1091,9 @@ public class IsoMaster : Adw.Application {
     private void delete_boot_record() {
         if (!iso_loaded) {
             show_error(_t("No ISO image loaded"));
+            return;
+        }
+        if (busy()) {
             return;
         }
 
@@ -1090,6 +1144,11 @@ public class IsoMaster : Adw.Application {
     private void refresh_iso_view() {
         iso_store.remove_all();
         if (!iso_loaded) {
+            return;
+        }
+        // Do not touch the C tree while a background operation is
+        // running; the operation's completion handler refreshes the view.
+        if (ops.running) {
             return;
         }
 
@@ -1164,8 +1223,14 @@ public class IsoMaster : Adw.Application {
         progress_bar.fraction = 0.0;
     }
 
-    // Write progress callback (called from Bk library)
+    // Write progress callback (called from Bk library, possibly on the
+    // worker thread). Throttled so a big image does not flood the main
+    // loop with idle callbacks.
     private static void write_progress_cb(Bk.VolInfo* vol, double progress) {
+        if (progress - last_progress_fraction < 0.01 && progress < 1.0) {
+            return;
+        }
+        last_progress_fraction = progress;
         // Update UI in main loop
         Idle.add(() => {
             var app = (IsoMaster) GLib.Application.get_default();
@@ -1176,16 +1241,46 @@ public class IsoMaster : Adw.Application {
         });
     }
 
-    private string format_size(int64 size) {
-        if (size > 1073741824) {
-            return "%.1f GB".printf((double)size / 1073741824);
-        } else if (size > 1048576) {
-            return "%.1f MB".printf((double)size / 1048576);
-        } else if (size > 1024) {
-            return "%.1f KB".printf((double)size / 1024);
-        } else {
-            return size.to_string() + " B";
+    // Generic progress callback for operations that only report activity
+    // (add/extract/read): animate the bar with a pulse.
+    private static void operation_progress_cb(Bk.VolInfo* vol) {
+        Idle.add(() => {
+            var app = (IsoMaster) GLib.Application.get_default();
+            if (app != null) {
+                app.progress_bar.pulse();
+            }
+            return Source.REMOVE;
+        });
+    }
+
+    // Run a bk operation on a worker thread so the UI stays responsive.
+    // The progress bar becomes visible immediately and the progress
+    // callbacks can now actually reach the main loop (previously the
+    // operation blocked the main loop and the bar never updated).
+    // Only one operation may run at a time.
+    private void run_bk_operation(string progress_text,
+                                  owned IsoOperations.WorkerFunc worker,
+                                  owned IsoOperations.DoneFunc on_done) {
+        if (ops.closing) {
+            return;
         }
+        if (ops.running) {
+            show_error(_t("Another operation is already in progress"));
+            return;
+        }
+        last_progress_fraction = -1.0;
+        show_progress(progress_text);
+        ops.run(worker, on_done);
+    }
+
+    // Reject UI actions while a background operation is running: the
+    // C state (vol_info) must not be touched from two threads at once.
+    private bool busy() {
+        if (ops.running) {
+            show_error(_t("Another operation is already in progress"));
+            return true;
+        }
+        return false;
     }
 
     private void fs_navigate_to(string path) {
@@ -1229,12 +1324,15 @@ public class IsoMaster : Adw.Application {
             try {
                 var file = dialog.save.end(res);
                 if (file != null) {
-                    show_progress(_t("Writing ISO image..."));
-                    int result = Bk.write_image(file.get_path(), vol_info, 0, Bk.FNTYPE_JOLIET, write_progress_cb);
-                    hide_progress();
-                    if (result < 0) {
-                        show_error(_t("Failed to save ISO: %s"), Bk.get_error_string(result));
-                    }
+                    int save_result = 0;
+                    string save_path = file.get_path();
+                    run_bk_operation(_t("Writing ISO image..."), () => {
+                        save_result = Bk.write_image(save_path, vol_info, 0, Bk.FNTYPE_JOLIET, write_progress_cb);
+                    }, () => {
+                        if (save_result < 0) {
+                            show_error(_t("Failed to save ISO: %s"), Bk.get_error_string(save_result));
+                        }
+                    });
                 }
             } catch (Error e) {
                 // User cancelled
@@ -1242,7 +1340,8 @@ public class IsoMaster : Adw.Application {
         });
     }
 
-    // Edit selected file (extract, open in editor, re-add)
+    // Edit selected file (extract, open in editor, write the modified
+    // file back into the ISO when the editor exits)
     private void edit_selected_file() {
         if (!iso_loaded) {
             show_error(_t("No ISO image loaded"));
@@ -1261,38 +1360,50 @@ public class IsoMaster : Adw.Application {
             return;
         }
 
-        // Extract to temp file
-        string temp_path = Path.build_filename(Environment.get_tmp_dir(), item.name);
-        int result = Bk.extract(vol_info, item.path, temp_path, false, null);
-        if (result < 0) {
-            show_error(_t("Failed to extract: %s"), Bk.get_error_string(result));
-            return;
-        }
+        // Extract into a unique temp directory so we never collide with
+        // unrelated files in /tmp (previously the bare file name was
+        // used, which could overwrite another file with the same name)
+        string tmpl = Path.build_filename(Environment.get_tmp_dir(), "isomaster-XXXXXX");
+        string temp_dir = DirUtils.mkdtemp(tmpl);
+        string temp_path = Path.build_filename(temp_dir, item.name);
+        string iso_item_path = item.path;
+        string dest_dir = Path.get_dirname(iso_item_path);
 
-        // Open in external editor and clean up temp file when done
-        string editor = settings.editor ?? "xdg-open";
-        try {
-            string[] cmd = { editor, temp_path };
-            var subprocess = new Subprocess.newv(cmd, SubprocessFlags.NONE);
-            subprocess.wait_async.begin(null, (obj, res) => {
-                try {
-                    subprocess.wait_async.end(res);
-                } catch (Error e) {
-                    // Process wait error
-                }
-                // Clean up temp file
-                try {
-                    File.new_for_path(temp_path).delete();
-                } catch (Error e) {
-                    // Temp file already gone
-                }
-            });
-        } catch (Error e) {
-            show_error(_t("Failed to open editor: %s"), e.message);
-        }
+        int extract_result = 0;
+        run_bk_operation(_t("Extracting file..."), () => {
+            extract_result = Bk.extract(vol_info, iso_item_path, temp_path, false, null);
+        }, () => {
+            if (extract_result < 0) {
+                show_error(_t("Failed to extract: %s"), Bk.get_error_string(extract_result));
+                remove_temp_file(temp_path, temp_dir);
+                return;
+            }
+
+            // Baseline so we can tell whether the editor changed the file
+            DateTime? base_mtime = get_file_mtime(temp_path);
+            int64 base_size = get_file_size(temp_path);
+
+            string editor = settings.editor ?? "xdg-open";
+            try {
+                string[] cmd = { editor, temp_path };
+                var subprocess = new Subprocess.newv(cmd, SubprocessFlags.NONE);
+                subprocess.wait_async.begin(null, (obj, res) => {
+                    try {
+                        subprocess.wait_async.end(res);
+                    } catch (Error e) {
+                        // Process wait error
+                    }
+                    write_back_if_modified(iso_item_path, dest_dir, temp_path,
+                                           temp_dir, base_mtime, base_size);
+                });
+            } catch (Error e) {
+                show_error(_t("Failed to open editor: %s"), e.message);
+                remove_temp_file(temp_path, temp_dir);
+            }
+        });
     }
 
-    // View selected file (extract, open in viewer)
+    // View selected file (extract to a unique temp dir, open in viewer)
     private void view_selected_file() {
         if (!iso_loaded) {
             show_error(_t("No ISO image loaded"));
@@ -1311,41 +1422,85 @@ public class IsoMaster : Adw.Application {
             return;
         }
 
-        // Extract to temp file
-        string temp_path = Path.build_filename(Environment.get_tmp_dir(), item.name);
-        int result = Bk.extract(vol_info, item.path, temp_path, false, null);
-        if (result < 0) {
-            show_error(_t("Failed to extract: %s"), Bk.get_error_string(result));
+        string tmpl = Path.build_filename(Environment.get_tmp_dir(), "isomaster-XXXXXX");
+        string temp_dir = DirUtils.mkdtemp(tmpl);
+        string temp_path = Path.build_filename(temp_dir, item.name);
+        string iso_item_path = item.path;
+
+        int extract_result = 0;
+        run_bk_operation(_t("Extracting file..."), () => {
+            extract_result = Bk.extract(vol_info, iso_item_path, temp_path, false, null);
+        }, () => {
+            if (extract_result < 0) {
+                show_error(_t("Failed to extract: %s"), Bk.get_error_string(extract_result));
+                remove_temp_file(temp_path, temp_dir);
+                return;
+            }
+
+            string viewer = settings.viewer ?? "xdg-open";
+            try {
+                string[] cmd = { viewer, temp_path };
+                var subprocess = new Subprocess.newv(cmd, SubprocessFlags.NONE);
+                subprocess.wait_async.begin(null, (obj, res) => {
+                    try {
+                        subprocess.wait_async.end(res);
+                    } catch (Error e) {
+                        // Process wait error
+                    }
+                    remove_temp_file(temp_path, temp_dir);
+                });
+            } catch (Error e) {
+                show_error(_t("Failed to open viewer: %s"), e.message);
+                remove_temp_file(temp_path, temp_dir);
+            }
+        });
+    }
+
+    // If the editor modified the extracted file, delete the old ISO entry
+    // and add the edited file back under the same path.
+    private void write_back_if_modified(string iso_item_path, string dest_dir,
+                                        string temp_path, string temp_dir,
+                                        DateTime? base_mtime, int64 base_size) {
+        DateTime? new_mtime = get_file_mtime(temp_path);
+        int64 new_size = get_file_size(temp_path);
+
+        bool modified;
+        if (base_mtime != null && new_mtime != null) {
+            modified = new_mtime.to_unix() != base_mtime.to_unix()
+                       || new_size != base_size;
+        } else {
+            modified = new_size != base_size;
+        }
+
+        if (!modified) {
+            remove_temp_file(temp_path, temp_dir);
             return;
         }
 
-        // Open in external viewer and clean up temp file when done
-        string viewer = settings.viewer ?? "xdg-open";
-        try {
-            string[] cmd = { viewer, temp_path };
-            var subprocess = new Subprocess.newv(cmd, SubprocessFlags.NONE);
-            subprocess.wait_async.begin(null, (obj, res) => {
-                try {
-                    subprocess.wait_async.end(res);
-                } catch (Error e) {
-                    // Process wait error
-                }
-                // Clean up temp file
-                try {
-                    File.new_for_path(temp_path).delete();
-                } catch (Error e) {
-                    // Temp file already gone
-                }
-            });
-        } catch (Error e) {
-            show_error(_t("Failed to open viewer: %s"), e.message);
-        }
+        int add_result = 0;
+        run_bk_operation(_t("Writing changes back to ISO..."), () => {
+            // Remove the old entry first; ignore failure here because the
+            // user may have deleted or renamed it while the editor was open
+            Bk.delete(vol_info, iso_item_path);
+            add_result = Bk.add(vol_info, temp_path, dest_dir, null);
+        }, () => {
+            if (add_result < 0) {
+                show_error(_t("Failed to write changes back to ISO: %s"),
+                           Bk.get_error_string(add_result));
+            } else {
+                refresh_iso_view();
+            }
+            remove_temp_file(temp_path, temp_dir);
+        });
     }
 
     // Change permissions of selected ISO item
     private void change_permissions() {
         if (!iso_loaded) {
             show_error(_t("No ISO image loaded"));
+            return;
+        }
+        if (busy()) {
             return;
         }
 
@@ -1506,6 +1661,9 @@ public class IsoMaster : Adw.Application {
             show_error(_t("No ISO image loaded"));
             return;
         }
+        if (busy()) {
+            return;
+        }
 
         uint8 bmt = Bk.get_boot_media_type(vol_info);
         if (bmt == Bk.BOOT_MEDIA_NONE) {
@@ -1537,6 +1695,9 @@ public class IsoMaster : Adw.Application {
             show_error(_t("No ISO image loaded"));
             return;
         }
+        if (busy()) {
+            return;
+        }
 
         var dialog = new Gtk.FileDialog();
         dialog.title = _t("Select Boot Record File");
@@ -1545,6 +1706,9 @@ public class IsoMaster : Adw.Application {
             try {
                 var file = dialog.open.end(res);
                 if (file != null) {
+                    if (busy()) {
+                        return;
+                    }
                     int result = Bk.add_boot_record(vol_info, file.get_path(), Bk.BOOT_MEDIA_NO_EMULATION);
                     if (result < 0) {
                         show_error(_t("Failed to add boot record: %s"), Bk.get_error_string(result));
@@ -1581,7 +1745,7 @@ public class IsoMaster : Adw.Application {
         var about = new Adw.AboutDialog();
         about.application_name = _t("ISO Master");
         about.application_icon = "isomaster";
-        about.version = "1.5.0";
+        about.version = APP_VERSION;
         about.developer_name = "Andrew Smith";
         about.website = "https://github.com/WenYin-Community/isomaster";
         about.license_type = Gtk.License.GPL_2_0;
@@ -1594,57 +1758,6 @@ public class IsoMaster : Adw.Application {
         };
 
         about.present(main_window);
-    }
-
-    // Settings management
-    private string get_settings_path() {
-        return Path.build_filename(Environment.get_user_config_dir(), "isomaster", "isomaster.conf");
-    }
-
-    private void load_settings() {
-        var path = get_settings_path();
-        var dict = Ini.load(path);
-        if (dict == null) {
-            return;
-        }
-
-        settings.window_width = Ini.get_int(dict, "window:width", 800);
-        settings.window_height = Ini.get_int(dict, "window:height", 600);
-        settings.top_pane_height = Ini.get_int(dict, "window:topPaneHeight", 300);
-        settings.show_hidden_files = Ini.get_boolean(dict, "browser:showHidden", 0) != 0;
-        settings.sort_dirs_first = Ini.get_boolean(dict, "browser:sortDirsFirst", 1) != 0;
-        settings.case_sensitive_sort = Ini.get_boolean(dict, "browser:caseSensitiveSort", 0) != 0;
-        settings.dark_mode = Ini.get_boolean(dict, "ui:darkMode", 0) != 0;
-    }
-
-    private void save_settings() {
-        var dir = Path.get_dirname(get_settings_path());
-        DirUtils.create_with_parents(dir, 0755);
-
-        // Update window size
-        if (main_window != null) {
-            settings.window_width = main_window.get_width();
-            settings.window_height = main_window.get_height();
-        }
-
-        // Write settings manually
-        try {
-            var file = FileStream.open(get_settings_path(), "w");
-            if (file != null) {
-                file.printf("[window]\n");
-                file.printf("width = %d\n", settings.window_width);
-                file.printf("height = %d\n", settings.window_height);
-                file.printf("topPaneHeight = %d\n", settings.top_pane_height);
-                file.printf("\n[browser]\n");
-                file.printf("showHidden = %d\n", settings.show_hidden_files ? 1 : 0);
-                file.printf("sortDirsFirst = %d\n", settings.sort_dirs_first ? 1 : 0);
-                file.printf("caseSensitiveSort = %d\n", settings.case_sensitive_sort ? 1 : 0);
-                file.printf("\n[ui]\n");
-                file.printf("darkMode = %d\n", settings.dark_mode ? 1 : 0);
-            }
-        } catch (Error e) {
-            // Write error
-        }
     }
 }
 
