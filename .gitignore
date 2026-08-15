@@ -26,3 +26,4 @@ settings.c
 file-item.c
 iso-operations.c
 util.c
+testdata/
