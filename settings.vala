@@ -51,25 +51,26 @@ public class SettingsStore : Object {
         settings.window_width = window_width;
         settings.window_height = window_height;
 
-        // Write through the same iniparser API used for loading
-        var dict = Ini.load(get_path());
-        if (dict == null) {
-            dict = Ini.new_dictionary(16);
-        }
-        Ini.set(dict, "window:width", settings.window_width.to_string());
-        Ini.set(dict, "window:height", settings.window_height.to_string());
-        Ini.set(dict, "window:topPaneHeight", settings.top_pane_height.to_string());
-        Ini.set(dict, "browser:showHidden", settings.show_hidden_files ? "1" : "0");
-        Ini.set(dict, "browser:sortDirsFirst", settings.sort_dirs_first ? "1" : "0");
-        Ini.set(dict, "browser:caseSensitiveSort", settings.case_sensitive_sort ? "1" : "0");
-        Ini.set(dict, "ui:darkMode", settings.dark_mode ? "1" : "0");
-        Ini.set(dict, "ui:editor", settings.editor ?? "leafpad");
-        Ini.set(dict, "ui:viewer", settings.viewer ?? "firefox");
-        Ini.set(dict, "ui:tempDir", settings.temp_dir ?? "/tmp");
-
+        // Serialize as a standard INI file with keys that match load()
+        // exactly. iniparser 4.1's dump API emits a debug format that
+        // load() cannot parse back, so we write the file manually;
+        // iniparser_load reads this format on both 4.1 and 4.2.
         var file = FileStream.open(get_path(), "w");
-        if (file != null) {
-            Ini.dump_ini(dict, file);
+        if (file == null) {
+            return;
         }
+        file.printf("[window]\n");
+        file.printf("width = %d\n", settings.window_width);
+        file.printf("height = %d\n", settings.window_height);
+        file.printf("topPaneHeight = %d\n", settings.top_pane_height);
+        file.printf("\n[browser]\n");
+        file.printf("showHidden = %d\n", settings.show_hidden_files ? 1 : 0);
+        file.printf("sortDirsFirst = %d\n", settings.sort_dirs_first ? 1 : 0);
+        file.printf("caseSensitiveSort = %d\n", settings.case_sensitive_sort ? 1 : 0);
+        file.printf("\n[ui]\n");
+        file.printf("darkMode = %d\n", settings.dark_mode ? 1 : 0);
+        file.printf("editor = %s\n", settings.editor ?? "leafpad");
+        file.printf("viewer = %s\n", settings.viewer ?? "firefox");
+        file.printf("tempDir = %s\n", settings.temp_dir ?? "/tmp");
     }
 }

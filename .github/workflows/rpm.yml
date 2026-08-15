@@ -43,7 +43,9 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          dnf install -y \
+          # openh264 repo mirrors are unreliable in containers; we do not
+          # need it, so disable it for this install
+          dnf install -y --disablerepo=openh264 \
             gcc \
             make \
             vala \
@@ -87,7 +89,7 @@ jobs:
         run: |
           # libasan is only a weak dependency of gcc; the linker needs the
           # actual runtime library to build with -fsanitize=address
-          dnf install -y libasan
+          dnf install -y --disablerepo=openh264 libasan
           make -C bk clean
           make -C bk CFLAGS+="-fsanitize=address -g"
           cd tests
@@ -98,7 +100,7 @@ jobs:
 
       - name: Static analysis (cppcheck, informational)
         run: |
-          dnf install -y cppcheck || true
+          dnf install -y --disablerepo=openh264 cppcheck || true
           cppcheck --enable=warning,performance,portability \
             --error-exitcode=1 \
             --suppress=missingIncludeSystem \
