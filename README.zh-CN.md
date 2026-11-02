@@ -2,7 +2,7 @@
 
 # ISO Master
 
-**版本 1.6.0** — 一款简单易用的开源图形化 CD 镜像编辑器，适用于 Linux 和 BSD。
+**版本 1.7.0** — 一款简单易用的开源图形化 CD 镜像编辑器，适用于 Linux 和 BSD。
 
 ## 功能
 
@@ -58,6 +58,15 @@ sudo make -f Makefile.vala uninstall
 ```
 
 也可以在编译目录直接运行 `./isomaster`（未安装时图标不可用）。
+
+## 用法
+
+```bash
+isomaster              # 启动一个空会话
+isomaster image.iso    # 启动时直接打开指定镜像
+```
+
+唯一支持的命令行参数是要打开的镜像文件名。
 
 ## 项目结构
 

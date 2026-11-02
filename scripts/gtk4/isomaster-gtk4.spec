@@ -1,6 +1,6 @@
 Name:		isomaster-gtk4
 Summary:	An easy to use GUI CD image editor (GTK4 version)
-Version:	1.6.2
+Version:	1.7.0
 Release:	1%{?dist}
 License:	GPL-2.0-only
 URL:		http://littlesvr.ca/isomaster/
@@ -95,6 +95,19 @@ gtk-update-icon-cache -f -t %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
 gtk-update-icon-cache -f -t %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
 
 %changelog
+* Mon Nov 02 2026 ISO Master Team <info@littlesvr.ca> - 1.7.0-1
+- Fix command-line image opening (ApplicationFlags.HANDLES_OPEN)
+- Fix "Extract to...", "Edit File" and "View File": a file path was passed
+  where bk_extract() expects a destination directory
+- Fix rename: bk_rename() takes a name, a full path was passed
+- Fix file descriptor/directory tree leak when opening a second image
+- Support images without Joliet by falling back to the primary descriptor
+- Hide the progress bar when a background operation completes
+- Fix second-instance activation and window-close state handling
+- Make the View menu sort options take effect
+- Use the build-time LOCALEDIR instead of a hardcoded /usr/share/locale
+- bk_add(): NULL check after malloc; free a partially added subtree
+
 * Sat Aug 15 2026 ISO Master Team <info@littlesvr.ca> - 1.6.2-1
 - Fix empty folder view when navigating ISO directories (trailing slash)
 - Fix dark-mode toggle: driven by settings state with FORCE_* schemes

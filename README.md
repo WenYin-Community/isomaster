@@ -2,7 +2,7 @@
 
 # ISO Master
 
-**Version 1.6.0** — An easy-to-use, open-source graphical CD image editor for Linux and BSD.
+**Version 1.7.0** — An easy-to-use, open-source graphical CD image editor for Linux and BSD.
 
 ## Features
 
@@ -58,6 +58,15 @@ sudo make -f Makefile.vala uninstall
 ```
 
 You can also run `./isomaster` directly from the build directory (icons will not be available unless installed).
+
+## Usage
+
+```bash
+isomaster              # start with an empty session
+isomaster image.iso    # open an image at startup
+```
+
+The only supported command-line parameter is the name of the image to open.
 
 ## Project Structure
 

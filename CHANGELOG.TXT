@@ -1,3 +1,55 @@
+2 Nov 2026 - 1.7.0
+==================
+GUI correctness (isomaster.vala)
+- Fixed "isomaster image.iso" from the command line: the app registered
+  only DEFAULT_FLAGS, so GApplication aborted with "This application can
+  not open files". It now handles HANDLES_OPEN and opens the given image.
+- Fixed "Extract to...": the file path chosen in the save dialog was passed
+  to bk_extract() as its destination *directory*, so every extraction
+  failed with BKERROR_OPEN_WRITE_FAILED. The path is now split into
+  directory + name and bk_extract_as() applies the chosen name.
+- Fixed "Edit File" and "View File": both passed a file path where
+  bk_extract() expects a directory, so extraction always failed.
+- Fixed rename: bk_rename() takes the new *name*, but a full path was
+  passed, so every rename failed with BKERROR_NAME_INVALID_CHAR.
+- Opening a second image no longer leaks the previous file descriptor and
+  directory tree: VolInfo is destroyed and re-initialized before the open.
+- Images without a Joliet descriptor (plain ISO 9660) are no longer
+  rejected: the primary descriptor is read as a fallback, and the size
+  estimate uses the filename type that was actually read.
+- The progress bar now disappears when a background operation finishes
+  (hide_progress() was never called, so it stayed visible forever).
+- Launching a second instance no longer builds a second window, re-adds
+  the same actions or re-allocates the C state; a closed window also
+  resets iso_loaded/main_window and re-creates the operation framework so
+  later operations are not silently rejected.
+- Navigating to an ISO directory whose path lacks the leading '/' no
+  longer shows an empty folder; a bad path now reports an error instead
+  of failing silently.
+- One unreadable entry (dangling symlink, EACCES) no longer aborts the
+  whole file-system listing; the error is reported once per directory.
+- "Sort Directories First" and "Case Sensitive Sort" now actually
+  reorder both browsers (the actions only refreshed the views before).
+- The ISO size label is refreshed with the directory listing, so it no
+  longer stays stale after add/delete/save.
+
+Internationalization
+- bindtextdomain() used a hardcoded /usr/share/locale instead of the
+  LOCALEDIR provided by the build, so translations were never found for
+  the default PREFIX=/usr/local install.
+- Two user-visible strings and the open-dialog filter name were missing
+  the _t() wrapper.
+
+bkisofs library (bk/bkAdd.c)
+- add() no longer dereferences a NULL newFile->pathAndName when malloc
+  fails (CWE-690).
+- A directory add that fails partway now frees the children that were
+  already attached instead of leaking the whole subtree (CWE-401).
+
+util.vala
+- format_size() used '>' instead of '>=', so 1024 bytes rendered as
+  "1024 B" and 1 MiB as "1024.0 KB".
+
 15 Aug 2026 - 1.6.2
 ===================
 - Fixed empty folder view when navigating into ISO directories: the path
