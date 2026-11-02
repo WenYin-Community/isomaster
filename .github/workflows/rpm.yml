@@ -61,13 +61,6 @@ jobs:
             rpm-build \
             rpmdevtools
 
-      # Built while the working tree is still pristine: release.sh refuses to
-      # run otherwise. One leg is enough; every leg would upload the same
-      # bytes under a conflicting artifact name.
-      - name: Create release source tarball
-        if: matrix.name == 'Fedora 44 x86_64'
-        run: OUT_DIR=dist ./release.sh "$(grep '^Version:' scripts/gtk4/isomaster-gtk4.spec | awk '{print $2}')"
-
       - name: Create RPM source tarball
         run: |
           VERSION=$(grep '^Version:' scripts/gtk4/isomaster-gtk4.spec | awk '{print $2}')
@@ -161,14 +154,6 @@ jobs:
             /tmp/rpmbuild/SRPMS/**/*.rpm
           retention-days: 7
 
-      - name: Upload source tarball artifact
-        if: matrix.name == 'Fedora 44 x86_64'
-        uses: actions/upload-artifact@v7
-        with:
-          name: source-tarball
-          path: dist/*.tar.bz2
-          retention-days: 7
-
   release:
     needs: build-rpm
     runs-on: ubuntu-24.04
@@ -193,6 +178,13 @@ jobs:
             exit 1
           fi
 
+      # Built here, not in the container job: runners with a container image
+      # get no git (actions/checkout falls back to the REST API), and
+      # release.sh needs git archive. It also must run before the artifacts
+      # are downloaded, while the working tree is still clean.
+      - name: Create source tarball
+        run: OUT_DIR=dist ./release.sh "${GITHUB_REF_NAME#v}"
+
       - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
@@ -205,5 +197,5 @@ jobs:
           generate_release_notes: true
           files: |
             artifacts/**/*.rpm
-            artifacts/**/*.tar.bz2
+            dist/*.tar.bz2
           fail_on_unmatched_files: true
