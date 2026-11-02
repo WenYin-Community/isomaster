@@ -28,6 +28,7 @@
 #include "bkLink.h"
 #include "bkMisc.h"
 #include "bkSet.h"
+#include "bkDelete.h"
 #include "bkIoWrappers.h"
 
 int add(VolInfo* volInfo, const char* srcPathAndName, BkDir* destDir, 
@@ -94,6 +95,9 @@ int add(VolInfo* volInfo, const char* srcPathAndName, BkDir* destDir,
         rc = addDirContents(volInfo, srcPathAndName, newDir);
         if(rc < 0)
         {
+            /* addDirContents() may have attached children before failing;
+             * freeing only the node leaked the whole partial subtree */
+            deleteDirContents(volInfo, newDir);
             free(newDir);
             return rc;
         }
@@ -128,6 +132,11 @@ int add(VolInfo* volInfo, const char* srcPathAndName, BkDir* destDir,
         newFile->position = 0;
         
         newFile->pathAndName = malloc(strlen(srcPathAndName) + 1);
+        if(newFile->pathAndName == NULL)
+        {
+            free(newFile);
+            return BKERROR_OUT_OF_MEMORY;
+        }
         strcpy(newFile->pathAndName, srcPathAndName);
         
         if( volInfo->scanForDuplicateFiles)

@@ -84,6 +84,9 @@ namespace Bk {
     [CCode (cname = "bk_extract")]
     public static int extract(VolInfo* vol_info, string src_path, string dest_path, bool keep_permissions, ProgressFunc? progress_function);
 
+    [CCode (cname = "bk_extract_as")]
+    public static int extract_as(VolInfo* vol_info, string src_path, string dest_dir, string name_to_use, bool keep_permissions, ProgressFunc? progress_function);
+
     [CCode (cname = "bk_delete")]
     public static int delete(VolInfo* vol_info, string path_and_name);
 

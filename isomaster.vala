@@ -14,6 +14,12 @@ private extern unowned string ICONPATH;
 [CCode (cname = "_isomaster_version", cheader_filename = "iconpath.h")]
 private extern unowned string APP_VERSION;
 
+// Locale directory - provided by C compiler via -DLOCALEDIR (Makefile.vala).
+// Hardcoding /usr/share/locale lost the translations on non-/usr installs
+// ("make install" defaults to PREFIX=/usr/local).
+[CCode (cname = "LOCALEDIR")]
+private extern const string LOCALEDIR;
+
 // Translation helper (use _t to avoid conflict with gi18n-lib.h)
 public static string _t(string str) {
     return GLib.dgettext(GETTEXT_PACKAGE, str);
@@ -28,7 +34,6 @@ public class IsoMaster : Adw.Application {
     private Bk.VolInfo* vol_info = null;
     private bool iso_loaded = false;
     private string current_iso_path = "/";
-    private Adw.StyleManager? style_manager = null;
 
     // File system browser widgets
     private Gtk.ListView fs_list_view;
@@ -47,19 +52,61 @@ public class IsoMaster : Adw.Application {
     // Background operation management (thread lifecycle lives in
     // IsoOperations; progress callbacks stay here)
     private IsoOperations ops;
+    // Filename type actually read from the image (Joliet, or 9660 as fallback)
+    private int iso_filename_type = Bk.FNTYPE_JOLIET;
     private static double last_progress_fraction = -1.0;
 
     public IsoMaster() {
         Object (
             application_id: "org.littlesvr.ISOMaster",
-            flags: ApplicationFlags.DEFAULT_FLAGS
+            // HANDLES_OPEN: the man page documents "isomaster image.iso";
+            // without this flag GApplication aborts with
+            // "This application can not open files."
+            flags: ApplicationFlags.HANDLES_OPEN
         );
         settings = new AppSettings();
         settings_store = new SettingsStore();
+        attach_ops();
+    }
+
+    // (Re)create the background-operation object and hook up progress hiding.
+    // The progress bar used to stay visible forever because hide_progress()
+    // was never called; IsoOperations clears "running" on the main loop before
+    // invoking the completion callback, so this fires at the right time.
+    private void attach_ops() {
         ops = new IsoOperations();
+        ops.notify["running"].connect(() => {
+            if (!ops.running) {
+                hide_progress();
+            }
+        });
+    }
+
+    // Open the image named on the command line. GApplication emits this
+    // instead of activate() when files are given, so the window has to be
+    // built here first.
+    protected override void open(GLib.File[] files, string hint) {
+        if (main_window == null) {
+            activate();
+        }
+        if (files.length > 0) {
+            open_iso_file(files[0].get_path());
+        }
     }
 
     protected override void activate() {
+        if (main_window != null) {
+            // Already built (second launch activates the running instance).
+            main_window.present();
+            return;
+        }
+        if (ops.closing) {
+            // The previous window was closed while an operation was running,
+            // which leaves "closing" set and would silently reject every later
+            // operation.
+            attach_ops();
+        }
+
         // Initialize bk library (size comes from the C library so the
         // allocation cannot drift from the real struct layout)
         vol_info = (Bk.VolInfo*) GLib.malloc(Bk.vol_info_size());
@@ -68,10 +115,9 @@ public class IsoMaster : Adw.Application {
         // Load settings
         settings_store.load(settings);
 
-        // Initialize style manager (must be after gtk_init)
-        style_manager = Adw.StyleManager.get_default();
-        
-        // Set Adwaita style based on settings
+        // Adw.Application already owns the Adw.StyleManager; setting the
+        // scheme on the inherited property keeps the theme toggle and the
+        // applied scheme in sync.
         style_manager.color_scheme = settings.dark_mode 
             ? Adw.ColorScheme.FORCE_DARK 
             : Adw.ColorScheme.FORCE_LIGHT;
@@ -174,6 +220,10 @@ public class IsoMaster : Adw.Application {
                 GLib.free(vol_info);
                 vol_info = null;
             }
+            // Do not leave the freed C state referenced from a window that
+            // may still be activated: a later activate() must rebuild it.
+            iso_loaded = false;
+            main_window = null;
             return false;
         });
 
@@ -664,6 +714,7 @@ public class IsoMaster : Adw.Application {
         Bk.init_vol_info(vol_info, false);
 
         iso_loaded = true;
+        iso_filename_type = Bk.FNTYPE_JOLIET;
         current_iso_path = "/";
         iso_path_entry.text = "/";
         iso_store.remove_all();
@@ -678,7 +729,7 @@ public class IsoMaster : Adw.Application {
         filter.add_pattern("*.iso");
         filter.add_pattern("*.nrg");
         filter.add_pattern("*.mdf");
-        filter.name = "ISO Images";
+        filter.name = _t("ISO Images");
         var filters = new GLib.ListStore(typeof(Gtk.FileFilter));
         filters.append(filter);
         dialog.filters = filters;
@@ -699,8 +750,15 @@ public class IsoMaster : Adw.Application {
         int open_result = 0;
         int vol_result = 0;
         int tree_result = 0;
+        int filename_type = Bk.FNTYPE_JOLIET;
 
         run_bk_operation(_t("Opening ISO image..."), () => {
+            // Start from a clean VolInfo: opening a second image into a used
+            // one overwrote imageForReading (leaked the old descriptor) and
+            // kept the previously read tree around.
+            Bk.destroy_vol_info(vol_info);
+            Bk.init_vol_info(vol_info, false);
+
             open_result = Bk.open_image(vol_info, path);
             if (open_result < 0) {
                 return;
@@ -710,21 +768,33 @@ public class IsoMaster : Adw.Application {
                 return;
             }
             tree_result = Bk.read_dir_tree(vol_info, Bk.FNTYPE_JOLIET, false, operation_progress_cb);
-        }, () => {
-            if (open_result < 0) {
-                show_error(_t("Failed to open ISO: %s"), Bk.get_error_string(open_result));
-                return;
-            }
-            if (vol_result < 0) {
-                show_error(_t("Failed to read volume info: %s"), Bk.get_error_string(vol_result));
-                return;
-            }
             if (tree_result < 0) {
-                show_error(_t("Failed to read directory tree: %s"), Bk.get_error_string(tree_result));
+                // Images without a Joliet descriptor (plain ISO 9660) used to
+                // be rejected outright; read the primary descriptor instead.
+                filename_type = Bk.FNTYPE_9660;
+                tree_result = Bk.read_dir_tree(vol_info, Bk.FNTYPE_9660, false, operation_progress_cb);
+            }
+        }, () => {
+            if (open_result < 0 || vol_result < 0 || tree_result < 0) {
+                // Reset so the window does not claim to hold a usable image
+                // (and so the next open starts from a defined state).
+                iso_loaded = false;
+                iso_filename_type = Bk.FNTYPE_JOLIET;
+                iso_store.remove_all();
+                iso_size_label.label = "";
+                main_window.title = _t("ISO Master");
+                if (open_result < 0) {
+                    show_error(_t("Failed to open ISO: %s"), Bk.get_error_string(open_result));
+                } else if (vol_result < 0) {
+                    show_error(_t("Failed to read volume info: %s"), Bk.get_error_string(vol_result));
+                } else {
+                    show_error(_t("Failed to read directory tree: %s"), Bk.get_error_string(tree_result));
+                }
                 return;
             }
 
             iso_loaded = true;
+            iso_filename_type = filename_type;
             current_iso_path = "/";
             iso_path_entry.text = "/";
             refresh_iso_view();
@@ -736,10 +806,6 @@ public class IsoMaster : Adw.Application {
             } else {
                 main_window.title = "ISO Master - %s".printf(Path.get_basename(path));
             }
-
-            // Update ISO size
-            int64 iso_size = Bk.estimate_iso_size(vol_info, Bk.FNTYPE_JOLIET);
-            iso_size_label.label = format_size(iso_size);
         });
     }
 
@@ -803,7 +869,8 @@ public class IsoMaster : Adw.Application {
 
         var dialog = new Gtk.FileDialog();
         dialog.title = _t("Extract to...");
-        dialog.initial_file = GLib.File.new_for_path(item.name);
+        dialog.initial_file = GLib.File.new_for_path(
+            Path.build_filename(fs_path_entry.text, item.name));
 
         dialog.save.begin(main_window, null, (obj, res) => {
             try {
@@ -811,9 +878,15 @@ public class IsoMaster : Adw.Application {
                 if (file != null) {
                     int extract_result = 0;
                     string src_path = item.path;
+                    // bk_extract() takes a destination *directory*; handing it
+                    // the file path from the save dialog made every extract
+                    // fail with BKERROR_OPEN_WRITE_FAILED. Split the path and
+                    // let bk_extract_as() apply the name the user chose.
                     string dest_path = file.get_path();
+                    string dest_dir = Path.get_dirname(dest_path);
+                    string dest_name = Path.get_basename(dest_path);
                     run_bk_operation(_t("Extracting..."), () => {
-                        extract_result = Bk.extract(vol_info, src_path, dest_path, false, operation_progress_cb);
+                        extract_result = Bk.extract_as(vol_info, src_path, dest_dir, dest_name, false, operation_progress_cb);
                     }, () => {
                         if (extract_result < 0) {
                             show_error(_t("Failed to extract: %s"), Bk.get_error_string(extract_result));
@@ -933,8 +1006,10 @@ public class IsoMaster : Adw.Application {
         dialog.response.connect((response) => {
             if (response == "rename" && entry.text.length > 0) {
                 string old_path = item.path;
-                string new_path = Path.get_dirname(old_path) + "/" + entry.text;
-                int result = Bk.rename(vol_info, old_path, new_path);
+                // bk_rename() takes the new *name*; passing a path made every
+                // rename fail with BKERROR_NAME_INVALID_CHAR (the path
+                // contains '/').
+                int result = Bk.rename(vol_info, old_path, entry.text);
                 if (result < 0) {
                     show_error(_t("Failed to rename: %s"), Bk.get_error_string(result));
                 } else {
@@ -956,7 +1031,7 @@ public class IsoMaster : Adw.Application {
 
         string? vol_name = Bk.get_volume_name(vol_info);
         string? publisher = Bk.get_publisher(vol_info);
-        int64 iso_size = Bk.estimate_iso_size(vol_info, Bk.FNTYPE_JOLIET);
+        int64 iso_size = Bk.estimate_iso_size(vol_info, iso_filename_type);
 
         var dialog = new Adw.AlertDialog(_t("Volume Properties"), null);
         dialog.body = _t("Volume Name: %s\nPublisher: %s\nEstimated Size: %s").printf(
@@ -1032,7 +1107,7 @@ public class IsoMaster : Adw.Application {
 
         var item = selection.selected_item as FileItem;
         if (item == null || item.is_dir) {
-            show_error("Please select a file (not a directory)");
+            show_error(_t("Please select a file (not a directory)"));
             return;
         }
 
@@ -1067,7 +1142,8 @@ public class IsoMaster : Adw.Application {
 
         var dialog = new Gtk.FileDialog();
         dialog.title = _t("Extract Boot Record to...");
-        dialog.initial_file = GLib.File.new_for_path("boot.img");
+        dialog.initial_file = GLib.File.new_for_path(
+            Path.build_filename(fs_path_entry.text, "boot.img"));
 
         dialog.save.begin(main_window, null, (obj, res) => {
             try {
@@ -1078,7 +1154,7 @@ public class IsoMaster : Adw.Application {
                     }
                     int result = Bk.extract_boot_record(vol_info, file.get_path(), 0644);
                     if (result < 0) {
-                        show_error("Failed to extract boot record: %s", Bk.get_error_string(result));
+                        show_error(_t("Failed to extract boot record: %s"), Bk.get_error_string(result));
                     }
                 }
             } catch (Error e) {
@@ -1126,18 +1202,29 @@ public class IsoMaster : Adw.Application {
                     continue;
                 }
                 var full_path = Path.build_filename(path, name);
-                var file_info = File.new_for_path(full_path).query_info("standard::*", 0);
                 var item = new FileItem();
                 item.name = name;
                 item.path = full_path;
-                item.is_dir = file_info.get_file_type() == FileType.DIRECTORY;
-                item.icon_name = item.is_dir ? "folder" : "text-x-generic";
-                item.size = file_info.get_size();
+                item.is_dir = false;
+                item.icon_name = "text-x-generic";
+                item.size = 0;
+                try {
+                    var file_info = File.new_for_path(full_path).query_info("standard::*", 0);
+                    item.is_dir = file_info.get_file_type() == FileType.DIRECTORY;
+                    item.icon_name = item.is_dir ? "folder" : "text-x-generic";
+                    item.size = file_info.get_size();
+                } catch (Error e) {
+                    // One unreadable entry (dangling symlink, EACCES) used to
+                    // abort the whole listing because the query ran outside
+                    // the loop's own error scope: skip it and keep going.
+                }
                 fs_store.append(item);
             }
         } catch (Error e) {
-            // Directory read error
+            show_error(_t("Cannot read directory %s: %s"), path, e.message);
         }
+
+        sort_store(fs_store);
     }
 
     private void refresh_iso_view() {
@@ -1155,6 +1242,8 @@ public class IsoMaster : Adw.Application {
         Bk.BkDir* dir = null;
         int result = Bk.get_dir_from_string(vol_info, current_iso_path, out dir);
         if (result < 0 || dir == null) {
+            show_error(_t("Failed to open directory %s: %s"),
+                       current_iso_path, Bk.get_error_string(result));
             return;
         }
 
@@ -1182,6 +1271,27 @@ public class IsoMaster : Adw.Application {
             iso_store.append(item);
             child = child->next;
         }
+
+        sort_store(iso_store);
+        iso_size_label.label = format_size(
+            Bk.estimate_iso_size(vol_info, iso_filename_type));
+    }
+
+    // Apply the View menu sort settings to a browser store. The stateful
+    // actions refreshed the views but nothing ever reordered them, so
+    // "Sort Directories First" / "Case Sensitive Sort" had no effect.
+    private void sort_store(GLib.ListStore store) {
+        store.sort((a, b) => {
+            var fa = (FileItem) a;
+            var fb = (FileItem) b;
+            if (settings.sort_dirs_first && fa.is_dir != fb.is_dir) {
+                return fa.is_dir ? -1 : 1;
+            }
+            if (settings.case_sensitive_sort) {
+                return strcmp(fa.name, fb.name);
+            }
+            return strcmp(fa.name.down(), fb.name.down());
+        });
     }
 
     private void fs_go_up() {
@@ -1206,8 +1316,12 @@ public class IsoMaster : Adw.Application {
 
     private void iso_navigate_to(string path) {
         current_iso_path = path;
-        // bk_get_dir_from_string requires a trailing slash, otherwise it
-        // returns BKERROR_MISFORMED_PATH and the folder shows as empty
+        // bk_get_dir_from_string requires an absolute path with a trailing
+        // slash; anything else returns BKERROR_MISFORMED_PATH and the folder
+        // silently showed up empty.
+        if (!current_iso_path.has_prefix("/")) {
+            current_iso_path = "/" + current_iso_path;
+        }
         if (!current_iso_path.has_suffix("/")) {
             current_iso_path += "/";
         }
@@ -1384,7 +1498,10 @@ public class IsoMaster : Adw.Application {
 
         int extract_result = 0;
         run_bk_operation(_t("Extracting file..."), () => {
-            extract_result = Bk.extract(vol_info, iso_item_path, temp_path, false, null);
+            // destDir is a directory: bk_extract() creates temp_dir/<name>
+            // itself, which is exactly temp_path. Passing temp_path made both
+            // "edit file" and "view file" fail with BKERROR_OPEN_WRITE_FAILED.
+            extract_result = Bk.extract(vol_info, iso_item_path, temp_dir, false, null);
         }, () => {
             if (extract_result < 0) {
                 show_error(_t("Failed to extract: %s"), Bk.get_error_string(extract_result));
@@ -1442,7 +1559,10 @@ public class IsoMaster : Adw.Application {
 
         int extract_result = 0;
         run_bk_operation(_t("Extracting file..."), () => {
-            extract_result = Bk.extract(vol_info, iso_item_path, temp_path, false, null);
+            // destDir is a directory: bk_extract() creates temp_dir/<name>
+            // itself, which is exactly temp_path. Passing temp_path made both
+            // "edit file" and "view file" fail with BKERROR_OPEN_WRITE_FAILED.
+            extract_result = Bk.extract(vol_info, iso_item_path, temp_dir, false, null);
         }, () => {
             if (extract_result < 0) {
                 show_error(_t("Failed to extract: %s"), Bk.get_error_string(extract_result));
@@ -1778,7 +1898,9 @@ public class IsoMaster : Adw.Application {
 public static int main(string[] args) {
     // Initialize gettext
     GLib.Intl.setlocale(GLib.LocaleCategory.ALL, "");
-    GLib.Intl.bindtextdomain(GETTEXT_PACKAGE, "/usr/share/locale");
+    // LOCALEDIR comes from Makefile.vala; the hardcoded /usr/share/locale
+    // meant translations were never found for the default PREFIX=/usr/local.
+    GLib.Intl.bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
     GLib.Intl.bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
     GLib.Intl.textdomain(GETTEXT_PACKAGE);
 

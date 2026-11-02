@@ -4,11 +4,11 @@
 
 // Human-readable size string (uses the same thresholds as before)
 public string format_size(int64 size) {
-    if (size > 1073741824) {
+    if (size >= 1073741824) {
         return "%.1f GB".printf((double)size / 1073741824);
-    } else if (size > 1048576) {
+    } else if (size >= 1048576) {
         return "%.1f MB".printf((double)size / 1048576);
-    } else if (size > 1024) {
+    } else if (size >= 1024) {
         return "%.1f KB".printf((double)size / 1024);
     } else {
         return size.to_string() + " B";
