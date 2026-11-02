@@ -3,16 +3,13 @@
 
 int main(void)
 {
-  short myshort;
-  int myint;
-  long mylong;
-  long long mylonglong;
-printf("%X\n", 0xAABBCCDD);
+  printf("%X\n", 0xAABBCCDD);
   printf("variable sizes:\n");
-  printf("short: %d\n", sizeof(short));
-  printf("int: %d\n", sizeof(int));
-  printf("long: %d\n", sizeof(long));
-  printf("long long: %d\n", sizeof(long long));
+  /* sizeof yields size_t: %d reads an int-sized argument and is undefined */
+  printf("short: %zu\n", sizeof(short));
+  printf("int: %zu\n", sizeof(int));
+  printf("long: %zu\n", sizeof(long));
+  printf("long long: %zu\n", sizeof(long long));
 
   return 0;
 }
