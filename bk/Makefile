@@ -5,6 +5,11 @@ OBJECTS = bkRead7x.o bkAdd.o bkDelete.o bkExtract.o bkRead.o bkPath.o bkMangle.o
 # -DDEBUG and -g only used during development
 CFLAGS  += -Wall -pedantic -std=gnu99 -Wundef -Wcast-align -W -Wpointer-arith -Wwrite-strings -Wno-unused-parameter
 
+# Additional flags (e.g. sanitizers) that must not replace the warnings above.
+# A CFLAGS=... on the make command line would override them entirely, so
+# callers such as the ASan CI job append through this variable instead.
+CFLAGS  += $(EXTRA_CFLAGS)
+
 # the _FILE_OFFSET_BITS=64 is to enable stat() for large files
 CPPFLAGS = -D_FILE_OFFSET_BITS=64
 

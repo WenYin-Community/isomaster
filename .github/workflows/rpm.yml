@@ -33,13 +33,13 @@ jobs:
             arch: aarch64
 
     name: Build on ${{ matrix.name }}
-    runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     container:
       image: ${{ matrix.container }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install build dependencies
         run: |
@@ -61,7 +61,14 @@ jobs:
             rpm-build \
             rpmdevtools
 
-      - name: Create source tarball
+      # Built while the working tree is still pristine: release.sh refuses to
+      # run otherwise. One leg is enough; every leg would upload the same
+      # bytes under a conflicting artifact name.
+      - name: Create release source tarball
+        if: matrix.name == 'Fedora 44 x86_64'
+        run: OUT_DIR=dist ./release.sh "$(grep '^Version:' scripts/gtk4/isomaster-gtk4.spec | awk '{print $2}')"
+
+      - name: Create RPM source tarball
         run: |
           VERSION=$(grep '^Version:' scripts/gtk4/isomaster-gtk4.spec | awk '{print $2}')
           PKG_NAME="isomaster-gtk4-${VERSION}"
@@ -70,6 +77,7 @@ jobs:
             --transform "s,^\.,${PKG_NAME}," \
             --exclude='.git' \
             --exclude='.github' \
+            --exclude='dist' \
             --exclude='*.o' \
             --exclude='*.a' \
             --exclude='*.mo' \
@@ -85,6 +93,12 @@ jobs:
             --exclude='test_bk' \
             .
 
+      # Build the Vala application before running the tests: tests/run_tests.sh
+      # verifies the generated C, which only exists after this step. Without it
+      # the owned-delegate regression check silently skipped in CI.
+      - name: Build the application
+        run: make -f Makefile.vala
+
       - name: Run bk unit tests
         run: |
           cd tests && ./run_tests.sh
@@ -98,7 +112,9 @@ jobs:
           fi
           dnf install -y libasan
           make -C bk clean
-          make -C bk CFLAGS+="-fsanitize=address -g"
+          # EXTRA_CFLAGS is appended to the project flags in bk/Makefile;
+          # CFLAGS on the make command line would replace them.
+          make -C bk EXTRA_CFLAGS="-fsanitize=address -g"
           cd tests
           gcc -fsanitize=address -g -Wall -I../bk test_bk.c ../bk/bk.a -o test_bk_asan
           ASAN_OPTIONS=detect_leaks=0 ./test_bk_asan
@@ -107,12 +123,28 @@ jobs:
 
       - name: Static analysis (cppcheck, informational)
         run: |
-          dnf install -y --disablerepo=openh264 cppcheck || true
+          # Informational: findings are reported, never fatal. The previous
+          # version of this step silently did nothing - it asked dnf to
+          # --disablerepo a repository id that does not exist (the file is
+          # fedora-cisco-openh264.repo), dnf failed, and the failure was
+          # swallowed by '|| true', so cppcheck was never installed.
+          if ! command -v cppcheck >/dev/null 2>&1; then
+            dnf install -y cppcheck >/dev/null 2>&1 || true
+          fi
+          if ! command -v cppcheck >/dev/null 2>&1; then
+            echo "::warning::cppcheck is unavailable on this distribution; static analysis skipped"
+            exit 0
+          fi
           cppcheck --enable=warning,performance,portability \
-            --error-exitcode=1 \
             --suppress=missingIncludeSystem \
             --suppress=unknownMacro \
-            --quiet bk/ || true
+            --template='{file}:{line}: {severity}: {message}' \
+            --quiet bk/ 2>&1 | tee /tmp/cppcheck.txt
+          if [ -s /tmp/cppcheck.txt ]; then
+            echo "::warning::cppcheck reported findings (informational, not fatal)"
+          else
+            echo "cppcheck: no findings"
+          fi
 
       - name: Build RPM packages
         run: |
@@ -121,7 +153,7 @@ jobs:
             scripts/gtk4/isomaster-gtk4.spec
 
       - name: Upload RPM artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rpms-${{ matrix.name }}
           path: |
@@ -129,22 +161,49 @@ jobs:
             /tmp/rpmbuild/SRPMS/**/*.rpm
           retention-days: 7
 
+      - name: Upload source tarball artifact
+        if: matrix.name == 'Fedora 44 x86_64'
+        uses: actions/upload-artifact@v7
+        with:
+          name: source-tarball
+          path: dist/*.tar.bz2
+          retention-days: 7
+
   release:
     needs: build-rpm
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # Guards against tagging a version that was never actually packaged:
+      # the RPM artifacts and the source tarball are named after the spec.
+      - name: Verify the tag matches the packaged version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          SPEC_VERSION=$(grep '^Version:' scripts/gtk4/isomaster-gtk4.spec | awk '{print $2}')
+          MAKE_VERSION=$(grep '^VERSION =' Makefile.vala | awk '{print $3}')
+          echo "tag=${TAG_VERSION} spec=${SPEC_VERSION} makefile=${MAKE_VERSION}"
+          if [ "${TAG_VERSION}" != "${SPEC_VERSION}" ] || [ "${TAG_VERSION}" != "${MAKE_VERSION}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match spec ${SPEC_VERSION} / Makefile.vala ${MAKE_VERSION}"
+            exit 1
+          fi
+
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: true
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
-          files: artifacts/**/*.rpm
+          files: |
+            artifacts/**/*.rpm
+            artifacts/**/*.tar.bz2
+          fail_on_unmatched_files: true

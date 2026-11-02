@@ -21,6 +21,9 @@ iconpath.h
 
 # Test binary
 tests/test_bk
+
+# Release tarballs built by release.sh with OUT_DIR=dist
+dist/
 version.inc
 settings.c
 file-item.c
