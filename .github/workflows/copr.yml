@@ -1,0 +1,89 @@
+name: Publish to COPR
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  COPR_PROJECT: ruojiner/isomaster-gtk4
+
+jobs:
+  copr:
+    runs-on: ubuntu-24.04
+    container: fedora:44
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install build tools
+        run: |
+          if [ -f /etc/yum.repos.d/fedora-cisco-openh264.repo ]; then
+            sed -i 's/^enabled=.*/enabled=0/' /etc/yum.repos.d/fedora-cisco-openh264.repo
+          fi
+          dnf install -y copr-cli rpm-build tar bzip2
+
+      # Tag pushes must point at a version that the spec and the Makefile
+      # actually package; otherwise COPR would publish a mislabelled build.
+      - name: Verify tag matches the packaged version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          SPEC_VERSION=$(grep '^Version:' scripts/gtk4/isomaster-gtk4.spec | awk '{print $2}')
+          MAKE_VERSION=$(grep '^VERSION =' Makefile.vala | awk '{print $3}')
+          echo "tag=${TAG_VERSION} spec=${SPEC_VERSION} makefile=${MAKE_VERSION}"
+          if [ "${TAG_VERSION}" != "${SPEC_VERSION}" ] || [ "${TAG_VERSION}" != "${MAKE_VERSION}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match spec ${SPEC_VERSION} / Makefile.vala ${MAKE_VERSION}"
+            exit 1
+          fi
+
+      - name: Create source tarball and SRPM
+        run: |
+          VERSION=$(grep '^Version:' scripts/gtk4/isomaster-gtk4.spec | awk '{print $2}')
+          PKG_NAME="isomaster-gtk4-${VERSION}"
+          TOPDIR=/tmp/rpmbuild
+          mkdir -p "${TOPDIR}"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          tar cjf "${TOPDIR}/SOURCES/${PKG_NAME}.tar.bz2" \
+            --transform "s,^\.,${PKG_NAME}," \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='dist' \
+            --exclude='*.o' \
+            --exclude='*.a' \
+            --exclude='*.mo' \
+            --exclude='isomaster.c' \
+            --exclude='settings.c' \
+            --exclude='file-item.c' \
+            --exclude='iso-operations.c' \
+            --exclude='util.c' \
+            --exclude='isomaster' \
+            --exclude='iconpath.c' \
+            --exclude='iconpath.h' \
+            --exclude='version.inc' \
+            --exclude='test_bk' \
+            .
+          rpmbuild -bs \
+            --define "_topdir ${TOPDIR}" \
+            scripts/gtk4/isomaster-gtk4.spec
+
+      - name: Configure COPR credentials
+        env:
+          COPR_LOGIN: ${{ secrets.COPR_LOGIN }}
+          COPR_USERNAME: ${{ secrets.COPR_USERNAME }}
+          COPR_TOKEN: ${{ secrets.COPR_TOKEN }}
+        run: |
+          if [ -z "${COPR_LOGIN}" ] || [ -z "${COPR_USERNAME}" ] || [ -z "${COPR_TOKEN}" ]; then
+            echo "::error::COPR_LOGIN, COPR_USERNAME and COPR_TOKEN secrets must be set."
+            exit 1
+          fi
+          mkdir -p ~/.config
+          printf '[copr-cli]\nlogin = %s\nusername = %s\ntoken = %s\ncopr_url = https://copr.fedorainfracloud.org\n' \
+            "${COPR_LOGIN}" "${COPR_USERNAME}" "${COPR_TOKEN}" > ~/.config/copr
+          chmod 600 ~/.config/copr
+
+      # Waits for the COPR build, so a failed chroot fails this job.
+      - name: Submit build to COPR
+        run: |
+          SRPM=$(ls /tmp/rpmbuild/SRPMS/*.src.rpm)
+          copr-cli build "${COPR_PROJECT}" "${SRPM}"
